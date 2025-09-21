@@ -8,26 +8,32 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 315 100% 98%;
+    --foreground: 315 10% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 315 10% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 315 10% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 330 81% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 315 25% 95%;
+    --secondary-foreground: 315 10% 15%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 315 25% 95%;
+    --muted-foreground: 315 10% 55%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 315 60% 85%;
+    --accent-foreground: 315 10% 15%;
+
+    --romantic: 330 100% 95%;
+    --romantic-foreground: 330 81% 30%;
+    
+    --gradient-primary: linear-gradient(135deg, hsl(330 81% 60%), hsl(315 81% 70%));
+    --gradient-romantic: linear-gradient(180deg, hsl(330 100% 98%), hsl(315 100% 96%));
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
@@ -56,26 +62,32 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 315 50% 8%;
+    --foreground: 315 20% 90%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 315 50% 10%;
+    --card-foreground: 315 20% 90%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 315 50% 10%;
+    --popover-foreground: 315 20% 90%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 330 81% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 315 30% 15%;
+    --secondary-foreground: 315 20% 90%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 315 30% 15%;
+    --muted-foreground: 315 20% 65%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 315 30% 20%;
+    --accent-foreground: 315 20% 90%;
+
+    --romantic: 330 80% 15%;
+    --romantic-foreground: 330 60% 80%;
+    
+    --gradient-primary: linear-gradient(135deg, hsl(330 81% 60%), hsl(315 81% 70%));
+    --gradient-romantic: linear-gradient(180deg, hsl(330 50% 12%), hsl(315 50% 10%));
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
