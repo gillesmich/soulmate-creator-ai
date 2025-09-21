@@ -73,8 +73,26 @@ const Chat = () => {
 
   const connect = async () => {
     try {
-      // Request microphone permission
-      await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Check if browser supports getUserMedia
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Your browser does not support audio recording');
+      }
+
+      // Request microphone permission first with better error handling
+      console.log('Requesting microphone permission...');
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          sampleRate: 24000,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        } 
+      });
+      
+      // Stop the test stream immediately - we just needed permission
+      stream.getTracks().forEach(track => track.stop());
+      console.log('Microphone permission granted');
       
       // Connect to WebSocket - using the correct format for Supabase edge functions
       const wsUrl = `wss://edisqdyywdfcwxrnewqw.supabase.co/functions/v1/realtime-voice-chat`;
@@ -180,9 +198,23 @@ const Chat = () => {
 
     } catch (error) {
       console.error('Error connecting:', error);
+      let errorMessage = "Failed to connect to voice chat. Please try again.";
+      
+      if (error instanceof Error) {
+        if (error.name === 'NotAllowedError') {
+          errorMessage = "Microphone access denied. Please allow microphone access in your browser settings and try again.";
+        } else if (error.name === 'NotFoundError') {
+          errorMessage = "No microphone found. Please connect a microphone and try again.";
+        } else if (error.name === 'NotSupportedError') {
+          errorMessage = "Your browser doesn't support audio recording. Please use a modern browser.";
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
-        title: "Microphone Error",
-        description: "Please allow microphone access to use voice chat",
+        title: "Connection Error",
+        description: errorMessage,
         variant: "destructive",
       });
     }

@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Heart, MessageCircle, Sparkles, RefreshCw } from 'lucide-react';
+import { Heart, MessageCircle, Sparkles, RefreshCw, Save } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import SaveImageDialog from '@/components/SaveImageDialog';
 
 interface CharacterOptions {
   hairColor: string;
@@ -32,6 +33,7 @@ const Customize = () => {
   });
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
 
   const options = {
     hairColor: ['blonde', 'brunette', 'black', 'red', 'pink'],
@@ -162,10 +164,19 @@ const Customize = () => {
                         onClick={generatePhoto} 
                         variant="outline" 
                         size="sm"
-                        className="hover:bg-accent"
+                        className="hover:bg-accent mr-2"
                       >
                         <RefreshCw className="h-4 w-4 mr-2" />
                         Generate New Photo
+                      </Button>
+                      <Button 
+                        onClick={() => setShowSaveDialog(true)} 
+                        variant="outline" 
+                        size="sm"
+                        className="hover:bg-accent"
+                      >
+                        <Save className="h-4 w-4 mr-2" />
+                        Save Image
                       </Button>
                     </div>
                   ) : (
@@ -206,6 +217,13 @@ const Customize = () => {
           </div>
         </div>
       </div>
+
+      <SaveImageDialog 
+        isOpen={showSaveDialog}
+        onClose={() => setShowSaveDialog(false)}
+        imageUrl={generatedImage || ''}
+        characterData={character}
+      />
     </div>
   );
 };
