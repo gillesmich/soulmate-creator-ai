@@ -7,6 +7,7 @@ import { ArrowLeft, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AudioRecorder, encodeAudioForAPI } from '@/utils/AudioRecorder';
 import { playAudioData } from '@/utils/AudioPlayer';
+import LipSyncAvatar from '@/components/LipSyncAvatar';
 
 interface Message {
   id: string;
@@ -273,10 +274,11 @@ const Chat = () => {
               </Button>
               
               <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10 border-2 border-primary/20">
-                  <AvatarImage src={character.image} alt="AI Girlfriend" />
-                  <AvatarFallback>AI</AvatarFallback>
-                </Avatar>
+                <LipSyncAvatar 
+                  imageUrl={character.image} 
+                  isSpeaking={isSpeaking}
+                  size="medium"
+                />
                 <div>
                   <h1 className="font-semibold text-romantic-foreground">Your AI Girlfriend</h1>
                   <p className="text-sm text-muted-foreground capitalize">
