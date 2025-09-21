@@ -55,6 +55,7 @@ const Customize = () => {
 
       if (error) throw error;
 
+      console.log('Photo generation response:', data);
       setGeneratedImage(data.image);
       toast({
         title: "Photo Generated!",
@@ -148,6 +149,11 @@ const Customize = () => {
                         src={generatedImage} 
                         alt="Your AI Girlfriend" 
                         className="w-full max-w-sm rounded-lg shadow-lg"
+                        onError={(e) => {
+                          console.error('Image load error:', e);
+                          console.log('Image src:', generatedImage);
+                        }}
+                        onLoad={() => console.log('Image loaded successfully')}
                       />
                       <Button 
                         onClick={generatePhoto} 
