@@ -15,6 +15,7 @@ interface CharacterOptions {
   personality: string;
   outfit: string;
   eyeColor: string;
+  age: string;
 }
 
 const Customize = () => {
@@ -26,7 +27,8 @@ const Customize = () => {
     bodyType: 'slim',
     personality: 'sweet',
     outfit: 'casual',
-    eyeColor: 'blue'
+    eyeColor: 'blue',
+    age: 'medium age'
   });
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -37,7 +39,8 @@ const Customize = () => {
     bodyType: ['slim', 'curvy', 'athletic', 'petite'],
     personality: ['sweet', 'playful', 'mysterious', 'caring', 'flirty'],
     outfit: ['casual', 'elegant', 'sporty', 'cute', 'sexy'],
-    eyeColor: ['blue', 'brown', 'green', 'hazel', 'gray']
+    eyeColor: ['blue', 'brown', 'green', 'hazel', 'gray'],
+    age: ['teen', 'medium age']
   };
 
   const updateCharacter = (key: keyof CharacterOptions, value: string) => {

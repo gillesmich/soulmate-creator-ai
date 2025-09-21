@@ -277,7 +277,7 @@ const Chat = () => {
                 <LipSyncAvatar 
                   imageUrl={character.image} 
                   isSpeaking={isSpeaking}
-                  size="medium"
+                  size="large"
                 />
                 <div>
                   <h1 className="font-semibold text-romantic-foreground">Your AI Girlfriend</h1>
