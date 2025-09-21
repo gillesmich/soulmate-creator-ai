@@ -52,10 +52,17 @@ serve(async (req) => {
     // gpt-image-1 returns base64 directly, no need to extract from b64_json
     const imageUrl = data.data[0].url;
     
-    // Convert URL to base64
+    // Convert URL to base64 efficiently to avoid stack overflow
     const imageResponse = await fetch(imageUrl);
     const imageArrayBuffer = await imageResponse.arrayBuffer();
-    const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageArrayBuffer)));
+    
+    // Convert ArrayBuffer to base64 without spreading the array to avoid stack overflow
+    const uint8Array = new Uint8Array(imageArrayBuffer);
+    let binaryString = '';
+    for (let i = 0; i < uint8Array.length; i++) {
+      binaryString += String.fromCharCode(uint8Array[i]);
+    }
+    const base64Image = btoa(binaryString);
 
     console.log('Image generated successfully');
 
