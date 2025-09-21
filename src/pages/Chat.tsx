@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Send, Heart, Settings } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ArrowLeft, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { AudioRecorder, encodeAudioForAPI } from '@/utils/AudioRecorder';
+import { playAudioData } from '@/utils/AudioPlayer';
 
 interface Message {
   id: string;
@@ -27,196 +27,359 @@ interface CharacterOptions {
 
 const Chat = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
-  const [inputMessage, setInputMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [character, setCharacter] = useState<CharacterOptions | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  
+  const wsRef = useRef<WebSocket | null>(null);
+  const audioRecorderRef = useRef<AudioRecorder | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   useEffect(() => {
+    // Load character from localStorage
     const savedCharacter = localStorage.getItem('girlfriendCharacter');
     if (savedCharacter) {
       setCharacter(JSON.parse(savedCharacter));
     } else {
-      navigate('/');
+      navigate('/customize');
+      return;
     }
 
-    // Welcome message
-    setMessages([{
-      id: '1',
-      content: "Hi there! I'm so excited to chat with you! 💕 How are you feeling today?",
-      sender: 'ai',
-      timestamp: new Date()
-    }]);
+    // Initialize audio context
+    audioContextRef.current = new AudioContext();
+
+    return () => {
+      disconnect();
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+    };
   }, [navigate]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    scrollToBottom();
   }, [messages]);
 
-  const sendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) return;
+  const connect = async () => {
+    try {
+      // Request microphone permission
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      // Connect to WebSocket
+      const wsUrl = `wss://edisqdyywdfcwxrnewqw.functions.supabase.co/functions/v1/realtime-voice-chat`;
+      wsRef.current = new WebSocket(wsUrl);
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      content: inputMessage,
-      sender: 'user',
-      timestamp: new Date()
-    };
+      wsRef.current.onopen = () => {
+        console.log('Connected to voice chat');
+        setIsConnected(true);
+        toast({
+          title: "Connected",
+          description: "Voice chat is ready!",
+        });
+      };
 
-    setMessages(prev => [...prev, userMessage]);
-    setInputMessage('');
-    setIsLoading(true);
+      wsRef.current.onmessage = async (event) => {
+        const data = JSON.parse(event.data);
+        console.log('Received message:', data.type);
+
+        if (data.type === 'response.audio.delta') {
+          if (!isMuted && audioContextRef.current) {
+            // Convert base64 to Uint8Array
+            const binaryString = atob(data.delta);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+            }
+            await playAudioData(audioContextRef.current, bytes);
+          }
+          setIsSpeaking(true);
+        } else if (data.type === 'response.audio.done') {
+          setIsSpeaking(false);
+        } else if (data.type === 'conversation.item.input_audio_transcription.completed') {
+          // Add user's transcribed message
+          if (data.transcript) {
+            const userMessage: Message = {
+              id: Date.now().toString(),
+              content: data.transcript,
+              sender: 'user',
+              timestamp: new Date()
+            };
+            setMessages(prev => [...prev, userMessage]);
+          }
+        } else if (data.type === 'response.audio_transcript.delta') {
+          // Handle AI response transcript (for display)
+          setMessages(prev => {
+            const lastMessage = prev[prev.length - 1];
+            if (lastMessage && lastMessage.sender === 'ai' && lastMessage.id === 'current-ai-response') {
+              return [
+                ...prev.slice(0, -1),
+                { ...lastMessage, content: lastMessage.content + data.delta }
+              ];
+            } else {
+              return [
+                ...prev,
+                {
+                  id: 'current-ai-response',
+                  content: data.delta,
+                  sender: 'ai',
+                  timestamp: new Date()
+                }
+              ];
+            }
+          });
+        } else if (data.type === 'response.audio_transcript.done') {
+          // Finalize AI response
+          setMessages(prev => {
+            const lastMessage = prev[prev.length - 1];
+            if (lastMessage && lastMessage.id === 'current-ai-response') {
+              return [
+                ...prev.slice(0, -1),
+                { ...lastMessage, id: Date.now().toString() }
+              ];
+            }
+            return prev;
+          });
+        } else if (data.type === 'error') {
+          toast({
+            title: "Connection Error",
+            description: data.message,
+            variant: "destructive",
+          });
+        }
+      };
+
+      wsRef.current.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        toast({
+          title: "Connection Error",
+          description: "Failed to connect to voice chat",
+          variant: "destructive",
+        });
+      };
+
+      wsRef.current.onclose = () => {
+        console.log('WebSocket closed');
+        setIsConnected(false);
+        setIsRecording(false);
+        setIsSpeaking(false);
+      };
+
+    } catch (error) {
+      console.error('Error connecting:', error);
+      toast({
+        title: "Microphone Error",
+        description: "Please allow microphone access to use voice chat",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const disconnect = () => {
+    if (audioRecorderRef.current) {
+      audioRecorderRef.current.stop();
+      audioRecorderRef.current = null;
+    }
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    setIsConnected(false);
+    setIsRecording(false);
+    setIsSpeaking(false);
+  };
+
+  const startRecording = async () => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      toast({
+        title: "Not Connected",
+        description: "Please connect to voice chat first",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
-      // Call OpenAI through Supabase Edge Function
-      const { data, error } = await supabase.functions.invoke('chat-with-girlfriend', {
-        body: {
-          message: inputMessage,
-          character: character,
-          conversationHistory: messages.slice(-5) // Last 5 messages for context
+      audioRecorderRef.current = new AudioRecorder((audioData) => {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+          const encodedAudio = encodeAudioForAPI(audioData);
+          wsRef.current.send(JSON.stringify({
+            type: 'input_audio_buffer.append',
+            audio: encodedAudio
+          }));
         }
       });
 
-      if (error) throw error;
-
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: data.response || "I'm having trouble thinking of what to say right now... 😅",
-        sender: 'ai',
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, aiMessage]);
+      await audioRecorderRef.current.start();
+      setIsRecording(true);
     } catch (error) {
-      console.error('Error sending message:', error);
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: "Sorry, I'm having some connection issues right now. Can you try again? 🥺",
-        sender: 'ai',
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
+      console.error('Error starting recording:', error);
+      toast({
+        title: "Recording Error",
+        description: "Failed to start recording",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
+  const stopRecording = () => {
+    if (audioRecorderRef.current) {
+      audioRecorderRef.current.stop();
+      audioRecorderRef.current = null;
     }
+    setIsRecording(false);
+  };
+
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
   };
 
   if (!character) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-romantic via-background to-accent/20 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground mb-4">Loading your girlfriend...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-romantic via-background to-accent/20">
       {/* Header */}
-      <div className="bg-card/80 backdrop-blur-sm border-b border-primary/20 p-4">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/')}
-              className="hover:bg-accent"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            
-            <div className="flex items-center gap-3">
-              <Avatar className="border-2 border-primary/20 w-12 h-12">
-                <AvatarImage src={character.image || ""} />
-                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20 text-primary">
-                  💕
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <h1 className="font-semibold text-lg text-foreground">Your Girlfriend</h1>
-                <div className="flex gap-1 flex-wrap">
-                  <Badge variant="secondary" className="text-xs">{character.personality}</Badge>
-                  <Badge variant="secondary" className="text-xs">{character.hairColor}</Badge>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/')}
-            className="hover:bg-accent"
-          >
-            <Settings className="h-4 w-4 mr-2" />
-            Customize
-          </Button>
-        </div>
-      </div>
-
-      {/* Chat Messages */}
-      <div className="max-w-4xl mx-auto p-4 h-[calc(100vh-160px)] overflow-y-auto">
-        <div className="space-y-4">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
-                  message.sender === 'user'
-                    ? 'bg-primary text-primary-foreground ml-4'
-                    : 'bg-card border border-primary/10 mr-4'
-                }`}
+      <div className="border-b border-primary/10 bg-background/50 backdrop-blur-sm">
+        <div className="max-w-4xl mx-auto p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/')}
+                className="hover:bg-accent"
               >
-                <p className="text-sm">{message.content}</p>
-                <p className="text-xs opacity-70 mt-1">
-                  {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </p>
-              </div>
-            </div>
-          ))}
-          
-          {isLoading && (
-            <div className="flex justify-start">
-              <div className="bg-card border border-primary/10 rounded-2xl px-4 py-2 mr-4">
-                <div className="flex space-x-1">
-                  <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                  <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+              
+              <div className="flex items-center gap-3">
+                <Avatar className="h-10 w-10 border-2 border-primary/20">
+                  <AvatarImage src={character.image} alt="AI Girlfriend" />
+                  <AvatarFallback>AI</AvatarFallback>
+                </Avatar>
+                <div>
+                  <h1 className="font-semibold text-romantic-foreground">Your AI Girlfriend</h1>
+                  <p className="text-sm text-muted-foreground capitalize">
+                    {character.personality} • {character.hairColor} {character.hairStyle}
+                  </p>
                 </div>
               </div>
             </div>
-          )}
-          
-          <div ref={messagesEndRef} />
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleMute}
+                className="hover:bg-accent"
+              >
+                {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              </Button>
+              
+              {!isConnected ? (
+                <Button onClick={connect} className="bg-primary hover:bg-primary/90">
+                  Connect Voice
+                </Button>
+              ) : (
+                <Button onClick={disconnect} variant="outline">
+                  Disconnect
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Input Area */}
-      <div className="fixed bottom-0 left-0 right-0 bg-card/80 backdrop-blur-sm border-t border-primary/20 p-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex gap-2">
-            <Input
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Type your message..."
-              className="flex-1 border-primary/20 focus:border-primary"
-              disabled={isLoading}
-            />
-            <Button
-              onClick={sendMessage}
-              disabled={!inputMessage.trim() || isLoading}
-              className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
-            >
-              <Send className="h-4 w-4" />
-            </Button>
+      {/* Chat Area */}
+      <div className="max-w-4xl mx-auto p-4 h-[calc(100vh-200px)] flex flex-col">
+        <Card className="flex-1 border-primary/10">
+          <CardHeader>
+            <CardTitle className="text-center">
+              Voice Chat
+              {isSpeaking && (
+                <span className="ml-2 text-sm text-primary animate-pulse">
+                  🎤 Speaking...
+                </span>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 h-full overflow-y-auto">
+            {messages.length === 0 && isConnected && (
+              <div className="text-center text-muted-foreground py-8">
+                <p>Start talking to begin your conversation!</p>
+                <p className="text-sm mt-2">Hold the microphone button to speak</p>
+              </div>
+            )}
+            
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'} mb-4`}
+              >
+                <div
+                  className={`max-w-[70%] rounded-lg p-3 ${
+                    message.sender === 'user'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-accent text-accent-foreground'
+                  }`}
+                >
+                  <p className="text-sm">{message.content}</p>
+                  <p className="text-xs opacity-70 mt-1">
+                    {message.timestamp.toLocaleTimeString()}
+                  </p>
+                </div>
+              </div>
+            ))}
+            
+            <div ref={messagesEndRef} />
+          </CardContent>
+        </Card>
+
+        {/* Voice Controls */}
+        <div className="mt-4 flex justify-center">
+          <div className="flex items-center gap-4">
+            {isConnected && (
+              <Button
+                size="lg"
+                className={`rounded-full w-16 h-16 ${
+                  isRecording 
+                    ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse' 
+                    : 'bg-primary hover:bg-primary/90'
+                }`}
+                onMouseDown={startRecording}
+                onMouseUp={stopRecording}
+                onTouchStart={startRecording}
+                onTouchEnd={stopRecording}
+                disabled={!isConnected}
+              >
+                {isRecording ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
+              </Button>
+            )}
           </div>
         </div>
+        
+        {isConnected && (
+          <p className="text-center text-sm text-muted-foreground mt-2">
+            Hold the microphone button to speak
+          </p>
+        )}
       </div>
     </div>
   );
