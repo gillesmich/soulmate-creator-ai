@@ -313,21 +313,21 @@ const Chat = () => {
                 Back
               </Button>
               
-              <div className="flex items-center gap-3">
-                <LipSyncAvatar 
-                  imageUrl={character.image} 
-                  isSpeaking={isSpeaking}
-                  size="large"
-                  className="cursor-pointer"
-                  onClick={() => setShowLargeAvatar(true)}
-                />
-                <div>
-                  <h1 className="font-semibold text-romantic-foreground">Your AI Girlfriend</h1>
-                  <p className="text-sm text-muted-foreground capitalize">
-                    {character.personality} • {character.hairColor} {character.hairStyle}
-                  </p>
-                </div>
-              </div>
+          <div className="flex items-center gap-3">
+            <LipSyncAvatar 
+              imageUrl={character.image} 
+              isSpeaking={isSpeaking}
+              size="medium"
+              className="cursor-pointer"
+              onClick={() => setShowLargeAvatar(true)}
+            />
+            <div>
+              <h1 className="font-semibold text-romantic-foreground">Your AI Girlfriend</h1>
+              <p className="text-sm text-muted-foreground capitalize">
+                {character.personality} • {character.hairColor} {character.hairStyle}
+              </p>
+            </div>
+          </div>
             </div>
 
             <div className="flex items-center gap-2">
@@ -402,50 +402,57 @@ const Chat = () => {
         {/* Voice Controls */}
         <div className="mt-4 flex justify-center">
           <div className="flex items-center gap-4">
-            {isConnected && (
-              <Button
-                size="lg"
-                className={`rounded-full w-16 h-16 ${
-                  isRecording 
+            <Button
+              size="lg"
+              className={`rounded-full w-16 h-16 ${
+                !isConnected 
+                  ? 'bg-muted hover:bg-muted/80 cursor-not-allowed opacity-50' 
+                  : isRecording 
                     ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse' 
                     : 'bg-primary hover:bg-primary/90'
-                }`}
-                onMouseDown={startRecording}
-                onMouseUp={stopRecording}
-                onMouseLeave={stopRecording}
-                onTouchStart={startRecording}
-                onTouchEnd={stopRecording}
-                disabled={!isConnected}
-              >
-                <Mic className="h-6 w-6" />
-              </Button>
-            )}
+              }`}
+              onMouseDown={isConnected ? startRecording : undefined}
+              onMouseUp={isConnected ? stopRecording : undefined}
+              onMouseLeave={isConnected ? stopRecording : undefined}
+              onTouchStart={isConnected ? startRecording : undefined}
+              onTouchEnd={isConnected ? stopRecording : undefined}
+              disabled={!isConnected}
+              title={!isConnected ? "Connect to voice chat first" : "Hold to speak"}
+            >
+              {!isConnected ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
+            </Button>
           </div>
         </div>
         
-        {isConnected && (
-          <p className="text-center text-sm text-muted-foreground mt-2">
-            Hold the microphone button to speak
-          </p>
-        )}
+        <p className="text-center text-sm text-muted-foreground mt-2">
+          {!isConnected 
+            ? "Connect to voice chat to start speaking" 
+            : "Hold the microphone button to speak"
+          }
+        </p>
       </div>
 
       {/* Large Avatar Modal */}
       {showLargeAvatar && (
         <div 
-          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"
+          className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onClick={() => setShowLargeAvatar(false)}
         >
-          <div className="relative">
-            <LipSyncAvatar 
-              imageUrl={character.image} 
-              isSpeaking={isSpeaking}
-              size="large"
-              className="w-96 h-96"
-            />
+          <div className="relative max-w-[90vw] max-h-[90vh]">
+            <div className="w-[80vmin] h-[80vmin] max-w-[600px] max-h-[600px]">
+              <LipSyncAvatar 
+                imageUrl={character.image} 
+                isSpeaking={isSpeaking}
+                size="large"
+                className="w-full h-full"
+              />
+            </div>
             <button
-              onClick={() => setShowLargeAvatar(false)}
-              className="absolute top-4 right-4 text-white bg-black/50 rounded-full w-8 h-8 flex items-center justify-center hover:bg-black/70"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowLargeAvatar(false);
+              }}
+              className="absolute top-4 right-4 text-white bg-black/70 rounded-full w-10 h-10 flex items-center justify-center hover:bg-black/90 transition-colors"
             >
               ×
             </button>

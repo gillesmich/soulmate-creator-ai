@@ -1,0 +1,2 @@
+-- Enable the realtime-voice-chat edge function
+-- This will be created as a separate edge function file
