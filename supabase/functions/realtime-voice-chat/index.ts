@@ -35,15 +35,28 @@ serve(async (req) => {
   socket.onopen = () => {
     console.log("Client WebSocket connected");
     
-    // Connect to OpenAI Realtime API
-    openAISocket = new WebSocket("wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01", [
-      "realtime",
-      `openai-api-key.${openAIApiKey}`,
-      "openai-insecure-api-key"
-    ]);
+    // Connect to OpenAI Realtime API with proper authentication
+    try {
+      console.log("Attempting to connect to OpenAI Realtime API...");
+      console.log("Using API key:", openAIApiKey ? "Present" : "Missing");
+      
+      openAISocket = new WebSocket("wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01", [
+        "realtime",
+        `openai-api-key.${openAIApiKey}`,
+      ]);
+    } catch (error) {
+      console.error("Failed to create OpenAI WebSocket:", error);
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ 
+          type: 'error', 
+          message: 'Failed to initialize OpenAI connection' 
+        }));
+      }
+      return;
+    }
 
     openAISocket.onopen = () => {
-      console.log("Connected to OpenAI Realtime API");
+      console.log("Successfully connected to OpenAI Realtime API");
     };
 
     openAISocket.onmessage = (event) => {
@@ -97,9 +110,13 @@ serve(async (req) => {
       }
     };
 
-    openAISocket.onclose = () => {
-      console.log("OpenAI WebSocket closed");
+    openAISocket.onclose = (event) => {
+      console.log("OpenAI WebSocket closed. Code:", event.code, "Reason:", event.reason);
       if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ 
+          type: 'error', 
+          message: `OpenAI connection closed: ${event.reason || 'Unknown reason'}` 
+        }));
         socket.close();
       }
     };
@@ -110,6 +127,8 @@ serve(async (req) => {
     // Forward client messages to OpenAI
     if (openAISocket?.readyState === WebSocket.OPEN) {
       openAISocket.send(event.data);
+    } else {
+      console.log("OpenAI socket not ready, state:", openAISocket?.readyState);
     }
   };
 
