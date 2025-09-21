@@ -72,10 +72,7 @@ const Customize = () => {
     }
   };
 
-  // Auto-generate photo when component mounts
-  useEffect(() => {
-    generatePhoto();
-  }, []);
+  // Remove auto-generation on mount
 
   const startChat = () => {
     localStorage.setItem('girlfriendCharacter', JSON.stringify({ ...character, image: generatedImage }));
@@ -95,6 +92,40 @@ const Customize = () => {
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
+          {/* Customization Options */}
+          <div className="lg:col-span-2">
+            <div className="grid gap-6">
+              {Object.entries(options).map(([category, choices]) => (
+                <Card key={category} className="border-primary/10">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 capitalize">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      {category.replace(/([A-Z])/g, ' $1')}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {choices.map((choice) => (
+                        <Button
+                          key={choice}
+                          variant={character[category as keyof CharacterOptions] === choice ? "default" : "outline"}
+                          onClick={() => updateCharacter(category as keyof CharacterOptions, choice)}
+                          className={`capitalize ${
+                            character[category as keyof CharacterOptions] === choice 
+                              ? "bg-primary text-primary-foreground" 
+                              : "hover:bg-accent"
+                          }`}
+                        >
+                          {choice}
+                        </Button>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+
           {/* Character Preview */}
           <div className="lg:col-span-1">
             <Card className="sticky top-4 bg-gradient-to-b from-romantic to-card border-primary/20">
@@ -156,46 +187,13 @@ const Customize = () => {
                   onClick={startChat} 
                   className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
                   size="lg"
+                  disabled={!generatedImage}
                 >
                   <MessageCircle className="h-4 w-4 mr-2" />
                   Start Chatting
                 </Button>
               </CardContent>
             </Card>
-          </div>
-
-          {/* Customization Options */}
-          <div className="lg:col-span-2">
-            <div className="grid gap-6">
-              {Object.entries(options).map(([category, choices]) => (
-                <Card key={category} className="border-primary/10">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 capitalize">
-                      <Sparkles className="h-4 w-4 text-primary" />
-                      {category.replace(/([A-Z])/g, ' $1')}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {choices.map((choice) => (
-                        <Button
-                          key={choice}
-                          variant={character[category as keyof CharacterOptions] === choice ? "default" : "outline"}
-                          onClick={() => updateCharacter(category as keyof CharacterOptions, choice)}
-                          className={`capitalize ${
-                            character[category as keyof CharacterOptions] === choice 
-                              ? "bg-primary text-primary-foreground" 
-                              : "hover:bg-accent"
-                          }`}
-                        >
-                          {choice}
-                        </Button>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
           </div>
         </div>
       </div>
