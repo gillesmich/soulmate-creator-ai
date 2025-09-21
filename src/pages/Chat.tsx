@@ -239,6 +239,13 @@ const Chat = () => {
     if (audioRecorderRef.current) {
       audioRecorderRef.current.stop();
       audioRecorderRef.current = null;
+      
+      // Commit the audio buffer when stopping recording
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({
+          type: 'input_audio_buffer.commit'
+        }));
+      }
     }
     setIsRecording(false);
   };
@@ -373,11 +380,12 @@ const Chat = () => {
                 }`}
                 onMouseDown={startRecording}
                 onMouseUp={stopRecording}
+                onMouseLeave={stopRecording}
                 onTouchStart={startRecording}
                 onTouchEnd={stopRecording}
                 disabled={!isConnected}
               >
-                {isRecording ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
+                <Mic className="h-6 w-6" />
               </Button>
             )}
           </div>

@@ -40,9 +40,9 @@ serve(async (req) => {
       console.log("Attempting to connect to OpenAI Realtime API...");
       console.log("Using API key:", openAIApiKey ? "Present" : "Missing");
       
-      openAISocket = new WebSocket("wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01", [
+      openAISocket = new WebSocket("wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17", [
         "realtime",
-        `openai-api-key.${openAIApiKey}`,
+        `Bearer.${openAIApiKey}`,
       ]);
     } catch (error) {
       console.error("Failed to create OpenAI WebSocket:", error);
