@@ -37,8 +37,7 @@ serve(async (req) => {
         prompt: prompt,
         n: 1,
         size: '1024x1024',
-        quality: 'hd',
-        response_format: 'b64_json'
+        quality: 'hd'
       }),
     });
 
@@ -49,7 +48,14 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const base64Image = data.data[0].b64_json;
+    
+    // gpt-image-1 returns base64 directly, no need to extract from b64_json
+    const imageUrl = data.data[0].url;
+    
+    // Convert URL to base64
+    const imageResponse = await fetch(imageUrl);
+    const imageArrayBuffer = await imageResponse.arrayBuffer();
+    const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageArrayBuffer)));
 
     console.log('Image generated successfully');
 
