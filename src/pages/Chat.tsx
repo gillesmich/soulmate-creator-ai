@@ -35,6 +35,7 @@ const Chat = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [showLargeAvatar, setShowLargeAvatar] = useState(false);
   
   const wsRef = useRef<WebSocket | null>(null);
   const audioRecorderRef = useRef<AudioRecorder | null>(null);
@@ -278,6 +279,8 @@ const Chat = () => {
                   imageUrl={character.image} 
                   isSpeaking={isSpeaking}
                   size="large"
+                  className="cursor-pointer"
+                  onClick={() => setShowLargeAvatar(true)}
                 />
                 <div>
                   <h1 className="font-semibold text-romantic-foreground">Your AI Girlfriend</h1>
@@ -386,6 +389,29 @@ const Chat = () => {
           </p>
         )}
       </div>
+
+      {/* Large Avatar Modal */}
+      {showLargeAvatar && (
+        <div 
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"
+          onClick={() => setShowLargeAvatar(false)}
+        >
+          <div className="relative">
+            <LipSyncAvatar 
+              imageUrl={character.image} 
+              isSpeaking={isSpeaking}
+              size="large"
+              className="w-96 h-96"
+            />
+            <button
+              onClick={() => setShowLargeAvatar(false)}
+              className="absolute top-4 right-4 text-white bg-black/50 rounded-full w-8 h-8 flex items-center justify-center hover:bg-black/70"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

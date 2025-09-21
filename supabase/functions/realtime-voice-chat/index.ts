@@ -86,8 +86,7 @@ serve(async (req) => {
               prefix_padding_ms: 300,
               silence_duration_ms: 1000
             },
-            temperature: 0.8,
-            max_response_output_tokens: "inf"
+            max_response_output_tokens: 4096
           }
         };
         

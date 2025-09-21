@@ -5,13 +5,15 @@ interface LipSyncAvatarProps {
   isSpeaking: boolean;
   size?: 'small' | 'medium' | 'large';
   className?: string;
+  onClick?: () => void;
 }
 
 const LipSyncAvatar: React.FC<LipSyncAvatarProps> = ({ 
   imageUrl, 
   isSpeaking, 
   size = 'medium',
-  className = '' 
+  className = '',
+  onClick
 }) => {
   const sizeClasses = {
     small: 'w-16 h-16',
@@ -20,7 +22,7 @@ const LipSyncAvatar: React.FC<LipSyncAvatarProps> = ({
   };
 
   return (
-    <div className={`relative ${sizeClasses[size]} ${className}`}>
+    <div className={`relative ${sizeClasses[size]} ${className}`} onClick={onClick}>
       <div 
         className={`
           w-full h-full rounded-full overflow-hidden border-4 border-primary/20 
