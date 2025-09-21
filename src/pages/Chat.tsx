@@ -74,12 +74,13 @@ const Chat = () => {
       // Request microphone permission
       await navigator.mediaDevices.getUserMedia({ audio: true });
       
-      // Connect to WebSocket
-      const wsUrl = `wss://edisqdyywdfcwxrnewqw.functions.supabase.co/functions/v1/realtime-voice-chat`;
+      // Connect to WebSocket - using the correct format for Supabase edge functions
+      const wsUrl = `wss://edisqdyywdfcwxrnewqw.supabase.co/functions/v1/realtime-voice-chat`;
+      console.log('Connecting to WebSocket:', wsUrl);
       wsRef.current = new WebSocket(wsUrl);
 
       wsRef.current.onopen = () => {
-        console.log('Connected to voice chat');
+        console.log('Connected to voice chat WebSocket');
         setIsConnected(true);
         toast({
           title: "Connected",
@@ -158,10 +159,12 @@ const Chat = () => {
       };
 
       wsRef.current.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        console.error('WebSocket connection error:', error);
+        console.log('WebSocket URL was:', wsUrl);
+        console.log('WebSocket readyState:', wsRef.current?.readyState);
         toast({
           title: "Connection Error",
-          description: "Failed to connect to voice chat",
+          description: "Failed to connect to voice chat. Please try again.",
           variant: "destructive",
         });
       };
