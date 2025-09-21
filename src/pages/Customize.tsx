@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Heart, MessageCircle, Sparkles } from 'lucide-react';
+import { Heart, MessageCircle, Sparkles, RefreshCw } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface CharacterOptions {
   hairColor: string;
@@ -17,6 +19,7 @@ interface CharacterOptions {
 
 const Customize = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [character, setCharacter] = useState<CharacterOptions>({
     hairColor: 'blonde',
     hairStyle: 'long',
@@ -25,6 +28,8 @@ const Customize = () => {
     outfit: 'casual',
     eyeColor: 'blue'
   });
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const options = {
     hairColor: ['blonde', 'brunette', 'black', 'red', 'pink'],
@@ -37,10 +42,43 @@ const Customize = () => {
 
   const updateCharacter = (key: keyof CharacterOptions, value: string) => {
     setCharacter(prev => ({ ...prev, [key]: value }));
+    // Clear generated image when character changes
+    setGeneratedImage(null);
   };
 
+  const generatePhoto = async () => {
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-girlfriend-photo', {
+        body: { character }
+      });
+
+      if (error) throw error;
+
+      setGeneratedImage(data.image);
+      toast({
+        title: "Photo Generated!",
+        description: "Your girlfriend's photo has been created.",
+      });
+    } catch (error) {
+      console.error('Error generating photo:', error);
+      toast({
+        title: "Generation Failed",
+        description: "Failed to generate photo. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Auto-generate photo when component mounts
+  useEffect(() => {
+    generatePhoto();
+  }, []);
+
   const startChat = () => {
-    localStorage.setItem('girlfriendCharacter', JSON.stringify(character));
+    localStorage.setItem('girlfriendCharacter', JSON.stringify({ ...character, image: generatedImage }));
     navigate('/chat');
   };
 
@@ -67,13 +105,40 @@ const Customize = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="bg-gradient-to-b from-primary/10 to-accent/10 rounded-lg p-6 text-center min-h-[300px] flex items-center justify-center">
-                  <div className="space-y-2">
-                    <div className="text-6xl">👩‍🦰</div>
-                    <p className="text-sm text-muted-foreground">
-                      AI-Generated Avatar Coming Soon
-                    </p>
-                  </div>
+                <div className="bg-gradient-to-b from-primary/10 to-accent/10 rounded-lg p-4 text-center min-h-[400px] flex items-center justify-center">
+                  {isGenerating ? (
+                    <div className="space-y-4">
+                      <RefreshCw className="h-12 w-12 text-primary animate-spin mx-auto" />
+                      <p className="text-sm text-muted-foreground">Generating your girlfriend's photo...</p>
+                    </div>
+                  ) : generatedImage ? (
+                    <div className="space-y-3">
+                      <img 
+                        src={generatedImage} 
+                        alt="Your AI Girlfriend" 
+                        className="w-full max-w-sm rounded-lg shadow-lg"
+                      />
+                      <Button 
+                        onClick={generatePhoto} 
+                        variant="outline" 
+                        size="sm"
+                        className="hover:bg-accent"
+                      >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Generate New Photo
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="text-6xl">📸</div>
+                      <Button 
+                        onClick={generatePhoto} 
+                        className="bg-primary hover:bg-primary/90"
+                      >
+                        Generate Photo
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="space-y-2">

@@ -22,6 +22,7 @@ interface CharacterOptions {
   personality: string;
   outfit: string;
   eyeColor: string;
+  image?: string;
 }
 
 const Chat = () => {
@@ -128,10 +129,10 @@ const Chat = () => {
             </Button>
             
             <div className="flex items-center gap-3">
-              <Avatar className="border-2 border-primary/20">
-                <AvatarImage src="" />
+              <Avatar className="border-2 border-primary/20 w-12 h-12">
+                <AvatarImage src={character.image || ""} />
                 <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20 text-primary">
-                  👩‍🦰
+                  💕
                 </AvatarFallback>
               </Avatar>
               <div>
