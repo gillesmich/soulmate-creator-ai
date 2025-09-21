@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Heart, Sparkles, MessageCircle, Palette } from 'lucide-react';
+import { Heart, Sparkles, MessageCircle, Palette, Users } from 'lucide-react';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -17,15 +17,26 @@ const Index = () => {
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
             Create your perfect AI companion. Customize her appearance, personality, and enjoy meaningful conversations.
           </p>
-          
-          <Button 
-            onClick={() => navigate('/customize')} 
-            size="lg"
-            className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-lg px-8 py-6"
-          >
-            <Heart className="h-6 w-6 mr-3" />
-            Create Your Girlfriend
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Button 
+              onClick={() => navigate('/customize')} 
+              size="lg"
+              className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-lg px-8 py-6"
+            >
+              <Heart className="h-6 w-6 mr-3" />
+              Create Your Girlfriend
+            </Button>
+            
+            <Button 
+              onClick={() => navigate('/gallery')} 
+              size="lg"
+              variant="outline"
+              className="text-lg px-8 py-6 border-primary/20 hover:bg-primary/10"
+            >
+              <Users className="h-6 w-6 mr-3" />
+              Browse Characters
+            </Button>
+          </div>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">

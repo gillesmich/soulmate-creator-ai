@@ -21,8 +21,16 @@ serve(async (req) => {
       throw new Error('Character description is required');
     }
 
-    // Build detailed prompt for realistic photo
-    const prompt = `A beautiful realistic portrait photo of a woman with ${character.hairColor} ${character.hairStyle} hair, ${character.eyeColor} eyes, ${character.bodyType} body type, wearing ${character.outfit} clothing. She has a ${character.personality} personality expression. Professional photography, high quality, realistic lighting, detailed facial features, 4K resolution, portrait photography style.`;
+    // Build detailed prompt for realistic photo - avoiding content policy violations
+    const outfitMap = {
+      'sexy': 'elegant',
+      'casual': 'casual',
+      'formal': 'formal',
+      'sporty': 'athletic'
+    };
+    
+    const safeOutfit = outfitMap[character.outfit as keyof typeof outfitMap] || 'stylish';
+    const prompt = `A beautiful realistic portrait photo of a woman with ${character.hairColor} ${character.hairStyle} hair, ${character.eyeColor} eyes, ${character.bodyType} body type, wearing ${safeOutfit} clothing. She has a ${character.personality} personality expression. Professional headshot photography, high quality, realistic lighting, detailed facial features, 4K resolution, portrait photography style.`;
 
     console.log('Generating image with prompt:', prompt);
 
