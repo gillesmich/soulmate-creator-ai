@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Heart, MessageCircle, Sparkles, RefreshCw, Save } from 'lucide-react';
+import { Heart, MessageCircle, Sparkles, RefreshCw, Save, Mic } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import SaveImageDialog from '@/components/SaveImageDialog';
@@ -224,15 +224,30 @@ const Customize = () => {
                   </div>
                 </div>
 
-                <Button 
-                  onClick={startChat} 
-                  className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
-                  size="lg"
-                  disabled={!generatedImage}
-                >
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Start Chatting
-                </Button>
+                <div className="space-y-2">
+                  <Button 
+                    onClick={startChat} 
+                    className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+                    size="lg"
+                    disabled={!generatedImage}
+                  >
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Start Chatting
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => {
+                      setCurrentCharacter({ ...character, image: generatedImage || '' });
+                      navigate('/voice-chat');
+                    }} 
+                    className="w-full bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent/70"
+                    size="lg"
+                    disabled={!generatedImage}
+                  >
+                    <Mic className="h-4 w-4 mr-2" />
+                    Voice Chat
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
