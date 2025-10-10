@@ -23,10 +23,11 @@ serve(async (req) => {
   let openAISocket: WebSocket | null = null;
   
   socket.onopen = () => {
-    console.log("Client WebSocket connected");
+    console.log("[DEBUG] Client WebSocket connected at", new Date().toISOString());
     
     // Connect to OpenAI Realtime API
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    console.log("[DEBUG] OpenAI API key present:", !!openAIApiKey);
     if (!openAIApiKey) {
       socket.send(JSON.stringify({
         type: 'error',
@@ -43,10 +44,10 @@ serve(async (req) => {
     });
 
     openAISocket.onopen = () => {
-      console.log("Connected to OpenAI Realtime API");
+      console.log("[DEBUG] Connected to OpenAI Realtime API at", new Date().toISOString());
       
       // Configure the session
-      openAISocket?.send(JSON.stringify({
+      const sessionConfig = {
         type: "session.update",
         session: {
           modalities: ["text", "audio"],
@@ -66,16 +67,35 @@ serve(async (req) => {
           temperature: 0.8,
           max_response_output_tokens: "inf"
         }
-      }));
+      };
+      console.log("[DEBUG] Sending session config:", JSON.stringify(sessionConfig, null, 2));
+      openAISocket?.send(JSON.stringify(sessionConfig));
     };
 
     openAISocket.onmessage = (event) => {
-      // Forward messages from OpenAI to client
-      socket.send(event.data);
+      try {
+        const message = JSON.parse(event.data);
+        console.log("[DEBUG] OpenAI message type:", message.type);
+        
+        // Log audio-related events
+        if (message.type === 'response.audio.delta') {
+          console.log("[DEBUG] Audio delta received, length:", message.delta?.length || 0);
+        } else if (message.type === 'response.audio.done') {
+          console.log("[DEBUG] Audio response completed");
+        } else if (message.type === 'error') {
+          console.error("[DEBUG] OpenAI error:", JSON.stringify(message, null, 2));
+        }
+        
+        // Forward messages from OpenAI to client
+        socket.send(event.data);
+      } catch (e) {
+        console.error("[DEBUG] Error parsing OpenAI message:", e);
+        socket.send(event.data);
+      }
     };
 
     openAISocket.onerror = (error) => {
-      console.error("OpenAI WebSocket error:", error);
+      console.error("[DEBUG] OpenAI WebSocket error:", error);
       socket.send(JSON.stringify({
         type: 'error',
         message: 'OpenAI connection error'
@@ -83,25 +103,39 @@ serve(async (req) => {
     };
 
     openAISocket.onclose = () => {
-      console.log("OpenAI WebSocket closed");
+      console.log("[DEBUG] OpenAI WebSocket closed");
       socket.close();
     };
   };
 
   socket.onmessage = (event) => {
-    // Forward messages from client to OpenAI
-    if (openAISocket && openAISocket.readyState === WebSocket.OPEN) {
-      openAISocket.send(event.data);
+    try {
+      const message = JSON.parse(event.data);
+      console.log("[DEBUG] Client message type:", message.type);
+      
+      // Log audio input
+      if (message.type === 'input_audio_buffer.append') {
+        console.log("[DEBUG] Audio input received, length:", message.audio?.length || 0);
+      }
+      
+      // Forward messages from client to OpenAI
+      if (openAISocket && openAISocket.readyState === WebSocket.OPEN) {
+        openAISocket.send(event.data);
+      } else {
+        console.error("[DEBUG] Cannot forward message - OpenAI socket not ready. State:", openAISocket?.readyState);
+      }
+    } catch (e) {
+      console.error("[DEBUG] Error processing client message:", e);
     }
   };
 
   socket.onerror = (error) => {
-    console.error("Client WebSocket error:", error);
+    console.error("[DEBUG] Client WebSocket error:", error);
     openAISocket?.close();
   };
 
   socket.onclose = () => {
-    console.log("Client WebSocket closed");
+    console.log("[DEBUG] Client WebSocket closed");
     openAISocket?.close();
   };
 

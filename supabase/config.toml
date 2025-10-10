@@ -51,3 +51,6 @@ verify_jwt = false
 
 [functions.realtime-token]
 verify_jwt = false
+
+[functions.generate-girlfriend-photo-ai]
+verify_jwt = false

@@ -96,8 +96,26 @@ export class RealtimeChat {
 
       // Set up remote audio
       this.pc.ontrack = e => {
-        console.log('Received remote audio track');
+        console.log('[AUDIO DEBUG] Received remote audio track');
+        console.log('[AUDIO DEBUG] Track kind:', e.track.kind);
+        console.log('[AUDIO DEBUG] Track enabled:', e.track.enabled);
+        console.log('[AUDIO DEBUG] Track muted:', e.track.muted);
+        console.log('[AUDIO DEBUG] Track readyState:', e.track.readyState);
+        console.log('[AUDIO DEBUG] Streams:', e.streams.length);
+        
         this.audioEl.srcObject = e.streams[0];
+        
+        // Additional audio element checks
+        this.audioEl.onloadedmetadata = () => {
+          console.log('[AUDIO DEBUG] Audio element loaded metadata');
+          console.log('[AUDIO DEBUG] Audio duration:', this.audioEl.duration);
+          console.log('[AUDIO DEBUG] Audio paused:', this.audioEl.paused);
+          console.log('[AUDIO DEBUG] Audio volume:', this.audioEl.volume);
+          console.log('[AUDIO DEBUG] Audio muted:', this.audioEl.muted);
+        };
+        
+        this.audioEl.onplay = () => console.log('[AUDIO DEBUG] Audio started playing');
+        this.audioEl.onerror = (err) => console.error('[AUDIO DEBUG] Audio error:', err);
       };
 
       // Add local audio track
@@ -107,9 +125,29 @@ export class RealtimeChat {
 
       // Set up data channel
       this.dc = this.pc.createDataChannel("oai-events");
+      
+      this.dc.addEventListener("open", () => {
+        console.log('[DATA CHANNEL] Data channel opened');
+      });
+      
+      this.dc.addEventListener("close", () => {
+        console.log('[DATA CHANNEL] Data channel closed');
+      });
+      
+      this.dc.addEventListener("error", (err) => {
+        console.error('[DATA CHANNEL] Data channel error:', err);
+      });
+      
       this.dc.addEventListener("message", (e) => {
         const event = JSON.parse(e.data);
-        console.log("Received event:", event.type);
+        console.log("[EVENT] Received event:", event.type);
+        
+        if (event.type === 'response.audio.delta') {
+          console.log('[EVENT] Audio delta size:', event.delta?.length);
+        } else if (event.type === 'error') {
+          console.error('[EVENT] Error event:', event);
+        }
+        
         this.onMessage(event);
       });
 

@@ -87,7 +87,7 @@ const Customize = () => {
   const generatePhoto = async () => {
     setIsGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-girlfriend-photo', {
+      const { data, error } = await supabase.functions.invoke('generate-girlfriend-photo-ai', {
         body: { character }
       });
 
@@ -96,14 +96,14 @@ const Customize = () => {
       console.log('Photo generation response:', data);
       setGeneratedImage(data.image);
       toast({
-        title: "Photo Generated!",
-        description: "Your girlfriend's photo has been created.",
+        title: "✨ Photo Generated!",
+        description: "Generated with Lovable AI (FREE until Oct 13th)",
       });
     } catch (error) {
       console.error('Error generating photo:', error);
       toast({
         title: "Generation Failed",
-        description: "Failed to generate photo. Please try again.",
+        description: error.message || "Failed to generate photo. Please try again.",
         variant: "destructive",
       });
     } finally {
