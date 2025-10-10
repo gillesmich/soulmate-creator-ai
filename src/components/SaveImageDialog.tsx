@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
+import { saveCharacter as saveToLocalStorage } from '@/utils/characterStorage';
 
 interface SaveImageDialogProps {
   isOpen: boolean;
@@ -36,15 +37,24 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
 
     setIsSaving(true);
     try {
-      // Convert base64 image to blob
+      // Save to localStorage first
+      const savedCharacter = saveToLocalStorage(
+        { ...characterData, image: imageUrl },
+        name.trim()
+      );
+
+      toast({
+        title: "Saved Locally!",
+        description: `${name} has been saved to your browser.`,
+      });
+
+      // Then save to Supabase storage and database
       const response = await fetch(imageUrl);
       const blob = await response.blob();
       
-      // Generate unique filename
       const timestamp = Date.now();
       const filename = `${name.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.png`;
       
-      // Upload to Supabase storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('girlfriend-images')
         .upload(filename, blob, {
@@ -54,12 +64,10 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: urlData } = supabase.storage
         .from('girlfriend-images')
         .getPublicUrl(filename);
 
-      // Save metadata to database
       const { error: dbError } = await supabase
         .from('saved_girlfriend_images')
         .insert({
@@ -70,20 +78,17 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
 
       if (dbError) throw dbError;
 
-      toast({
-        title: "Image Saved!",
-        description: `Your girlfriend "${name}" has been saved successfully.`,
-      });
-
       setName('');
       onClose();
     } catch (error) {
-      console.error('Error saving image:', error);
+      console.error('Error saving to cloud:', error);
       toast({
-        title: "Save Failed",
-        description: "Failed to save the image. Please try again.",
-        variant: "destructive",
+        title: "Saved Locally",
+        description: "Saved to your browser, but cloud backup failed.",
+        variant: "default",
       });
+      setName('');
+      onClose();
     } finally {
       setIsSaving(false);
     }

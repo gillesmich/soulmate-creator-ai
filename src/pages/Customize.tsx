@@ -8,6 +8,7 @@ import { Heart, MessageCircle, Sparkles, RefreshCw, Save } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import SaveImageDialog from '@/components/SaveImageDialog';
+import { setCurrentCharacter, getCurrentCharacter } from '@/utils/characterStorage';
 
 interface CharacterOptions {
   hairColor: string;
@@ -34,6 +35,25 @@ const Customize = () => {
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
+
+  // Load character from localStorage on mount if exists
+  useEffect(() => {
+    const savedCharacter = getCurrentCharacter();
+    if (savedCharacter) {
+      setCharacter({
+        hairColor: savedCharacter.hairColor,
+        hairStyle: savedCharacter.hairStyle,
+        bodyType: savedCharacter.bodyType,
+        personality: savedCharacter.personality,
+        outfit: savedCharacter.outfit,
+        eyeColor: savedCharacter.eyeColor,
+        age: savedCharacter.age,
+      });
+      if (savedCharacter.image) {
+        setGeneratedImage(savedCharacter.image);
+      }
+    }
+  }, []);
 
   const options = {
     hairColor: ['blonde', 'brunette', 'black', 'red', 'pink'],
@@ -81,7 +101,7 @@ const Customize = () => {
   // Remove auto-generation on mount
 
   const startChat = () => {
-    localStorage.setItem('girlfriendCharacter', JSON.stringify({ ...character, image: generatedImage }));
+    setCurrentCharacter({ ...character, image: generatedImage || '' });
     navigate('/chat');
   };
 

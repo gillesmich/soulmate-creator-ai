@@ -2,17 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Play } from 'lucide-react';
+import { ArrowLeft, Play, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-
-interface SavedCharacter {
-  id: string;
-  name: string;
-  image_url: string;
-  character_data: any;
-  created_at: string;
-}
+import { getSavedCharacters, deleteCharacter, setCurrentCharacter, type SavedCharacter } from '@/utils/characterStorage';
 
 const CharacterGallery = () => {
   const navigate = useNavigate();
@@ -21,48 +14,22 @@ const CharacterGallery = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadSavedCharacters();
+    loadCharacters();
   }, []);
 
-  const loadSavedCharacters = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('saved_girlfriend_images')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error loading characters:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load saved characters",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setCharacters(data || []);
-    } catch (error) {
-      console.error('Error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load saved characters",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+  const loadCharacters = () => {
+    setLoading(true);
+    // Load from localStorage
+    const localCharacters = getSavedCharacters();
+    setCharacters(localCharacters);
+    setLoading(false);
   };
 
   const selectCharacter = (character: SavedCharacter) => {
-    // Save to localStorage for the chat
-    const characterData = {
-      ...character.character_data,
-      image: character.image_url,
-      name: character.name
-    };
-    
-    localStorage.setItem('girlfriendCharacter', JSON.stringify(characterData));
+    setCurrentCharacter({
+      ...character,
+      image: character.image
+    });
     
     toast({
       title: "Character Selected",
@@ -72,12 +39,17 @@ const CharacterGallery = () => {
     navigate('/chat');
   };
 
+  const handleDelete = (id: string, name: string) => {
+    deleteCharacter(id);
+    setCharacters(getSavedCharacters());
+    toast({
+      title: "Character Deleted",
+      description: `${name} has been removed`,
+    });
+  };
+
   const editCharacter = (character: SavedCharacter) => {
-    // Load character data into customize page
-    localStorage.setItem('girlfriendCharacter', JSON.stringify({
-      ...character.character_data,
-      image: character.image_url
-    }));
+    setCurrentCharacter(character);
     navigate('/customize');
   };
 
@@ -134,7 +106,7 @@ const CharacterGallery = () => {
               <Card key={character.id} className="overflow-hidden hover:shadow-lg transition-shadow border-primary/10">
                 <div className="aspect-square relative overflow-hidden">
                   <img
-                    src={character.image_url}
+                    src={character.image}
                     alt={character.name}
                     className="w-full h-full object-cover"
                   />
@@ -143,10 +115,10 @@ const CharacterGallery = () => {
                   <CardTitle className="text-lg text-center">{character.name}</CardTitle>
                   <div className="text-sm text-muted-foreground text-center space-y-1">
                     <p className="capitalize">
-                      {character.character_data.personality} • {character.character_data.hairColor} {character.character_data.hairStyle}
+                      {character.personality} • {character.hairColor} {character.hairStyle}
                     </p>
                     <p className="capitalize">
-                      {character.character_data.eyeColor} eyes • {character.character_data.bodyType}
+                      {character.eyeColor} eyes • {character.bodyType}
                     </p>
                   </div>
                 </CardHeader>
@@ -168,9 +140,16 @@ const CharacterGallery = () => {
                     >
                       Edit
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDelete(character.id, character.name)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                   <p className="text-xs text-muted-foreground text-center mt-2">
-                    Created {new Date(character.created_at).toLocaleDateString()}
+                    Created {new Date(character.createdAt).toLocaleDateString()}
                   </p>
                 </CardContent>
               </Card>

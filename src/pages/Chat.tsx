@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AudioRecorder, encodeAudioForAPI } from '@/utils/AudioRecorder';
 import { playAudioData } from '@/utils/AudioPlayer';
 import LipSyncAvatar from '@/components/LipSyncAvatar';
+import { getCurrentCharacter } from '@/utils/characterStorage';
 
 interface Message {
   id: string;
@@ -48,9 +49,9 @@ const Chat = () => {
 
   useEffect(() => {
     // Load character from localStorage
-    const savedCharacter = localStorage.getItem('girlfriendCharacter');
+    const savedCharacter = getCurrentCharacter();
     if (savedCharacter) {
-      setCharacter(JSON.parse(savedCharacter));
+      setCharacter(savedCharacter);
     } else {
       navigate('/customize');
       return;
