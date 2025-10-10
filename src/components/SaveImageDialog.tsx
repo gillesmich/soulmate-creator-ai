@@ -37,6 +37,19 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
 
     setIsSaving(true);
     try {
+      // Check if user is authenticated
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please sign in to save your images to the cloud.",
+          variant: "destructive",
+        });
+        setIsSaving(false);
+        return;
+      }
+
       // Save to localStorage first
       const savedCharacter = saveToLocalStorage(
         { ...characterData, image: imageUrl },
@@ -53,7 +66,7 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
       const blob = await response.blob();
       
       const timestamp = Date.now();
-      const filename = `${name.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.png`;
+      const filename = `${user.id}/${name.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.png`;
       
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('girlfriend-images')
@@ -71,6 +84,7 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
       const { error: dbError } = await supabase
         .from('saved_girlfriend_images')
         .insert({
+          user_id: user.id,
           name: name.trim(),
           image_url: urlData.publicUrl,
           character_data: characterData
