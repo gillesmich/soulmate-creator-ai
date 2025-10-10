@@ -30,7 +30,21 @@ serve(async (req) => {
     };
     
     const safeOutfit = outfitMap[character.outfit as keyof typeof outfitMap] || 'stylish';
-    const prompt = `A beautiful realistic full-body photo of a woman with ${character.hairColor} ${character.hairStyle} hair, ${character.eyeColor} eyes, ${character.bodyType} body type, wearing ${safeOutfit} clothing. She has a ${character.personality} personality expression. Full body shot, professional photography, high quality, realistic lighting, detailed features, elegant pose, 4K resolution, fashion photography style.`;
+    
+    // Handle avatar view
+    const viewType = character.avatarView === 'bust' ? 'portrait shot from shoulders up' : 'full body shot';
+    
+    // Handle clothing option
+    let clothingDescription = '';
+    if (character.clothing === 'nude') {
+      clothingDescription = 'artistic nude portrait, tasteful and elegant';
+    } else if (character.clothing === 'lingerie') {
+      clothingDescription = 'wearing elegant lingerie';
+    } else {
+      clothingDescription = `wearing ${safeOutfit} clothing`;
+    }
+    
+    const prompt = `A beautiful realistic photo of a woman with ${character.hairColor} ${character.hairStyle} hair, ${character.eyeColor} eyes, ${character.bodyType} body type, ${clothingDescription}. She has a ${character.personality} personality expression. ${viewType}, professional photography, high quality, realistic lighting, detailed features, elegant pose, 4K resolution, fashion photography style.`;
 
     console.log('Generating image with prompt:', prompt);
 

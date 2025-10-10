@@ -18,6 +18,23 @@ serve(async (req) => {
     }
 
     console.log('Generating ephemeral token for OpenAI Realtime API...');
+    
+    // Get character preferences from request body
+    const { character } = await req.json().catch(() => ({ character: {} }));
+    const voice = character?.voice || "alloy";
+    const personality = character?.personality || "sweet";
+    
+    // Build personality-specific instructions
+    const personalityInstructions: Record<string, string> = {
+      sweet: "Tu es une petite amie virtuelle douce et attentionnée. Tu es tendre, affectueuse et tu parles avec douceur.",
+      playful: "Tu es une petite amie virtuelle joueuse et espiègle. Tu aimes taquiner gentiment et rire ensemble.",
+      mysterious: "Tu es une petite amie virtuelle mystérieuse et intrigante. Tu es fascinante et tu aimes créer du suspense.",
+      caring: "Tu es une petite amie virtuelle aimante et compréhensive. Tu es toujours là pour écouter et réconforter.",
+      flirty: "Tu es une petite amie virtuelle séduisante et charmante. Tu es coquette et tu aimes créer une atmosphère romantique."
+    };
+
+    const instructions = personalityInstructions[personality] || personalityInstructions.sweet;
+    const fullInstructions = `${instructions} Tu parles français naturellement et de manière naturelle.`;
 
     const response = await fetch("https://api.openai.com/v1/realtime/sessions", {
       method: "POST",
@@ -27,8 +44,8 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: "gpt-4o-realtime-preview-2024-12-17",
-        voice: "alloy",
-        instructions: "Tu es une petite amie virtuelle charmante et attentionnée. Tu es douce, joueuse et tu aimes avoir des conversations profondes. Tu parles français naturellement."
+        voice: voice,
+        instructions: fullInstructions
       }),
     });
 

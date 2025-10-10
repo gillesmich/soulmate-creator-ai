@@ -71,10 +71,12 @@ export class RealtimeChat {
     this.audioEl.autoplay = true;
   }
 
-  async init() {
+  async init(character?: any) {
     try {
       console.log('Requesting ephemeral token...');
-      const { data: tokenData, error: tokenError } = await supabase.functions.invoke("realtime-token");
+      const { data: tokenData, error: tokenError } = await supabase.functions.invoke("realtime-token", {
+        body: { character }
+      });
       
       if (tokenError) {
         console.error('Token error:', tokenError);

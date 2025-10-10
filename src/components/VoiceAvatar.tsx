@@ -43,8 +43,12 @@ const VoiceAvatar: React.FC<VoiceAvatarProps> = ({ imageUrl }) => {
       setIsLoading(true);
       console.log('Starting conversation...');
       
+      // Get character from localStorage
+      const characterStr = localStorage.getItem('girlfriendCharacter');
+      const character = characterStr ? JSON.parse(characterStr) : null;
+      
       chatRef.current = new RealtimeChat(handleMessage);
-      await chatRef.current.init();
+      await chatRef.current.init(character);
       
       setIsConnected(true);
       setIsLoading(false);

@@ -19,6 +19,9 @@ interface CharacterOptions {
   outfit: string;
   eyeColor: string;
   age: string;
+  voice: string;
+  avatarView: string;
+  clothing: string;
 }
 
 const Customize = () => {
@@ -31,7 +34,10 @@ const Customize = () => {
     personality: 'sweet',
     outfit: 'casual',
     eyeColor: 'blue',
-    age: 'medium age'
+    age: 'medium age',
+    voice: 'alloy',
+    avatarView: 'bust',
+    clothing: 'clothed'
   });
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -49,6 +55,9 @@ const Customize = () => {
         outfit: savedCharacter.outfit,
         eyeColor: savedCharacter.eyeColor,
         age: savedCharacter.age,
+        voice: savedCharacter.voice || 'alloy',
+        avatarView: savedCharacter.avatarView || 'bust',
+        clothing: savedCharacter.clothing || 'clothed'
       });
       if (savedCharacter.image) {
         setGeneratedImage(savedCharacter.image);
@@ -63,7 +72,10 @@ const Customize = () => {
     personality: ['sweet', 'playful', 'mysterious', 'caring', 'flirty'],
     outfit: ['casual', 'elegant', 'sporty', 'cute', 'sexy'],
     eyeColor: ['blue', 'brown', 'green', 'hazel', 'gray'],
-    age: ['teen', 'medium age']
+    age: ['teen', 'medium age'],
+    voice: ['alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', 'verse'],
+    avatarView: ['bust', 'full body'],
+    clothing: ['clothed', 'nude', 'lingerie']
   };
 
   const updateCharacter = (key: keyof CharacterOptions, value: string) => {
