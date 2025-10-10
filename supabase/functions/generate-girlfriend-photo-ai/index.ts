@@ -25,7 +25,7 @@ serve(async (req) => {
 
     console.log('Generating image with Lovable AI (Gemini)...');
 
-    // Build detailed prompt for realistic photo
+    // Build detailed prompt based on image style
     const outfitMap = {
       'sexy': 'elegant',
       'casual': 'casual',
@@ -49,7 +49,26 @@ serve(async (req) => {
       clothingDescription = `wearing ${safeOutfit} clothing`;
     }
     
-    const prompt = `A beautiful realistic photo of a woman with ${character.hairColor} ${character.hairStyle} hair, ${character.eyeColor} eyes, ${character.bodyType} body type, ${clothingDescription}. She has a ${character.personality} personality expression. ${viewType}, professional photography, high quality, realistic lighting, detailed features, elegant pose, 4K resolution, fashion photography style.`;
+    // Build style-specific prompt
+    const imageStyle = character.imageStyle || 'realistic';
+    let stylePrefix = '';
+    let styleSuffix = '';
+    
+    if (imageStyle === 'anime') {
+      stylePrefix = 'Anime style illustration of ';
+      styleSuffix = ', high quality anime art, detailed anime style, vibrant colors, professional anime artwork, Studio Ghibli quality';
+    } else if (imageStyle === 'cartoon') {
+      stylePrefix = 'Cartoon style illustration of ';
+      styleSuffix = ', high quality cartoon art, cel-shaded, vibrant colors, professional cartoon illustration, Pixar quality';
+    } else if (imageStyle === 'digital art') {
+      stylePrefix = 'Digital art painting of ';
+      styleSuffix = ', high quality digital painting, artistic style, detailed brush strokes, professional digital artwork, ArtStation quality';
+    } else {
+      stylePrefix = 'A beautiful realistic photo of ';
+      styleSuffix = ', professional photography, high quality, realistic lighting, detailed features, elegant pose, 4K resolution, fashion photography style';
+    }
+    
+    const prompt = `${stylePrefix}a woman with ${character.hairColor} ${character.hairStyle} hair, ${character.eyeColor} eyes, ${character.bodyType} body type, ${clothingDescription}. She has a ${character.personality} personality expression. ${viewType}${styleSuffix}.`;
 
     console.log('Prompt:', prompt);
 

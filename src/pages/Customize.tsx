@@ -22,6 +22,7 @@ interface CharacterOptions {
   voice: string;
   avatarView: string;
   clothing: string;
+  imageStyle: string;
 }
 
 const Customize = () => {
@@ -37,7 +38,8 @@ const Customize = () => {
     age: 'medium age',
     voice: 'alloy',
     avatarView: 'bust',
-    clothing: 'clothed'
+    clothing: 'clothed',
+    imageStyle: 'realistic'
   });
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -57,7 +59,8 @@ const Customize = () => {
         age: savedCharacter.age,
         voice: savedCharacter.voice || 'alloy',
         avatarView: savedCharacter.avatarView || 'bust',
-        clothing: savedCharacter.clothing || 'clothed'
+        clothing: savedCharacter.clothing || 'clothed',
+        imageStyle: savedCharacter.imageStyle || 'realistic'
       });
       if (savedCharacter.image) {
         setGeneratedImage(savedCharacter.image);
@@ -75,7 +78,8 @@ const Customize = () => {
     age: ['teen', 'medium age'],
     voice: ['alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', 'verse'],
     avatarView: ['bust', 'full body'],
-    clothing: ['clothed', 'nude', 'lingerie']
+    clothing: ['clothed', 'nude', 'lingerie'],
+    imageStyle: ['realistic', 'anime', 'cartoon', 'digital art']
   };
 
   const updateCharacter = (key: keyof CharacterOptions, value: string) => {

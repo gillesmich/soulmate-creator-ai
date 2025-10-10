@@ -9,6 +9,7 @@ export interface CharacterData {
   voice?: string;
   avatarView?: string;
   clothing?: string;
+  imageStyle?: string;
   image?: string;
   name?: string;
 }
