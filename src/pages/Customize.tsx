@@ -8,6 +8,7 @@ import { Heart, MessageCircle, Sparkles, RefreshCw, Save } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import SaveImageDialog from '@/components/SaveImageDialog';
+import VideoGenerator from '@/components/VideoGenerator';
 import { setCurrentCharacter, getCurrentCharacter } from '@/utils/characterStorage';
 
 interface CharacterOptions {
@@ -234,6 +235,12 @@ const Customize = () => {
                 </Button>
               </CardContent>
             </Card>
+
+            {generatedImage && (
+              <div className="mt-4">
+                <VideoGenerator imageUrl={generatedImage} />
+              </div>
+            )}
           </div>
         </div>
       </div>
