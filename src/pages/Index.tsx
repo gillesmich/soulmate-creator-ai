@@ -2,14 +2,26 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Heart, Sparkles, MessageCircle, Palette, Users } from 'lucide-react';
+import { Heart, Sparkles, MessageCircle, Palette, Users, LogOut } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Index = () => {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-romantic via-background to-accent/20">
       <div className="container mx-auto px-4 py-16">
+        <div className="flex justify-end mb-4">
+          <Button 
+            onClick={signOut}
+            variant="outline"
+            className="border-primary/20"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Déconnexion
+          </Button>
+        </div>
         <div className="text-center mb-16">
           <h1 className="text-6xl font-bold bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent mb-6">
             AI Girlfriend
