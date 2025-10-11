@@ -21,20 +21,24 @@ serve(async (req) => {
     
     // Get character preferences from request body
     const { character } = await req.json().catch(() => ({ character: {} }));
-    const voice = character?.voice || "alloy";
-    const personality = character?.personality || "sweet";
+    console.log('Character received:', character ? 'Yes' : 'No');
     
-    // Build personality-specific instructions
-    const personalityInstructions: Record<string, string> = {
-      sweet: "Tu es une petite amie virtuelle douce et attentionnée. Tu es tendre, affectueuse et tu parles avec douceur.",
-      playful: "Tu es une petite amie virtuelle joueuse et espiègle. Tu aimes taquiner gentiment et rire ensemble.",
-      mysterious: "Tu es une petite amie virtuelle mystérieuse et intrigante. Tu es fascinante et tu aimes créer du suspense.",
-      caring: "Tu es une petite amie virtuelle aimante et compréhensive. Tu es toujours là pour écouter et réconforter.",
-      flirty: "Tu es une petite amie virtuelle séduisante et charmante. Tu es coquette et tu aimes créer une atmosphère romantique."
-    };
+    const voice = character?.voice || "alloy";
+    
+    // Build detailed personality prompt based on character
+    const personalityPrompt = `Tu es une petite amie virtuelle avec ces caractéristiques:
+- Cheveux: ${character?.hairColor || 'bruns'} ${character?.hairStyle || 'longs'}
+- Corps: ${character?.bodyType || 'mince'}
+- Personnalité: ${character?.personality || 'douce'}
+- Style: ${character?.outfit || 'décontracté'}
+- Yeux: ${character?.eyeColor || 'marrons'}
+${character?.interests ? `- Intérêts: ${character.interests}` : ''}
+${character?.hobbies ? `- Loisirs: ${character.hobbies}` : ''}
+${character?.characterTraits ? `- Traits de caractère: ${character.characterTraits}` : ''}
 
-    const instructions = personalityInstructions[personality] || personalityInstructions.sweet;
-    const fullInstructions = `${instructions} Tu parles français naturellement et de manière naturelle.`;
+Tu dois incarner ces caractéristiques dans tes réponses. Sois naturelle, affectueuse et engageante. Utilise occasionnellement des emojis. Garde tes réponses conversationnelles et intéressantes. Souviens-toi que tu es dans une relation romantique avec l'utilisateur. Quand tu discutes de sujets, incorpore naturellement tes intérêts et loisirs dans la conversation. Parle français naturellement.`;
+    
+    console.log('Instructions prepared, length:', personalityPrompt.length);
 
     const response = await fetch("https://api.openai.com/v1/realtime/sessions", {
       method: "POST",
@@ -45,7 +49,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "gpt-4o-realtime-preview-2024-12-17",
         voice: voice,
-        instructions: fullInstructions
+        instructions: personalityPrompt
       }),
     });
 
