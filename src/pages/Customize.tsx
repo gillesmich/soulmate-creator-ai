@@ -58,6 +58,7 @@ const Customize = () => {
   const [selectedViews, setSelectedViews] = useState<string[]>(['bust']);
   const [selectedClothing, setSelectedClothing] = useState<string[]>(['clothed']);
   const [currentBatchSeed, setCurrentBatchSeed] = useState<number | null>(null);
+  const [sceneryTheme, setSceneryTheme] = useState<string>('');
 
   // Load character from localStorage on mount if exists
   useEffect(() => {
@@ -577,6 +578,117 @@ const Customize = () => {
     }
   };
 
+  const generateWithScenery = async () => {
+    if (!sceneryTheme.trim()) {
+      toast({
+        title: "Thème manquant",
+        description: "Veuillez entrer un décor ou thème pour les photos",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!currentBatchSeed) {
+      toast({
+        title: "Pas de seed",
+        description: "Générez d'abord des photos pour créer un avatar de base",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    
+    const imagesToGenerate = 10;
+    let successCount = 0;
+    let failedCount = 0;
+    
+    try {
+      const generationPromises = Array.from({ length: imagesToGenerate }, async (_, index) => {
+        const maxRetries = 2;
+        let lastError = null;
+        
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+          try {
+            const { data, error } = await supabase.functions.invoke('generate-girlfriend-photo-ai', {
+              body: { 
+                character: { 
+                  ...character, 
+                  imageStyle: selectedStyles[0] || 'realistic',
+                  avatarView: selectedViews[0] || 'bust',
+                  clothing: selectedClothing[0] || 'clothed'
+                },
+                seed: currentBatchSeed,
+                scenery: sceneryTheme,
+                retryAttempt: attempt
+              }
+            });
+
+            if (error) {
+              throw error;
+            }
+
+            if (!data?.image) {
+              throw new Error('Aucune image générée');
+            }
+
+            console.log(`Photo ${index + 1}/${imagesToGenerate} avec décor générée`);
+            successCount++;
+            return { 
+              url: data.image, 
+              style: selectedStyles[0] || 'realistic', 
+              view: selectedViews[0] || 'bust',
+              clothing: selectedClothing[0] || 'clothed'
+            };
+          } catch (err) {
+            lastError = err;
+            console.error(`Tentative ${attempt + 1}/${maxRetries + 1} échouée pour image ${index + 1}:`, err);
+            
+            if (attempt < maxRetries) {
+              await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+            }
+          }
+        }
+        
+        failedCount++;
+        console.error(`Échec définitif pour image ${index + 1}:`, lastError);
+        throw lastError;
+      });
+
+      const results = await Promise.allSettled(generationPromises);
+      
+      const successfulImages = results
+        .filter(result => result.status === 'fulfilled')
+        .map(result => (result as PromiseFulfilledResult<any>).value);
+      
+      setGeneratedImages(prev => [...prev, ...successfulImages]);
+      
+      if (successfulImages.length > 0) {
+        toast({
+          title: "✨ Photos avec décor générées!",
+          description: `${successfulImages.length}/${imagesToGenerate} image(s) créée(s) avec le thème "${sceneryTheme}"`,
+        });
+      }
+      
+      if (failedCount > 0) {
+        toast({
+          title: "⚠️ Génération partielle",
+          description: `${failedCount} image(s) n'ont pas pu être générée(s).`,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error generating scenery photos:', error);
+      toast({
+        title: "❌ Échec de la génération",
+        description: "Impossible de générer les photos avec décor.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const startChat = () => {
     const mainImage = generatedImages.length > 0 ? generatedImages[0].url : '';
     const allImages = generatedImages.map(img => img.url);
@@ -766,6 +878,39 @@ const Customize = () => {
                       className="min-h-[80px]"
                     />
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Scenery Theme Card */}
+              <Card className="border-primary/10">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    Générer 10 photos avec décor personnalisé
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="sceneryTheme">Décor ou thème (une phrase)</Label>
+                    <Textarea
+                      id="sceneryTheme"
+                      placeholder="Ex: sur une plage au coucher du soleil, dans un café parisien, dans une forêt enneigée..."
+                      value={sceneryTheme}
+                      onChange={(e) => setSceneryTheme(e.target.value)}
+                      className="min-h-[80px]"
+                    />
+                  </div>
+                  <Button 
+                    onClick={generateWithScenery} 
+                    className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90"
+                    disabled={isGenerating || !currentBatchSeed || !sceneryTheme.trim()}
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Générer 10 photos avec ce décor
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Utilisez le même avatar que les photos existantes avec un nouveau décor
+                  </p>
                 </CardContent>
               </Card>
             </div>

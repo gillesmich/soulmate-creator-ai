@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { character, seed, attitude, retryAttempt = 0 } = await req.json();
+    const { character, seed, attitude, scenery, retryAttempt = 0 } = await req.json();
 
     if (!character) {
       return new Response(
@@ -100,7 +100,9 @@ serve(async (req) => {
       styleSuffix = ', professional photography, high quality, realistic lighting, detailed features, elegant pose, 4K resolution, fashion photography style, consistent character';
     }
     
-    const prompt = `${stylePrefix}${characterDescription} ${clothingDescription}. ${viewType}${styleSuffix}. Character seed: ${seedNum}`;
+    
+    const sceneryDescription = scenery ? ` Set in ${scenery}.` : '';
+    const prompt = `${stylePrefix}${characterDescription} ${clothingDescription}. ${viewType}${sceneryDescription}${styleSuffix}. Character seed: ${seedNum}`;
 
     console.log('Prompt:', prompt);
     console.log('Seed:', seedNum);
