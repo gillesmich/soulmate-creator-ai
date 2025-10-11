@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useConversation } from '@elevenlabs/react';
+import { useConversation } from '@11labs/react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Mic, MicOff, Loader2, Info, Sparkles } from 'lucide-react';
@@ -159,9 +159,15 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
       // Request microphone permission
       await navigator.mediaDevices.getUserMedia({ audio: true });
       
+      // Enable audio autoplay by creating and playing a silent audio context
+      const audioContext = new AudioContext();
+      await audioContext.resume();
+      
       await conversation.startSession({ 
         signedUrl: url 
       });
+      
+      console.log('Conversation started successfully');
     } catch (error) {
       console.error('Error starting conversation:', error);
       toast({
