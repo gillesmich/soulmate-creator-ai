@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { character, seed, retryAttempt = 0 } = await req.json();
+    const { character, seed, attitude, retryAttempt = 0 } = await req.json();
 
     if (!character) {
       return new Response(
@@ -74,8 +74,12 @@ serve(async (req) => {
     const lipType = lipTypes[(seedNum >> 4) % lipTypes.length];
     const skinTone = skinTones[(seedNum >> 6) % skinTones.length];
     
-    // Build consistent character description
-    const characterDescription = `A specific woman with ${character.hairColor} ${character.hairStyle} hair, ${character.eyeColor} eyes, ${character.bodyType} body type, ${faceShape} face shape, ${noseType} nose, ${lipType} lips, ${skinTone} skin. She has a ${character.personality} personality expression.`;
+    // Build consistent character description with attitude
+    const attitudeExpression = attitude 
+      ? `She has a ${attitude} expression and attitude.` 
+      : `She has a ${character.personality} personality expression.`;
+    
+    const characterDescription = `A specific woman with ${character.hairColor} ${character.hairStyle} hair, ${character.eyeColor} eyes, ${character.bodyType} body type, ${faceShape} face shape, ${noseType} nose, ${lipType} lips, ${skinTone} skin. ${attitudeExpression}`;
     
     // Build style-specific prompt
     const imageStyle = character.imageStyle || 'realistic';

@@ -4,12 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Heart, MessageCircle, Sparkles, RefreshCw, Save, Mic } from 'lucide-react';
+import { Heart, MessageCircle, Sparkles, RefreshCw, Save, Mic, Wand2 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import SaveImageDialog from '@/components/SaveImageDialog';
+import AttitudeVariationsDialog from '@/components/AttitudeVariationsDialog';
 import VideoGenerator from '@/components/VideoGenerator';
 import { setCurrentCharacter, getCurrentCharacter } from '@/utils/characterStorage';
 
@@ -52,6 +53,7 @@ const Customize = () => {
   const [generatedImages, setGeneratedImages] = useState<{url: string, style: string, view: string, clothing: string}[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showAttitudeDialog, setShowAttitudeDialog] = useState(false);
   const [selectedStyles, setSelectedStyles] = useState<string[]>(['realistic']);
   const [selectedViews, setSelectedViews] = useState<string[]>(['bust']);
   const [selectedClothing, setSelectedClothing] = useState<string[]>(['clothed']);
@@ -359,6 +361,76 @@ const Customize = () => {
     }
   };
 
+  const generateAttitudeVariations = async (attitudes: string[]) => {
+    setIsGenerating(true);
+    
+    try {
+      const characterSeed = currentBatchSeed || Date.now();
+      const style = selectedStyles[0] || 'realistic';
+      const view = selectedViews[0] || 'bust';
+      const clothing = selectedClothing[0] || 'clothed';
+      
+      const generationPromises = attitudes.map(async (attitude) => {
+        try {
+          const { data, error } = await supabase.functions.invoke('generate-girlfriend-photo-ai', {
+            body: { 
+              character: { 
+                ...character, 
+                imageStyle: style,
+                avatarView: view,
+                clothing: clothing
+              },
+              seed: characterSeed,
+              attitude: attitude,
+              retryAttempt: 0
+            }
+          });
+
+          if (error) throw error;
+          if (!data?.image) throw new Error('No image generated');
+
+          return { url: data.image, style, view, clothing };
+        } catch (err) {
+          console.error(`Failed to generate ${attitude} variation:`, err);
+          throw err;
+        }
+      });
+
+      const results = await Promise.allSettled(generationPromises);
+      
+      const successfulImages = results
+        .filter(result => result.status === 'fulfilled')
+        .map(result => (result as PromiseFulfilledResult<any>).value);
+      
+      if (successfulImages.length > 0) {
+        setGeneratedImages(prev => [...prev, ...successfulImages]);
+        
+        toast({
+          title: "✨ Variations Generated!",
+          description: `${successfulImages.length} new variation(s) created with different attitudes`,
+        });
+      }
+      
+      const failedCount = results.length - successfulImages.length;
+      if (failedCount > 0) {
+        toast({
+          title: "⚠️ Partial Generation",
+          description: `${failedCount} variation(s) failed to generate`,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error generating attitude variations:', error);
+      toast({
+        title: "❌ Generation Failed",
+        description: "Could not generate attitude variations. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const startChat = () => {
     const mainImage = generatedImages.length > 0 ? generatedImages[0].url : '';
     const allImages = generatedImages.map(img => img.url);
@@ -622,15 +694,28 @@ const Customize = () => {
                           </div>
                         ))}
                       </div>
-                      <Button 
-                        onClick={generatePhoto} 
-                        variant="outline" 
-                        size="sm"
-                        className="hover:bg-accent w-full mt-2"
-                      >
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        Générer de nouvelles photos
-                      </Button>
+                      <div className="space-y-2 mt-2">
+                        <Button 
+                          onClick={generatePhoto} 
+                          variant="outline" 
+                          size="sm"
+                          className="hover:bg-accent w-full"
+                          disabled={isGenerating}
+                        >
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                          Générer de nouvelles photos
+                        </Button>
+                        <Button 
+                          onClick={() => setShowAttitudeDialog(true)} 
+                          variant="outline" 
+                          size="sm"
+                          className="hover:bg-accent w-full border-primary/50"
+                          disabled={isGenerating || !currentBatchSeed}
+                        >
+                          <Wand2 className="h-4 w-4 mr-2" />
+                          Generate More Attitudes
+                        </Button>
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-4 flex flex-col items-center justify-center h-full">
@@ -699,10 +784,18 @@ const Customize = () => {
       </div>
 
       <SaveImageDialog 
-        isOpen={showSaveDialog}
-        onClose={() => setShowSaveDialog(false)}
-        imageUrls={generatedImages.map(img => img.url)}
-        characterData={character}
+        isOpen={showSaveDialog} 
+        onClose={() => setShowSaveDialog(false)} 
+        imageUrls={generatedImages.map(img => img.url)} 
+        characterData={character} 
+      />
+      
+      <AttitudeVariationsDialog 
+        isOpen={showAttitudeDialog} 
+        onClose={() => setShowAttitudeDialog(false)} 
+        character={character}
+        currentSeed={currentBatchSeed}
+        onGenerateVariations={generateAttitudeVariations}
       />
     </div>
   );
