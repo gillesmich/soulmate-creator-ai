@@ -1,12 +1,30 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import VoiceAvatar from "@/components/VoiceAvatar";
 import ElevenLabsVoice from "@/components/ElevenLabsVoice";
+import LipSyncAvatar from "@/components/LipSyncAvatar";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { getCurrentCharacter } from "@/utils/characterStorage";
 
 const VoiceChat = () => {
   const navigate = useNavigate();
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [characterImages, setCharacterImages] = useState<string[]>([]);
+
+  // Load character images on mount
+  useEffect(() => {
+    const savedCharacter = getCurrentCharacter();
+    if (savedCharacter) {
+      if (savedCharacter.images && savedCharacter.images.length > 0) {
+        setCharacterImages(savedCharacter.images);
+      } else if (savedCharacter.image) {
+        setCharacterImages([savedCharacter.image]);
+      }
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
@@ -27,18 +45,45 @@ const VoiceChat = () => {
           </p>
         </div>
 
-        <Tabs defaultValue="openai" className="max-w-4xl mx-auto">
+        {/* Avatar Carousel with Lip Sync */}
+        {characterImages.length > 0 && (
+          <div className="mb-8 flex justify-center">
+            <Carousel className="w-full max-w-sm">
+              <CarouselContent>
+                {characterImages.map((imageUrl, index) => (
+                  <CarouselItem key={index}>
+                    <div className="flex justify-center p-4">
+                      <LipSyncAvatar
+                        imageUrl={imageUrl}
+                        isSpeaking={isSpeaking}
+                        size="large"
+                      />
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              {characterImages.length > 1 && (
+                <>
+                  <CarouselPrevious />
+                  <CarouselNext />
+                </>
+              )}
+            </Carousel>
+          </div>
+        )}
+
+        <Tabs defaultValue="elevenlabs" className="max-w-4xl mx-auto">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="openai">OpenAI Realtime</TabsTrigger>
             <TabsTrigger value="elevenlabs">ElevenLabs</TabsTrigger>
           </TabsList>
           
           <TabsContent value="openai" className="mt-6">
-            <VoiceAvatar />
+            <VoiceAvatar onSpeakingChange={setIsSpeaking} />
           </TabsContent>
           
           <TabsContent value="elevenlabs" className="mt-6">
-            <ElevenLabsVoice />
+            <ElevenLabsVoice onSpeakingChange={setIsSpeaking} />
           </TabsContent>
         </Tabs>
       </div>

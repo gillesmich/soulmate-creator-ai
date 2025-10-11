@@ -6,9 +6,10 @@ import { Mic, MicOff, Phone, PhoneOff } from 'lucide-react';
 
 interface VoiceAvatarProps {
   imageUrl?: string;
+  onSpeakingChange?: (isSpeaking: boolean) => void;
 }
 
-const VoiceAvatar: React.FC<VoiceAvatarProps> = ({ imageUrl }) => {
+const VoiceAvatar: React.FC<VoiceAvatarProps> = ({ imageUrl, onSpeakingChange }) => {
   const { toast } = useToast();
   const [isConnected, setIsConnected] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -82,6 +83,12 @@ const VoiceAvatar: React.FC<VoiceAvatarProps> = ({ imageUrl }) => {
       description: "La conversation est terminée",
     });
   };
+
+  useEffect(() => {
+    if (onSpeakingChange) {
+      onSpeakingChange(isSpeaking);
+    }
+  }, [isSpeaking, onSpeakingChange]);
 
   useEffect(() => {
     return () => {
