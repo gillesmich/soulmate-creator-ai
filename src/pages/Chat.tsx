@@ -38,6 +38,7 @@ const Chat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showLargeAvatar, setShowLargeAvatar] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [selectedImage, setSelectedImage] = useState<string | undefined>(undefined);
   
   const chatRef = useRef<RealtimeChat | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -51,6 +52,7 @@ const Chat = () => {
     const savedCharacter = getCurrentCharacter();
     if (savedCharacter) {
       setCharacter(savedCharacter);
+      setSelectedImage(savedCharacter.image);
     } else {
       navigate('/customize');
       return;
@@ -197,9 +199,9 @@ const Chat = () => {
               
               <div className="flex items-center gap-3">
                 <LipSyncAvatar 
-                  imageUrl={character.image} 
+                  imageUrl={selectedImage} 
                   isSpeaking={isSpeaking}
-                  size="medium"
+                  size="large"
                   className="cursor-pointer"
                   onClick={() => setShowLargeAvatar(true)}
                 />
@@ -244,11 +246,12 @@ const Chat = () => {
                     <div 
                       className="cursor-pointer group relative"
                       onClick={() => {
+                        setSelectedImage(img);
                         setCurrentImageIndex(index);
                         setShowLargeAvatar(true);
                       }}
                     >
-                      <Avatar className="w-16 h-16 border-2 border-primary/20 group-hover:border-primary transition-colors">
+                      <Avatar className={`w-16 h-16 border-2 transition-colors ${selectedImage === img ? 'border-primary' : 'border-primary/20 group-hover:border-primary'}`}>
                         <AvatarImage src={img} alt={`Character ${index + 1}`} />
                         <AvatarFallback>AI</AvatarFallback>
                       </Avatar>
