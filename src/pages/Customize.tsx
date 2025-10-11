@@ -1162,7 +1162,6 @@ const Customize = () => {
                     onClick={startChat} 
                     className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
                     size="lg"
-                    disabled={generatedImages.length === 0}
                   >
                     <MessageCircle className="h-4 w-4 mr-2" />
                     Start Chatting
@@ -1185,11 +1184,9 @@ const Customize = () => {
               </CardContent>
             </Card>
 
-            {generatedImages.length > 0 && (
-              <div className="mt-4">
-                <VideoGenerator imageUrl={generatedImages[0].url} />
-              </div>
-            )}
+            <div className="mt-4">
+              <VideoGenerator imageUrl={generatedImages.length > 0 ? generatedImages[0].url : ''} />
+            </div>
           </div>
         </div>
       </div>
