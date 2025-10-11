@@ -18,7 +18,7 @@ const LipSyncAvatar: React.FC<LipSyncAvatarProps> = ({
   const sizeClasses = {
     small: 'w-16 h-16',
     medium: 'w-32 h-32',
-    large: 'w-48 h-48'
+    large: 'w-64 h-64'
   };
 
   return (

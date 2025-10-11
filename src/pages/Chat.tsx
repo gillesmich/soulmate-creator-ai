@@ -194,7 +194,7 @@ const Chat = () => {
                 <LipSyncAvatar 
                   imageUrl={selectedImage} 
                   isSpeaking={isSpeaking}
-                  size="large"
+                  size="medium"
                   className="cursor-pointer"
                   onClick={() => setShowLargeAvatar(true)}
                 />
@@ -230,7 +230,7 @@ const Chat = () => {
 
 
       {/* Main Chat Area */}
-      <div className="max-w-4xl mx-auto p-6 flex flex-col gap-6" style={{ height: 'calc(100vh - 240px)' }}>
+      <div className="max-w-4xl mx-auto p-6 flex flex-col" style={{ minHeight: '500px', maxHeight: 'calc(100vh - 180px)' }}>
         <Card className="flex-1 flex flex-col overflow-hidden">
           <CardHeader className="border-b border-primary/10">
             <CardTitle className="text-romantic-foreground">Conversation</CardTitle>
