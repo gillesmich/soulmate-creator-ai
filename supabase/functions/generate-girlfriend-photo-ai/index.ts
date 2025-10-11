@@ -51,12 +51,14 @@ serve(async (req) => {
     // Handle avatar view
     const viewType = character.avatarView === 'bust' ? 'portrait shot from shoulders up' : 'full body shot';
     
-    // Handle clothing option
+    // Handle clothing option with safe filtering
     let clothingDescription = '';
     if (character.clothing === 'nude') {
-      clothingDescription = 'artistic nude portrait, tasteful and elegant';
+      // Replace with safe alternative
+      clothingDescription = 'wearing elegant flowing white fabric, artistic fashion photography';
     } else if (character.clothing === 'lingerie') {
-      clothingDescription = 'wearing elegant lingerie';
+      // Replace with safe alternative
+      clothingDescription = 'wearing elegant silk dress, glamour photography';
     } else {
       clothingDescription = `wearing ${safeOutfit} clothing`;
     }
