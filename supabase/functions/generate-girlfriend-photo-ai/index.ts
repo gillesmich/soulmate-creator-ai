@@ -1,9 +1,10 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
 
 serve(async (req) => {
@@ -12,6 +13,30 @@ serve(async (req) => {
   }
 
   try {
+    // Validate API key
+    const apiKey = req.headers.get('x-api-key');
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: 'API key required' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    const { data: userId, error: validateError } = await supabase.rpc('validate_api_key', { key: apiKey });
+    
+    if (validateError || !userId) {
+      console.error('API key validation error:', validateError);
+      return new Response(JSON.stringify({ error: 'Invalid API key' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const { character, seed, attitude, scenery, retryAttempt = 0 } = await req.json();
 
     if (!character) {

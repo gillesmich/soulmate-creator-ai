@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_keys: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          key_value: string
+          last_used_at: string | null
+          name: string
+          usage_count: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_value: string
+          last_used_at?: string | null
+          name: string
+          usage_count?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_value?: string
+          last_used_at?: string | null
+          name?: string
+          usage_count?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       saved_girlfriend_images: {
         Row: {
           character_data: Json
@@ -49,7 +82,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      validate_api_key: {
+        Args: { key: string }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
