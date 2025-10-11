@@ -11,14 +11,14 @@ import { saveCharacter as saveToLocalStorage } from '@/utils/characterStorage';
 interface SaveImageDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  imageUrl: string;
+  imageUrls: string[]; // Changed to array
   characterData: any;
 }
 
 const SaveImageDialog: React.FC<SaveImageDialogProps> = ({ 
   isOpen, 
   onClose, 
-  imageUrl, 
+  imageUrls, 
   characterData 
 }) => {
   const [name, setName] = useState('');
@@ -50,9 +50,9 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
         return;
       }
 
-      // Save to localStorage first
+      // Save to localStorage first with all images
       const savedCharacter = saveToLocalStorage(
-        { ...characterData, image: imageUrl },
+        { ...characterData, image: imageUrls[0], images: imageUrls },
         name.trim()
       );
 
@@ -61,36 +61,52 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
         description: `${name} has been saved to your browser.`,
       });
 
-      // Then save to Supabase storage and database
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      
+      // Upload all images to Supabase storage
+      const uploadedUrls: string[] = [];
       const timestamp = Date.now();
-      const filename = `${user.id}/${name.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.png`;
       
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('girlfriend-images')
-        .upload(filename, blob, {
-          contentType: 'image/png',
-          upsert: false
-        });
+      for (let i = 0; i < imageUrls.length; i++) {
+        const response = await fetch(imageUrls[i]);
+        const blob = await response.blob();
+        
+        const filename = `${user.id}/${name.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}_${i}.png`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('girlfriend-images')
+          .upload(filename, blob, {
+            contentType: 'image/png',
+            upsert: false
+          });
 
-      if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error('Error uploading image:', uploadError);
+          continue; // Skip this image but continue with others
+        }
 
-      const { data: urlData } = supabase.storage
-        .from('girlfriend-images')
-        .getPublicUrl(filename);
+        const { data: urlData } = supabase.storage
+          .from('girlfriend-images')
+          .getPublicUrl(filename);
+        
+        uploadedUrls.push(urlData.publicUrl);
+      }
 
+      // Save to database with all uploaded URLs
       const { error: dbError } = await supabase
         .from('saved_girlfriend_images')
         .insert({
           user_id: user.id,
           name: name.trim(),
-          image_url: urlData.publicUrl,
+          image_url: uploadedUrls[0] || '', // Keep first image as main
+          image_urls: uploadedUrls, // Save all images
           character_data: characterData
         });
 
       if (dbError) throw dbError;
+      
+      toast({
+        title: "✅ Sauvegardé!",
+        description: `${name} et ses ${imageUrls.length} image(s) ont été sauvegardées.`,
+      });
 
       setName('');
       onClose();
@@ -129,13 +145,19 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
             />
           </div>
           
-          <div className="flex justify-center">
-            <img 
-              src={imageUrl} 
-              alt="Girlfriend to save" 
-              className="w-32 h-32 rounded-lg object-cover border"
-            />
+          <div className="flex flex-wrap justify-center gap-2 max-h-64 overflow-y-auto">
+            {imageUrls.map((url, index) => (
+              <img 
+                key={index}
+                src={url} 
+                alt={`Image ${index + 1}`} 
+                className="w-20 h-20 rounded-lg object-cover border hover:scale-105 transition-transform"
+              />
+            ))}
           </div>
+          <p className="text-sm text-muted-foreground text-center">
+            {imageUrls.length} image(s) seront sauvegardées
+          </p>
         </div>
 
         <DialogFooter className="flex gap-2">

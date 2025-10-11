@@ -693,7 +693,7 @@ const Customize = () => {
       <SaveImageDialog 
         isOpen={showSaveDialog}
         onClose={() => setShowSaveDialog(false)}
-        imageUrl={generatedImages.length > 0 ? generatedImages[0].url : ''}
+        imageUrls={generatedImages.map(img => img.url)}
         characterData={character}
       />
     </div>
