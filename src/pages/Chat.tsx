@@ -75,7 +75,7 @@ const Chat = () => {
   }, [carouselApi, showLargeAvatar, currentImageIndex]);
 
   const handleMessage = (event: any) => {
-    console.log('[CHAT] Message reçu:', event.type);
+    console.log('[CHAT] Message reçu:', event.type, 'Données complètes:', JSON.stringify(event));
     
     // Activer le lipsynch dès qu'on reçoit de l'audio OU une transcription
     if (event.type === 'response.audio.delta' || event.type === 'response.audio_transcript.delta') {
@@ -83,6 +83,7 @@ const Chat = () => {
     } else if (event.type === 'response.audio.done' || event.type === 'response.audio_transcript.done') {
       setIsSpeaking(false);
     } else if (event.type === 'conversation.item.input_audio_transcription.completed') {
+      console.log('[CHAT] Transcription utilisateur:', event.transcript);
       if (event.transcript) {
         const userMessage: Message = {
           id: `user-${Date.now()}`,
@@ -90,35 +91,47 @@ const Chat = () => {
           sender: 'user',
           timestamp: new Date()
         };
-        setMessages(prev => [...prev, userMessage]);
+        console.log('[CHAT] Ajout message utilisateur:', userMessage);
+        setMessages(prev => {
+          const newMessages = [...prev, userMessage];
+          console.log('[CHAT] Messages après ajout user:', newMessages.length);
+          return newMessages;
+        });
       }
     } else if (event.type === 'response.audio_transcript.delta') {
+      console.log('[CHAT] Delta de transcription AI:', event.delta);
       setMessages(prev => {
         const lastMessage = prev[prev.length - 1];
         if (lastMessage?.sender === 'ai' && lastMessage.id.startsWith('ai-streaming-')) {
-          return [
+          const updated = [
             ...prev.slice(0, -1),
-            { ...lastMessage, content: lastMessage.content + event.delta }
+            { ...lastMessage, content: lastMessage.content + (event.delta || '') }
           ];
+          console.log('[CHAT] Mise à jour message AI existant, total messages:', updated.length);
+          return updated;
         }
-        return [
-          ...prev,
-          {
-            id: `ai-streaming-${Date.now()}`,
-            content: event.delta,
-            sender: 'ai',
-            timestamp: new Date()
-          }
-        ];
+        const newMessage = {
+          id: `ai-streaming-${Date.now()}`,
+          content: event.delta || '',
+          sender: 'ai' as const,
+          timestamp: new Date()
+        };
+        console.log('[CHAT] Nouveau message AI:', newMessage);
+        const updated = [...prev, newMessage];
+        console.log('[CHAT] Messages après ajout AI:', updated.length);
+        return updated;
       });
     } else if (event.type === 'response.audio_transcript.done') {
+      console.log('[CHAT] Transcription AI terminée');
       setMessages(prev => {
         const lastMessage = prev[prev.length - 1];
         if (lastMessage?.id.startsWith('ai-streaming-')) {
-          return [
+          const updated = [
             ...prev.slice(0, -1),
             { ...lastMessage, id: `ai-${Date.now()}` }
           ];
+          console.log('[CHAT] Finalisation message AI, total messages:', updated.length);
+          return updated;
         }
         return prev;
       });
