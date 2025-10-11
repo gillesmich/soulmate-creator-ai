@@ -16,21 +16,38 @@ interface ElevenLabsVoiceProps {
   onSpeakingChange?: (isSpeaking: boolean) => void;
 }
 
-// Premium voices available
-const PREMIUM_VOICES = [
-  { id: '9BWtsMINqrJLrRacOk9x', name: 'Aria' },
-  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah' },
-  { id: 'FGY2WhTYpPnrIDTdsKH5', name: 'Laura' },
-  { id: 'XB0fDUnXU5powFXDhCwa', name: 'Charlotte' },
-  { id: 'Xb7hH8MSUJpSbSDYk0k2', name: 'Alice' },
-  { id: 'XrExE9yKIg1WjnnlVkGX', name: 'Matilda' },
-  { id: 'cgSgspJ2msm6clMCkdW9', name: 'Jessica' },
-  { id: 'pFZP5JQG7iQjIQuC4Bku', name: 'Lily' },
-  { id: 'SAz9YHcvj6GT2YYXdXww', name: 'River' },
+// Voix françaises féminines recommandées pour ElevenLabs
+// Ces voix supportent le français avec le modèle Multilingual v2
+const FRENCH_FEMALE_VOICES = [
+  { 
+    id: 'pFZP5JQG7iQjIQuC4Bku', 
+    name: 'Lily',
+    description: 'Voix douce et naturelle en français'
+  },
+  { 
+    id: 'XB0fDUnXU5powFXDhCwa', 
+    name: 'Charlotte',
+    description: 'Voix expressive et chaleureuse'
+  },
+  { 
+    id: 'EXAVITQu4vr4xnSDxMaL', 
+    name: 'Sarah',
+    description: 'Voix claire et professionnelle'
+  },
+  { 
+    id: 'XrExE9yKIg1WjnnlVkGX', 
+    name: 'Matilda',
+    description: 'Voix jeune et énergique'
+  },
+  { 
+    id: 'cgSgspJ2msm6clMCkdW9', 
+    name: 'Jessica',
+    description: 'Voix posée et élégante'
+  },
 ];
 
-// Free default voice
-const FREE_VOICE = { id: '9BWtsMINqrJLrRacOk9x', name: 'Aria' };
+// Voix par défaut gratuite
+const DEFAULT_VOICE = FRENCH_FEMALE_VOICES[0];
 
 const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({ 
   character, 
@@ -149,17 +166,29 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
             Conversation Vocale ElevenLabs
           </h3>
           <p className="text-sm text-muted-foreground mb-4">
-            {isPremium 
-              ? `${PREMIUM_VOICES.length} voix premium disponibles`
-              : 'Passez à Premium pour débloquer 20+ voix'}
+            Voix françaises féminines avec modèle Multilingual v2
           </p>
         </div>
 
-        {!isPremium && (
-          <div className="bg-muted p-3 rounded-lg text-sm text-center">
-            <p>Voix gratuite: {FREE_VOICE.name}</p>
-          </div>
-        )}
+        <div className="bg-muted p-4 rounded-lg space-y-2">
+          <p className="text-sm font-medium">Voix françaises disponibles:</p>
+          <ul className="text-xs text-muted-foreground space-y-1">
+            {FRENCH_FEMALE_VOICES.map(voice => (
+              <li key={voice.id} className="flex justify-between">
+                <span className="font-medium">{voice.name}</span>
+                <span>{voice.description}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="bg-primary/5 border border-primary/20 p-3 rounded-lg text-xs">
+          <p className="font-medium mb-1">📝 Configuration requise:</p>
+          <p className="text-muted-foreground">
+            Créez un agent ElevenLabs dans votre dashboard avec une voix française 
+            et le modèle "Multilingual v2". Remplacez ensuite l'ID de l'agent dans le code.
+          </p>
+        </div>
 
         <div className="flex justify-center">
           {!isConnected ? (
