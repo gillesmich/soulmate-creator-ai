@@ -12,6 +12,9 @@ export interface CharacterData {
   imageStyle?: string;
   image?: string;
   name?: string;
+  interests?: string;
+  hobbies?: string;
+  characterTraits?: string;
 }
 
 export interface SavedCharacter extends CharacterData {

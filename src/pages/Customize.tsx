@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Heart, MessageCircle, Sparkles, RefreshCw, Save, Mic } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import SaveImageDialog from '@/components/SaveImageDialog';
@@ -23,6 +25,9 @@ interface CharacterOptions {
   avatarView: string;
   clothing: string;
   imageStyle: string;
+  interests: string;
+  hobbies: string;
+  characterTraits: string;
 }
 
 const Customize = () => {
@@ -39,7 +44,10 @@ const Customize = () => {
     voice: 'alloy',
     avatarView: 'bust',
     clothing: 'clothed',
-    imageStyle: 'realistic'
+    imageStyle: 'realistic',
+    interests: '',
+    hobbies: '',
+    characterTraits: ''
   });
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -60,7 +68,10 @@ const Customize = () => {
         voice: savedCharacter.voice || 'alloy',
         avatarView: savedCharacter.avatarView || 'bust',
         clothing: savedCharacter.clothing || 'clothed',
-        imageStyle: savedCharacter.imageStyle || 'realistic'
+        imageStyle: savedCharacter.imageStyle || 'realistic',
+        interests: savedCharacter.interests || '',
+        hobbies: savedCharacter.hobbies || '',
+        characterTraits: savedCharacter.characterTraits || ''
       });
       if (savedCharacter.image) {
         setGeneratedImage(savedCharacter.image);
@@ -166,6 +177,48 @@ const Customize = () => {
                   </CardContent>
                 </Card>
               ))}
+
+              {/* Text customization fields */}
+              <Card className="border-primary/10">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    Personnalisation du caractère
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="interests">Goûts et intérêts</Label>
+                    <Textarea
+                      id="interests"
+                      placeholder="Ex: musique classique, cinéma d'horreur, cuisine italienne..."
+                      value={character.interests}
+                      onChange={(e) => updateCharacter('interests', e.target.value)}
+                      className="min-h-[80px]"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="hobbies">Hobbies</Label>
+                    <Textarea
+                      id="hobbies"
+                      placeholder="Ex: yoga, lecture, randonnée, photographie..."
+                      value={character.hobbies}
+                      onChange={(e) => updateCharacter('hobbies', e.target.value)}
+                      className="min-h-[80px]"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="characterTraits">Traits de caractère supplémentaires</Label>
+                    <Textarea
+                      id="characterTraits"
+                      placeholder="Ex: sens de l'humour, timide au début, aime les longues discussions..."
+                      value={character.characterTraits}
+                      onChange={(e) => updateCharacter('characterTraits', e.target.value)}
+                      className="min-h-[80px]"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
 
