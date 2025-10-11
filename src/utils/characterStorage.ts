@@ -6,6 +6,7 @@ export interface CharacterData {
   outfit: string;
   eyeColor: string;
   age: string;
+  ethnicity?: string;
   voice?: string;
   avatarView?: string;
   clothing?: string;
