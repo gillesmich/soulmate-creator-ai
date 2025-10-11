@@ -82,9 +82,10 @@ const Chat = () => {
   const handleMessage = (event: any) => {
     console.log('[CHAT] Message reçu:', event.type);
     
-    if (event.type === 'response.audio.delta') {
+    // Activer le lipsynch dès qu'on reçoit de l'audio OU une transcription
+    if (event.type === 'response.audio.delta' || event.type === 'response.audio_transcript.delta') {
       setIsSpeaking(true);
-    } else if (event.type === 'response.audio.done') {
+    } else if (event.type === 'response.audio.done' || event.type === 'response.audio_transcript.done') {
       setIsSpeaking(false);
     } else if (event.type === 'conversation.item.input_audio_transcription.completed') {
       if (event.transcript) {
