@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useConversation } from '@11labs/react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Mic, MicOff, Loader2, Info, Sparkles } from 'lucide-react';
+import { Mic, MicOff, Loader2, Info } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSubscription } from '@/hooks/useSubscription';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 
 interface ElevenLabsVoiceProps {
   character?: {
@@ -16,61 +18,13 @@ interface ElevenLabsVoiceProps {
   onSpeakingChange?: (isSpeaking: boolean) => void;
 }
 
-// Voix françaises féminines premium pour ElevenLabs (Creator Plan)
-// Ces voix supportent le français avec le modèle Multilingual v2
-const FRENCH_FEMALE_VOICES = [
-  { 
-    id: 'EXAVITQu4vr4xnSDxMaL', 
-    name: 'Sarah',
-    description: 'Voix douce et chaleureuse',
-    category: 'Premium'
-  },
-  { 
-    id: 'pFZP5JQG7iQjIQuC4Bku', 
-    name: 'Lily',
-    description: 'Voix jeune et énergique',
-    category: 'Premium'
-  },
-  { 
-    id: 'XB0fDUnXU5powFXDhCwa', 
-    name: 'Charlotte',
-    description: 'Voix élégante et posée',
-    category: 'Premium'
-  },
-  { 
-    id: 'XrExE9yKIg1WjnnlVkGX', 
-    name: 'Matilda',
-    description: 'Voix mature et confiante',
-    category: 'Premium'
-  },
-  { 
-    id: 'cgSgspJ2msm6clMCkdW9', 
-    name: 'Jessica',
-    description: 'Voix claire et professionnelle',
-    category: 'Premium'
-  },
-  { 
-    id: '9BWtsMINqrJLrRacOk9x', 
-    name: 'Aria',
-    description: 'Voix expressive et naturelle',
-    category: 'Premium'
-  },
-  { 
-    id: 'pqHfZKP75CvOlQylNhV4', 
-    name: 'Bill',
-    description: 'Voix féminine claire',
-    category: 'Premium'
-  },
-  { 
-    id: 'SAz9YHcvj6GT2YYXdXww', 
-    name: 'River',
-    description: 'Voix douce et apaisante',
-    category: 'Premium'
-  },
-];
-
-// Voix par défaut gratuite
-const DEFAULT_VOICE = FRENCH_FEMALE_VOICES[0];
+interface Voice {
+  voice_id: string;
+  name: string;
+  category?: string;
+  labels?: { [key: string]: string };
+  preview_url?: string;
+}
 
 const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({ 
   character, 
@@ -78,27 +32,23 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
 }) => {
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [isLoadingUrl, setIsLoadingUrl] = useState(false);
-  const [selectedVoiceId, setSelectedVoiceId] = useState<string>(DEFAULT_VOICE.id);
-  const [customVoiceId, setCustomVoiceId] = useState('');
-  const [useCustomVoice, setUseCustomVoice] = useState(false);
+  const [selectedVoiceId, setSelectedVoiceId] = useState<string>('agent');
+  const [availableVoices, setAvailableVoices] = useState<Voice[]>([]);
+  const [isLoadingVoices, setIsLoadingVoices] = useState(false);
   const { toast } = useToast();
   const { subscription } = useSubscription();
 
   const conversation = useConversation({
-    overrides: useCustomVoice && customVoiceId ? {
-      tts: {
-        voiceId: customVoiceId
-      }
-    } : selectedVoiceId !== DEFAULT_VOICE.id ? {
+    overrides: selectedVoiceId !== 'agent' ? {
       tts: {
         voiceId: selectedVoiceId
       }
     } : undefined,
     onConnect: () => {
       console.log('Connected to ElevenLabs');
-      const voiceName = useCustomVoice && customVoiceId 
-        ? 'personnalisée' 
-        : FRENCH_FEMALE_VOICES.find(v => v.id === selectedVoiceId)?.name || 'par défaut';
+      const voiceName = selectedVoiceId === 'agent' 
+        ? 'Agathe (voix de l\'agent)' 
+        : availableVoices.find(v => v.voice_id === selectedVoiceId)?.name || 'sélectionnée';
       toast({
         title: "Connecté",
         description: `Voix: ${voiceName}`,
@@ -125,6 +75,38 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
       onSpeakingChange(isSpeaking);
     }
   }, [isSpeaking, onSpeakingChange]);
+
+  // Charger toutes les voix disponibles au démarrage
+  useEffect(() => {
+    const fetchVoices = async () => {
+      setIsLoadingVoices(true);
+      try {
+        console.log('Fetching ElevenLabs voices...');
+        const { data, error } = await supabase.functions.invoke('get-elevenlabs-voices');
+        
+        if (error) {
+          console.error('Error fetching voices:', error);
+          throw error;
+        }
+        
+        if (data?.voices && Array.isArray(data.voices)) {
+          console.log(`Loaded ${data.voices.length} voices`);
+          setAvailableVoices(data.voices);
+        }
+      } catch (error) {
+        console.error('Failed to load voices:', error);
+        toast({
+          title: "Avertissement",
+          description: "Impossible de charger les voix. La voix de l'agent sera utilisée par défaut.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoadingVoices(false);
+      }
+    };
+
+    fetchVoices();
+  }, [toast]);
 
   const getSignedUrl = async (agentId: string) => {
     try {
@@ -209,108 +191,91 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
 
         {/* Voice Selection */}
         <div className="space-y-4">
-          {/* Custom Voice ID Input */}
-          <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 p-4 rounded-lg border border-purple-500/20">
-            <h4 className="font-semibold mb-3 flex items-center gap-2 text-purple-600 dark:text-purple-400">
-              <Sparkles className="w-4 h-4" />
-              Voix personnalisée (Agathe, etc.)
+          <div className="bg-muted/50 p-4 rounded-lg border">
+            <h4 className="font-semibold mb-3 flex items-center gap-2">
+              <Info className="w-4 h-4" />
+              Sélectionnez une voix
             </h4>
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="useCustomVoice"
-                  checked={useCustomVoice}
-                  onChange={(e) => setUseCustomVoice(e.target.checked)}
-                  disabled={isConnected}
-                  className="w-4 h-4 accent-purple-500"
-                />
-                <label htmlFor="useCustomVoice" className="text-sm font-medium cursor-pointer">
-                  Utiliser une voix personnalisée
-                </label>
+            
+            {isLoadingVoices ? (
+              <div className="flex items-center justify-center p-8">
+                <Loader2 className="w-6 h-6 animate-spin mr-2" />
+                <span className="text-sm text-muted-foreground">Chargement des voix...</span>
               </div>
-              {useCustomVoice && (
-                <div className="space-y-2 pl-6">
-                  <label className="text-sm text-muted-foreground">
-                    ID de votre voix (ex: ID d'Agathe)
-                  </label>
-                  <input
-                    type="text"
-                    value={customVoiceId}
-                    onChange={(e) => setCustomVoiceId(e.target.value)}
-                    placeholder="Collez l'ID de votre voix ici..."
-                    disabled={isConnected}
-                    className="w-full px-3 py-2 rounded-md border bg-background text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    💡 Trouvez l'ID dans{' '}
-                    <a 
-                      href="https://elevenlabs.io/voice-lab" 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="text-purple-600 hover:underline font-medium"
-                    >
-                      Voice Lab
-                    </a>
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Premium Voices Selection */}
-          {!useCustomVoice && (
-            <div className="bg-muted/50 p-4 rounded-lg border">
-              <h4 className="font-semibold mb-3 flex items-center gap-2">
-                <Info className="w-4 h-4" />
-                Sélectionnez une voix premium
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {FRENCH_FEMALE_VOICES.map(voice => (
-                  <button
-                    key={voice.id}
-                    onClick={() => setSelectedVoiceId(voice.id)}
-                    disabled={isConnected}
-                    className={`flex flex-col p-3 rounded-md transition-all text-left ${
-                      selectedVoiceId === voice.id
-                        ? 'bg-purple-500/20 border-2 border-purple-500'
-                        : 'bg-background/70 hover:bg-background border-2 border-transparent'
-                    } ${isConnected ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                  >
-                    <span className="font-medium text-sm flex items-center gap-2">
-                      {selectedVoiceId === voice.id && (
-                        <div className="w-2 h-2 rounded-full bg-purple-500" />
-                      )}
-                      {voice.name}
-                    </span>
-                    <span className="text-xs text-muted-foreground">{voice.description}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Configuration Instructions */}
-        <div className="bg-blue-500/10 p-4 rounded-lg border border-blue-500/20">
-          <h4 className="font-semibold mb-2 flex items-center gap-2 text-blue-600 dark:text-blue-400">
-            <Info className="w-4 h-4" />
-            Configuration
-          </h4>
-          <ol className="space-y-2 text-sm text-muted-foreground">
-            <li>⚠️ <strong>Important:</strong> Pour changer la voix, configurez-la directement dans votre{' '}
-              <a 
-                href="https://elevenlabs.io/app/conversational-ai" 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="text-blue-600 hover:underline font-medium"
+            ) : (
+              <RadioGroup 
+                value={selectedVoiceId} 
+                onValueChange={setSelectedVoiceId}
+                disabled={isConnected}
+                className="space-y-2 max-h-96 overflow-y-auto"
               >
-                agent ElevenLabs
-              </a>
-            </li>
-            <li>Les voix disponibles ci-dessus peuvent être sélectionnées dans les paramètres de votre agent</li>
-            <li>Le modèle "Multilingual v2" est recommandé pour le français</li>
-          </ol>
+                {/* Option voix de l'agent (Agathe) */}
+                <div className="flex items-start space-x-3 p-3 rounded-lg bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20">
+                  <RadioGroupItem 
+                    value="agent" 
+                    id="agent"
+                    disabled={isConnected}
+                  />
+                  <Label 
+                    htmlFor="agent" 
+                    className={`flex flex-col cursor-pointer flex-1 ${
+                      isConnected ? 'opacity-50' : ''
+                    }`}
+                  >
+                    <span className="font-semibold text-purple-600 dark:text-purple-400">
+                      🎭 Voix de l'agent (Agathe)
+                    </span>
+                    <span className="text-sm text-muted-foreground">
+                      Utilise la voix configurée dans votre agent ElevenLabs
+                    </span>
+                    <span className="text-xs text-purple-600 dark:text-purple-400 font-semibold mt-1">
+                      ⭐ Recommandé
+                    </span>
+                  </Label>
+                </div>
+
+                {/* Toutes les voix disponibles */}
+                {availableVoices.length > 0 ? (
+                  availableVoices.map((voice) => (
+                    <div 
+                      key={voice.voice_id} 
+                      className="flex items-start space-x-3 p-2 rounded-lg hover:bg-accent/5 border border-transparent hover:border-accent/20 transition-colors"
+                    >
+                      <RadioGroupItem 
+                        value={voice.voice_id} 
+                        id={voice.voice_id}
+                        disabled={isConnected}
+                      />
+                      <Label 
+                        htmlFor={voice.voice_id} 
+                        className={`flex flex-col cursor-pointer flex-1 ${
+                          isConnected ? 'opacity-50' : ''
+                        }`}
+                      >
+                        <span className="font-medium">{voice.name}</span>
+                        {voice.labels && Object.keys(voice.labels).length > 0 && (
+                          <span className="text-xs text-muted-foreground mt-0.5">
+                            {Object.entries(voice.labels)
+                              .map(([key, value]) => `${key}: ${value}`)
+                              .join(' • ')}
+                          </span>
+                        )}
+                        {voice.category && (
+                          <span className="text-xs text-primary mt-0.5">
+                            {voice.category}
+                          </span>
+                        )}
+                      </Label>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center p-4 text-sm text-muted-foreground">
+                    Aucune voix disponible. La voix de l'agent sera utilisée.
+                  </div>
+                )}
+              </RadioGroup>
+            )}
+          </div>
         </div>
 
         {/* Action Button */}
