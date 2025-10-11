@@ -55,6 +55,7 @@ const Customize = () => {
   const [selectedStyles, setSelectedStyles] = useState<string[]>(['realistic']);
   const [selectedViews, setSelectedViews] = useState<string[]>(['bust']);
   const [selectedClothing, setSelectedClothing] = useState<string[]>(['clothed']);
+  const [currentBatchSeed, setCurrentBatchSeed] = useState<number | null>(null);
 
   // Load character from localStorage on mount if exists
   useEffect(() => {
@@ -186,6 +187,7 @@ const Customize = () => {
     try {
       // Generate a unique seed for this batch to ensure consistency
       const characterSeed = Date.now();
+      setCurrentBatchSeed(characterSeed);
       
       // Generate images for each combination of style, view, and clothing
       const generationPromises = selectedStyles.flatMap(style => 
@@ -251,7 +253,7 @@ const Customize = () => {
       if (successfulImages.length > 0) {
         toast({
           title: "✨ Photos générées!",
-          description: `${successfulImages.length}/${totalImages} image(s) créée(s) avec succès. Le même personnage est représenté dans toutes les vues.`,
+          description: `${successfulImages.length}/${totalImages} image(s) créée(s) avec succès. Le même avatar est utilisé dans toutes les images.`,
         });
       }
       
@@ -297,7 +299,8 @@ const Customize = () => {
     setIsGenerating(true);
     
     try {
-      const characterSeed = Date.now();
+      // Réutiliser le seed du batch actuel pour garder le même personnage
+      const characterSeed = currentBatchSeed || Date.now();
       
       const { data, error } = await supabase.functions.invoke('generate-girlfriend-photo-ai', {
         body: { 
@@ -573,6 +576,11 @@ const Customize = () => {
                     </div>
                   ) : generatedImages.length > 0 ? (
                     <div className="space-y-3">
+                      {generatedImages.length > 0 && (
+                        <p className="text-sm font-medium text-primary text-center">
+                          {generatedImages.length} image(s) générée(s) avec le même avatar
+                        </p>
+                      )}
                       <div className="grid grid-cols-1 gap-3 max-h-[500px] overflow-y-auto">
                         {generatedImages.map((img, idx) => (
                           <div key={idx} className="space-y-2">
@@ -628,7 +636,7 @@ const Customize = () => {
                     <div className="space-y-4 flex flex-col items-center justify-center h-full">
                       <div className="text-6xl">📸</div>
                       <p className="text-sm text-muted-foreground mb-2">
-                        Générer {selectedStyles.length * selectedViews.length} image(s) du même personnage
+                        Générer {selectedStyles.length * selectedViews.length * selectedClothing.length} image(s) du même avatar
                       </p>
                       <Button 
                         onClick={generatePhoto} 
