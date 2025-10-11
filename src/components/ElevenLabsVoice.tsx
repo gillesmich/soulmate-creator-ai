@@ -152,6 +152,8 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
       const agentId = 'agent_5501k79dakb3eay91b90g55520cr';
 
       console.log('[ELEVENLABS] Getting signed URL for agent:', agentId);
+      console.log('[ELEVENLABS] Selected voice ID:', selectedVoiceId);
+      
       const url = await getSignedUrl(agentId);
       if (!url) {
         console.error('[ELEVENLABS] No signed URL received');
@@ -171,16 +173,18 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
       
       const sessionConfig: any = { signedUrl: url };
       
-      // Appliquer les overrides de voix si une voix spécifique est sélectionnée
+      // IMPORTANT: Les agents ElevenLabs ont leur propre voix configurée.
+      // Pour utiliser une voix différente, il faut l'override UNIQUEMENT si ce n'est pas "agent"
       if (selectedVoiceId !== 'agent') {
-        console.log('[ELEVENLABS] Applying voice override:', selectedVoiceId);
+        console.log('[ELEVENLABS] Overriding agent voice with:', selectedVoiceId);
         const selectedVoice = availableVoices.find(v => v.voice_id === selectedVoiceId);
-        console.log('[ELEVENLABS] Selected voice details:', selectedVoice);
+        console.log('[ELEVENLABS] Selected voice details:', selectedVoice?.name);
         
+        // Les overrides doivent être appliqués selon la doc ElevenLabs
         sessionConfig.overrides = {
           agent: {
             prompt: {
-              prompt: character?.personality || "Tu es une petite amie virtuelle charmante et attentionnée."
+              prompt: character?.personality || "Tu es une petite amie virtuelle charmante et attentionnée. Tu parles français naturellement."
             },
             firstMessage: "Salut ! Comment vas-tu aujourd'hui ?",
             language: "fr"
@@ -189,9 +193,16 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
             voiceId: selectedVoiceId
           }
         };
+        
+        console.log('[ELEVENLABS] Config with overrides:', {
+          hasOverrides: !!sessionConfig.overrides,
+          voiceId: sessionConfig.overrides.tts.voiceId,
+          language: sessionConfig.overrides.agent.language
+        });
+      } else {
+        console.log('[ELEVENLABS] Using agent default voice (Agathe)');
       }
       
-      console.log('[ELEVENLABS] Starting session with config:', JSON.stringify(sessionConfig));
       await conversation.startSession(sessionConfig);
       
       console.log('[ELEVENLABS] Conversation started successfully');
@@ -231,10 +242,16 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
         {/* Voice Selection */}
         <div className="space-y-4">
           <div className="bg-muted/50 p-4 rounded-lg border">
-            <h4 className="font-semibold mb-3 flex items-center gap-2">
-              <Info className="w-4 h-4" />
-              Sélectionnez une voix
-            </h4>
+            <div className="flex items-start gap-2 mb-3">
+              <Info className="w-4 h-4 mt-0.5 text-muted-foreground" />
+              <div className="flex-1">
+                <h4 className="font-semibold">Sélectionnez une voix</h4>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Note: Certaines voix peuvent ne pas fonctionner avec les agents configurés. 
+                  La voix de l'agent (Agathe) est recommandée.
+                </p>
+              </div>
+            </div>
             
             {isLoadingVoices ? (
               <div className="flex items-center justify-center p-8">
