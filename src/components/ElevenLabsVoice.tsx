@@ -120,7 +120,9 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
       // Request microphone permission
       await navigator.mediaDevices.getUserMedia({ audio: true });
       
-      await conversation.startSession({ url });
+      await conversation.startSession({ 
+        signedUrl: url 
+      });
     } catch (error) {
       console.error('Error starting conversation:', error);
       toast({
