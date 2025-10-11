@@ -8,6 +8,7 @@ import ElevenLabsVoice from "@/components/ElevenLabsVoice";
 import LipSyncAvatar from "@/components/LipSyncAvatar";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { getCurrentCharacter } from "@/utils/characterStorage";
+import { supabase } from "@/integrations/supabase/client";
 
 const VoiceChat = () => {
   const navigate = useNavigate();
@@ -21,7 +22,7 @@ const VoiceChat = () => {
 
   // Load character images on mount
   useEffect(() => {
-    const loadImages = () => {
+    const loadImages = async () => {
       try {
         // Try to get images from sessionStorage first
         const imagesJson = sessionStorage.getItem('currentCharacterImages');
@@ -46,21 +47,45 @@ const VoiceChat = () => {
           return;
         }
         
-        // Last fallback: try from character data
+        // Try from character data
         const savedCharacter = getCurrentCharacter();
         console.log('[VOICE CHAT] Loaded character:', savedCharacter);
         
-        if (savedCharacter) {
-          const images = savedCharacter.images && savedCharacter.images.length > 0 
-            ? savedCharacter.images 
-            : savedCharacter.image 
-              ? [savedCharacter.image] 
-              : [];
-          console.log('[VOICE CHAT] Character images:', images.length);
-          setCharacterImages(images);
-        } else {
-          console.log('[VOICE CHAT] No character found');
+        if (savedCharacter && savedCharacter.images && savedCharacter.images.length > 0) {
+          console.log('[VOICE CHAT] Character images from storage:', savedCharacter.images.length);
+          setCharacterImages(savedCharacter.images);
+          return;
         }
+        
+        if (savedCharacter && savedCharacter.image) {
+          console.log('[VOICE CHAT] Single character image from storage');
+          setCharacterImages([savedCharacter.image]);
+          return;
+        }
+        
+        // Last fallback: Load from Supabase
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          console.log('[VOICE CHAT] Loading from Supabase for user:', user.id);
+          const { data: characters } = await supabase
+            .from('saved_girlfriend_images')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(1);
+          
+          if (characters && characters.length > 0) {
+            const character = characters[0];
+            const imageUrls = character.image_urls as string[] | null;
+            const imageUrl = character.image_url as string | null;
+            const images = imageUrls || (imageUrl ? [imageUrl] : []);
+            console.log('[VOICE CHAT] Loaded images from Supabase:', images.length);
+            setCharacterImages(images);
+            return;
+          }
+        }
+        
+        console.log('[VOICE CHAT] No character images found');
       } catch (error) {
         console.error('[VOICE CHAT] Error loading images:', error);
       }

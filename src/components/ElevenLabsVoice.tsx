@@ -40,7 +40,7 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
 
   const conversation = useConversation({
     onConnect: () => {
-      console.log('Connected to ElevenLabs');
+      console.log('[ELEVENLABS] Connected to ElevenLabs');
       const voiceName = selectedVoiceId === 'agent' 
         ? 'Agathe (voix de l\'agent)' 
         : availableVoices.find(v => v.voice_id === selectedVoiceId)?.name || 'sélectionnée';
@@ -50,16 +50,19 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
       });
     },
     onDisconnect: () => {
-      console.log('Disconnected from ElevenLabs');
+      console.log('[ELEVENLABS] Disconnected from ElevenLabs');
       onSpeakingChange?.(false);
     },
     onError: (error) => {
-      console.error('ElevenLabs error:', error);
+      console.error('[ELEVENLABS] Connection error:', error);
       toast({
         title: "Erreur",
         description: "Erreur de connexion vocale",
         variant: "destructive",
       });
+    },
+    onMessage: (message) => {
+      console.log('[ELEVENLABS] Message received:', message);
     },
   });
 
@@ -145,18 +148,21 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
 
   const startConversation = async () => {
     try {
-      // Check if user has premium access
-      const isPremium = subscription.subscribed && subscription.plan_type !== 'free';
-      
       // Agent Agathe configuré
       const agentId = 'agent_5501k79dakb3eay91b90g55520cr';
 
+      console.log('[ELEVENLABS] Getting signed URL for agent:', agentId);
       const url = await getSignedUrl(agentId);
-      if (!url) return;
+      if (!url) {
+        console.error('[ELEVENLABS] No signed URL received');
+        return;
+      }
 
+      console.log('[ELEVENLABS] Signed URL received');
       setSignedUrl(url);
       
       // Request microphone permission
+      console.log('[ELEVENLABS] Requesting microphone permission');
       await navigator.mediaDevices.getUserMedia({ audio: true });
       
       // Enable audio autoplay by creating and playing a silent audio context
@@ -167,21 +173,33 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
       
       // Appliquer les overrides de voix si une voix spécifique est sélectionnée
       if (selectedVoiceId !== 'agent') {
+        console.log('[ELEVENLABS] Applying voice override:', selectedVoiceId);
+        const selectedVoice = availableVoices.find(v => v.voice_id === selectedVoiceId);
+        console.log('[ELEVENLABS] Selected voice details:', selectedVoice);
+        
         sessionConfig.overrides = {
+          agent: {
+            prompt: {
+              prompt: character?.personality || "Tu es une petite amie virtuelle charmante et attentionnée."
+            },
+            firstMessage: "Salut ! Comment vas-tu aujourd'hui ?",
+            language: "fr"
+          },
           tts: {
             voiceId: selectedVoiceId
           }
         };
       }
       
+      console.log('[ELEVENLABS] Starting session with config:', JSON.stringify(sessionConfig));
       await conversation.startSession(sessionConfig);
       
-      console.log('Conversation started successfully');
+      console.log('[ELEVENLABS] Conversation started successfully');
     } catch (error) {
-      console.error('Error starting conversation:', error);
+      console.error('[ELEVENLABS] Error starting conversation:', error);
       toast({
         title: "Erreur",
-        description: "Impossible de démarrer la conversation",
+        description: error instanceof Error ? error.message : "Impossible de démarrer la conversation",
         variant: "destructive",
       });
     }
