@@ -7,7 +7,7 @@ import { ArrowLeft, Phone, PhoneOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import LipSyncAvatar from '@/components/LipSyncAvatar';
 import { getCurrentCharacter } from '@/utils/characterStorage';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from '@/components/ui/carousel';
 import { RealtimeChat } from '@/utils/RealtimeAudio';
 
 interface Message {
@@ -43,6 +43,7 @@ const Chat = () => {
   const chatRef = useRef<RealtimeChat | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const imageRotationInterval = useRef<NodeJS.Timeout | null>(null);
+  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -68,18 +69,10 @@ const Chat = () => {
   }, [messages]);
 
   useEffect(() => {
-    if (showLargeAvatar && character?.images && character.images.length > 1) {
-      imageRotationInterval.current = setInterval(() => {
-        setCurrentImageIndex(prev => (prev + 1) % (character.images?.length || 1));
-      }, 3000);
-
-      return () => {
-        if (imageRotationInterval.current) {
-          clearInterval(imageRotationInterval.current);
-        }
-      };
+    if (carouselApi && showLargeAvatar) {
+      carouselApi.scrollTo(currentImageIndex);
     }
-  }, [showLargeAvatar, character?.images]);
+  }, [carouselApi, showLargeAvatar, currentImageIndex]);
 
   const handleMessage = (event: any) => {
     console.log('[CHAT] Message reçu:', event.type);
@@ -331,16 +324,18 @@ const Chat = () => {
           <div className="relative max-w-[90vw] max-h-[90vh] w-full flex items-center justify-center">
             {character?.images && character.images.length > 1 ? (
               <Carousel 
-                className="w-full max-w-[600px]"
+                className="w-full max-w-[800px]"
                 opts={{
                   align: "center",
                   loop: true,
+                  startIndex: currentImageIndex,
                 }}
+                setApi={setCarouselApi}
               >
                 <CarouselContent>
                   {character.images.map((img, index) => (
                     <CarouselItem key={index}>
-                      <div className="w-[80vmin] h-[80vmin] max-w-[600px] max-h-[600px] mx-auto">
+                      <div className="w-[90vmin] h-[90vmin] max-w-[800px] max-h-[800px] mx-auto">
                         <LipSyncAvatar 
                           imageUrl={img} 
                           isSpeaking={isSpeaking}
@@ -361,9 +356,9 @@ const Chat = () => {
                 </div>
               </Carousel>
             ) : (
-              <div className="w-[80vmin] h-[80vmin] max-w-[600px] max-h-[600px]">
+              <div className="w-[90vmin] h-[90vmin] max-w-[800px] max-h-[800px]">
                 <LipSyncAvatar 
-                  imageUrl={character?.image} 
+                  imageUrl={selectedImage} 
                   isSpeaking={isSpeaking}
                   size="large"
                   className="w-full h-full"
