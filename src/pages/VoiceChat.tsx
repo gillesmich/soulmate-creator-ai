@@ -21,20 +21,52 @@ const VoiceChat = () => {
 
   // Load character images on mount
   useEffect(() => {
-    const savedCharacter = getCurrentCharacter();
-    console.log('[VOICE CHAT] Loaded character:', savedCharacter);
+    const loadImages = () => {
+      try {
+        // Try to get images from sessionStorage first
+        const imagesJson = sessionStorage.getItem('currentCharacterImages');
+        console.log('[VOICE CHAT] sessionStorage currentCharacterImages:', imagesJson);
+        
+        if (imagesJson) {
+          const images = JSON.parse(imagesJson);
+          if (Array.isArray(images) && images.length > 0) {
+            console.log('[VOICE CHAT] Loaded images from sessionStorage:', images.length);
+            setCharacterImages(images);
+            return;
+          }
+        }
+        
+        // Fallback to single image
+        const singleImage = sessionStorage.getItem('currentCharacterImage');
+        console.log('[VOICE CHAT] sessionStorage currentCharacterImage:', singleImage ? 'found' : 'not found');
+        
+        if (singleImage) {
+          console.log('[VOICE CHAT] Loaded single image from sessionStorage');
+          setCharacterImages([singleImage]);
+          return;
+        }
+        
+        // Last fallback: try from character data
+        const savedCharacter = getCurrentCharacter();
+        console.log('[VOICE CHAT] Loaded character:', savedCharacter);
+        
+        if (savedCharacter) {
+          const images = savedCharacter.images && savedCharacter.images.length > 0 
+            ? savedCharacter.images 
+            : savedCharacter.image 
+              ? [savedCharacter.image] 
+              : [];
+          console.log('[VOICE CHAT] Character images:', images.length);
+          setCharacterImages(images);
+        } else {
+          console.log('[VOICE CHAT] No character found');
+        }
+      } catch (error) {
+        console.error('[VOICE CHAT] Error loading images:', error);
+      }
+    };
     
-    if (savedCharacter) {
-      const images = savedCharacter.images && savedCharacter.images.length > 0 
-        ? savedCharacter.images 
-        : savedCharacter.image 
-          ? [savedCharacter.image] 
-          : [];
-      console.log('[VOICE CHAT] Character images:', images);
-      setCharacterImages(images);
-    } else {
-      console.log('[VOICE CHAT] No character found');
-    }
+    loadImages();
   }, []);
 
   return (

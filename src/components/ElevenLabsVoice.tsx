@@ -77,24 +77,36 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
     const fetchVoices = async () => {
       setIsLoadingVoices(true);
       try {
-        console.log('Fetching ElevenLabs voices...');
+        console.log('[ELEVENLABS] Starting to fetch voices...');
         const { data, error } = await supabase.functions.invoke('get-elevenlabs-voices');
         
-        console.log('Voice fetch result:', { data, error });
+        console.log('[ELEVENLABS] Voice fetch result:', { 
+          hasData: !!data, 
+          hasError: !!error,
+          voiceCount: data?.voices?.length || 0,
+          error: error
+        });
         
         if (error) {
-          console.error('Error fetching voices:', error);
+          console.error('[ELEVENLABS] Error fetching voices:', error);
           throw error;
         }
         
         if (data?.voices && Array.isArray(data.voices)) {
-          console.log(`Loaded ${data.voices.length} voices`);
+          console.log(`[ELEVENLABS] Successfully loaded ${data.voices.length} voices`);
+          if (data.voices.length > 0) {
+            console.log('[ELEVENLABS] First voice:', data.voices[0]);
+          }
           setAvailableVoices(data.voices);
         } else {
-          console.warn('No voices returned from API');
+          console.warn('[ELEVENLABS] No voices returned from API, data:', data);
+          toast({
+            title: "Information",
+            description: "Aucune voix disponible pour le moment. Seule la voix de l'agent sera disponible.",
+          });
         }
       } catch (error) {
-        console.error('Failed to load voices:', error);
+        console.error('[ELEVENLABS] Failed to load voices:', error);
         toast({
           title: "Avertissement",
           description: "Impossible de charger les voix. La voix de l'agent sera utilisée par défaut.",

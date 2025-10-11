@@ -13,11 +13,14 @@ serve(async (req) => {
   try {
     const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY');
     
+    console.log('Starting get-elevenlabs-voices function...');
+    
     if (!ELEVENLABS_API_KEY) {
+      console.error('ELEVENLABS_API_KEY not found in environment');
       throw new Error('ELEVENLABS_API_KEY not configured');
     }
 
-    console.log('Fetching voices from ElevenLabs API...');
+    console.log('ELEVENLABS_API_KEY found, fetching voices from ElevenLabs API...');
 
     // Fetch all available voices from ElevenLabs
     const response = await fetch('https://api.elevenlabs.io/v1/voices', {
@@ -27,14 +30,20 @@ serve(async (req) => {
       },
     });
 
+    console.log('ElevenLabs API response status:', response.status);
+
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('ElevenLabs API error:', errorText);
-      throw new Error(`Failed to fetch voices: ${response.status}`);
+      console.error('ElevenLabs API error:', response.status, errorText);
+      throw new Error(`Failed to fetch voices: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
-    console.log(`Successfully fetched ${data.voices?.length || 0} voices`);
+    console.log(`Successfully fetched ${data.voices?.length || 0} voices from ElevenLabs`);
+    
+    if (data.voices && data.voices.length > 0) {
+      console.log('Sample voice:', JSON.stringify(data.voices[0]));
+    }
 
     return new Response(
       JSON.stringify({ voices: data.voices || [] }),
@@ -44,9 +53,12 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('Error in get-elevenlabs-voices:', error);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    
     return new Response(
       JSON.stringify({ 
-        error: error.message,
+        error: error.message || 'Unknown error',
         voices: []
       }),
       {
