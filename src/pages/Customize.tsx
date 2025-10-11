@@ -15,6 +15,7 @@ import { invokeFunctionWithApiKey } from '@/utils/apiHelper';
 import SaveImageDialog from '@/components/SaveImageDialog';
 import AttitudeVariationsDialog from '@/components/AttitudeVariationsDialog';
 import VideoGenerator from '@/components/VideoGenerator';
+import VoiceSelector from '@/components/VoiceSelector';
 import { setCurrentCharacter, getCurrentCharacter } from '@/utils/characterStorage';
 
 interface CharacterOptions {
@@ -115,7 +116,6 @@ const Customize = () => {
     outfit: ['casual', 'elegant', 'sporty', 'cute', 'sexy'],
     eyeColor: ['blue', 'brown', 'green', 'hazel', 'gray'],
     age: ['teen', 'medium age'],
-    voice: ['alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', 'verse'],
     avatarView: ['bust', 'full body'],
     clothing: ['clothed', 'nude', 'lingerie'],
     imageStyle: ['realistic', 'anime', 'cartoon', 'digital art']
@@ -967,6 +967,26 @@ const Customize = () => {
                       className="min-h-[80px]"
                     />
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Voice Selection Card */}
+              <Card className="border-primary/10">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Mic className="h-4 w-4 text-primary" />
+                    Voix française
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <VoiceSelector 
+                    value={character.voice}
+                    onChange={(value) => updateCharacter('voice', value)}
+                    label="Sélectionnez la voix de conversation"
+                  />
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Toutes les voix sont françaises féminines
+                  </p>
                 </CardContent>
               </Card>
 

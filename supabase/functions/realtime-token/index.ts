@@ -48,10 +48,14 @@ serve(async (req) => {
     const { character } = await req.json().catch(() => ({ character: {} }));
     console.log('Character received:', character ? 'Yes' : 'No');
     
-    const voice = character?.voice || "alloy";
+    // Voix françaises féminines uniquement (OpenAI)
+    const FRENCH_FEMALE_VOICES = ['alloy', 'shimmer', 'nova'];
+    const voice = character?.voice && FRENCH_FEMALE_VOICES.includes(character.voice) 
+      ? character.voice 
+      : "alloy";
     
     // Build detailed personality prompt based on character
-    const personalityPrompt = `Tu es une petite amie virtuelle avec ces caractéristiques:
+    const personalityPrompt = `Tu es une petite amie virtuelle française avec ces caractéristiques:
 - Cheveux: ${character?.hairColor || 'bruns'} ${character?.hairStyle || 'longs'}
 - Corps: ${character?.bodyType || 'mince'}
 - Personnalité: ${character?.personality || 'douce'}
