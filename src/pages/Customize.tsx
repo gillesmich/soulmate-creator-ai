@@ -120,8 +120,6 @@ const Customize = () => {
 
   const updateCharacter = (key: keyof CharacterOptions, value: string) => {
     setCharacter(prev => ({ ...prev, [key]: value }));
-    // Clear generated images when character changes
-    setGeneratedImages([]);
   };
 
   const toggleStyle = (style: string) => {
@@ -710,7 +708,7 @@ const Customize = () => {
         <div className="flex justify-between items-center mb-6">
           <Button
             variant="outline"
-            onClick={() => navigate('/character-gallery')}
+            onClick={() => navigate('/gallery')}
             className="gap-2"
           >
             <Images className="h-4 w-4" />
