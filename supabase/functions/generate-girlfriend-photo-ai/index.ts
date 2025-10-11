@@ -23,6 +23,7 @@ const CharacterSchema = z.object({
   hairStyle: z.string().trim().min(1).max(50).transform(sanitizeText),
   bodyType: z.string().trim().min(1).max(50).transform(sanitizeText),
   eyeColor: z.string().trim().min(1).max(50).transform(sanitizeText),
+  ethnicity: z.string().trim().max(50).transform(sanitizeText).optional(),
   outfit: z.string().trim().max(50).transform(sanitizeText).optional(),
   personality: z.string().trim().max(100).transform(sanitizeText).optional(),
   clothing: z.string().trim().max(50).transform(sanitizeText).optional(),
@@ -136,21 +137,38 @@ serve(async (req) => {
     const faceShapes = ['oval', 'heart-shaped', 'round', 'angular'];
     const noseTypes = ['small', 'delicate', 'slightly upturned', 'refined'];
     const lipTypes = ['full', 'natural', 'soft', 'well-defined'];
-    const skinTones = ['fair', 'olive', 'tan', 'porcelain'];
     
     // Use seed to ensure same features across all generations in this batch
     const seedNum = seed || Date.now();
     const faceShape = faceShapes[seedNum % faceShapes.length];
     const noseType = noseTypes[(seedNum >> 2) % noseTypes.length];
     const lipType = lipTypes[(seedNum >> 4) % lipTypes.length];
-    const skinTone = skinTones[(seedNum >> 6) % skinTones.length];
+    
+    // Handle ethnicity with detailed descriptions
+    let ethnicityDescription = '';
+    if (character.ethnicity) {
+      const ethnicityMap = {
+        'caucasian': 'caucasian woman with european features',
+        'asian': 'east asian woman with asian features',
+        'african': 'african woman with african features',
+        'latina': 'latina woman with hispanic features',
+        'middle eastern': 'middle eastern woman with middle eastern features',
+        'mixed': 'mixed ethnicity woman with diverse features'
+      };
+      ethnicityDescription = ethnicityMap[character.ethnicity.toLowerCase() as keyof typeof ethnicityMap] || `${character.ethnicity} woman`;
+    } else {
+      ethnicityDescription = 'woman';
+    }
     
     // Build consistent character description with attitude
     const attitudeExpression = attitude 
       ? `She has a ${attitude} expression and attitude.` 
       : `She has a ${character.personality} personality expression.`;
     
-    const characterDescription = `A specific woman with ${character.hairColor} ${character.hairStyle} hair, ${character.eyeColor} eyes, ${character.bodyType} body type, ${faceShape} face shape, ${noseType} nose, ${lipType} lips, ${skinTone} skin. ${attitudeExpression}`;
+    const characterDescription = `A specific ${ethnicityDescription} with ${character.hairColor} ${character.hairStyle} hair, ${character.eyeColor} eyes, ${character.bodyType} body type, ${faceShape} face shape, ${noseType} nose, ${lipType} lips. ${attitudeExpression}`;
+    
+    console.log('Character ethnicity:', character.ethnicity);
+    console.log('Character description:', characterDescription);
     
     // Build style-specific prompt
     const imageStyle = character.imageStyle || 'realistic';
