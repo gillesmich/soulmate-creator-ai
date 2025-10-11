@@ -228,47 +228,12 @@ const Chat = () => {
         </div>
       </div>
 
-      {/* Image Carousel Banner */}
-      {character.images && character.images.length > 0 && (
-        <div className="border-b border-primary/10 bg-background/30 backdrop-blur-sm py-3">
-          <div className="max-w-4xl mx-auto px-4">
-            <Carousel className="w-full">
-              <CarouselContent className="-ml-2">
-                {character.images.map((img, index) => (
-                  <CarouselItem key={index} className="pl-2 basis-1/6 md:basis-1/8 lg:basis-1/10">
-                    <div 
-                      className="cursor-pointer group relative"
-                      onClick={() => {
-                        setSelectedImage(img);
-                        setCurrentImageIndex(index);
-                        setShowLargeAvatar(true);
-                      }}
-                    >
-                      <Avatar className={`w-16 h-16 border-2 transition-colors ${selectedImage === img ? 'border-primary' : 'border-primary/20 group-hover:border-primary'}`}>
-                        <AvatarImage src={img} alt={`Character ${index + 1}`} />
-                        <AvatarFallback>AI</AvatarFallback>
-                      </Avatar>
-                    </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <CarouselPrevious className="left-0" />
-              <CarouselNext className="right-0" />
-            </Carousel>
-          </div>
-        </div>
-      )}
 
       {/* Main Chat Area */}
       <div className="max-w-4xl mx-auto p-6 flex flex-col gap-6" style={{ height: 'calc(100vh - 240px)' }}>
         <Card className="flex-1 flex flex-col overflow-hidden">
           <CardHeader className="border-b border-primary/10">
             <CardTitle className="text-romantic-foreground">Conversation</CardTitle>
-            {isConnected && (
-              <p className="text-sm text-muted-foreground mt-2">
-                {isSpeaking ? '🎤 En train de parler...' : '👂 À l\'écoute... Parlez naturellement!'}
-              </p>
-            )}
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.length === 0 && (
