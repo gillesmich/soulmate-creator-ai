@@ -18,6 +18,7 @@ const CharacterSchema = z.object({
   personality: z.string().max(100),
   outfit: z.string().max(50),
   eyeColor: z.string().max(50),
+  ethnicity: z.string().max(50).optional(),
   avatarView: z.string().max(50).optional(),
   clothing: z.string().max(50).optional(),
 });
@@ -96,7 +97,10 @@ serve(async (req) => {
       clothingDescription = `wearing ${safeOutfit} clothing`;
     }
     
-    const prompt = `A beautiful realistic photo of a woman with ${character.hairColor} ${character.hairStyle} hair, ${character.eyeColor} eyes, ${character.bodyType} body type, ${clothingDescription}. She has a ${character.personality} personality expression. ${viewType}, professional photography, high quality, realistic lighting, detailed features, elegant pose, 4K resolution, fashion photography style.`;
+    // Handle ethnicity
+    const ethnicityDescription = character.ethnicity ? `${character.ethnicity} ethnicity, ` : '';
+    
+    const prompt = `A beautiful realistic photo of a ${ethnicityDescription}woman with ${character.hairColor} ${character.hairStyle} hair, ${character.eyeColor} eyes, ${character.bodyType} body type, ${clothingDescription}. She has a ${character.personality} personality expression. ${viewType}, professional photography, high quality, realistic lighting, detailed features, elegant pose, 4K resolution, fashion photography style.`;
 
     console.log('Generating image with prompt:', prompt);
 

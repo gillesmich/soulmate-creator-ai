@@ -33,6 +33,7 @@ interface CharacterOptions {
   interests: string;
   hobbies: string;
   characterTraits: string;
+  ethnicity: string;
 }
 
 const Customize = () => {
@@ -54,7 +55,8 @@ const Customize = () => {
     imageStyle: 'realistic',
     interests: '',
     hobbies: '',
-    characterTraits: ''
+    characterTraits: '',
+    ethnicity: 'caucasian'
   });
   const [generatedImages, setGeneratedImages] = useState<{url: string, style: string, view: string, clothing: string}[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -84,7 +86,8 @@ const Customize = () => {
         imageStyle: savedCharacter.imageStyle || 'realistic',
         interests: savedCharacter.interests || '',
         hobbies: savedCharacter.hobbies || '',
-        characterTraits: savedCharacter.characterTraits || ''
+        characterTraits: savedCharacter.characterTraits || '',
+        ethnicity: savedCharacter.ethnicity || 'caucasian'
       });
       
       // Load all saved images or just the main one
@@ -116,6 +119,7 @@ const Customize = () => {
     outfit: ['casual', 'elegant', 'sporty', 'cute', 'sexy'],
     eyeColor: ['blue', 'brown', 'green', 'hazel', 'gray'],
     age: ['teen', 'medium age'],
+    ethnicity: ['caucasian', 'asian', 'african', 'latina', 'middle eastern', 'mixed'],
     avatarView: ['bust', 'full body'],
     clothing: ['clothed', 'nude', 'lingerie'],
     imageStyle: ['realistic', 'anime', 'cartoon', 'digital art']
@@ -722,7 +726,8 @@ const Customize = () => {
       imageStyle: 'realistic',
       interests: '',
       hobbies: '',
-      characterTraits: ''
+      characterTraits: '',
+      ethnicity: 'caucasian'
     });
     setGeneratedImages([]);
     setCurrentBatchSeed(null);
