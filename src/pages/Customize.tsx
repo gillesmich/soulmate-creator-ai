@@ -254,6 +254,68 @@ const Customize = () => {
 
   // Remove auto-generation on mount
 
+  const regenerateSpecificImage = async (style: string, view: string) => {
+    setIsGenerating(true);
+    
+    try {
+      const characterSeed = Date.now();
+      
+      const { data, error } = await supabase.functions.invoke('generate-girlfriend-photo-ai', {
+        body: { 
+          character: { 
+            ...character, 
+            imageStyle: style,
+            avatarView: view
+          },
+          seed: characterSeed,
+          retryAttempt: 0
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data?.image) {
+        throw new Error('Aucune image générée');
+      }
+
+      // Replace the specific image in the array
+      setGeneratedImages(prev => 
+        prev.map(img => 
+          img.style === style && img.view === view 
+            ? { url: data.image, style, view }
+            : img
+        )
+      );
+      
+      toast({
+        title: "✨ Image régénérée!",
+        description: `Image ${style} ${view} recréée avec succès`,
+      });
+    } catch (error) {
+      console.error('Error regenerating image:', error);
+      
+      let errorMessage = "Impossible de régénérer l'image. ";
+      
+      if (error.message?.includes('Rate limit')) {
+        errorMessage += "Limite de requêtes atteinte.";
+      } else if (error.message?.includes('Credits') || error.message?.includes('402')) {
+        errorMessage += "Crédits épuisés.";
+      } else {
+        errorMessage += "Réessayez.";
+      }
+      
+      toast({
+        title: "❌ Échec de la régénération",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const startChat = () => {
     const mainImage = generatedImages.length > 0 ? generatedImages[0].url : '';
     setCurrentCharacter({ ...character, image: mainImage });
@@ -456,15 +518,27 @@ const Customize = () => {
                               }}
                               onLoad={() => console.log(`Image ${img.style} ${img.view} loaded successfully`)}
                             />
-                            <Button 
-                              onClick={() => setShowSaveDialog(true)} 
-                              variant="outline" 
-                              size="sm"
-                              className="hover:bg-accent w-full"
-                            >
-                              <Save className="h-4 w-4 mr-2" />
-                              Sauvegarder
-                            </Button>
+                            <div className="grid grid-cols-2 gap-2">
+                              <Button 
+                                onClick={() => regenerateSpecificImage(img.style, img.view)} 
+                                variant="outline" 
+                                size="sm"
+                                disabled={isGenerating}
+                                className="hover:bg-accent"
+                              >
+                                <RefreshCw className={`h-4 w-4 mr-2 ${isGenerating ? 'animate-spin' : ''}`} />
+                                Régénérer
+                              </Button>
+                              <Button 
+                                onClick={() => setShowSaveDialog(true)} 
+                                variant="outline" 
+                                size="sm"
+                                className="hover:bg-accent"
+                              >
+                                <Save className="h-4 w-4 mr-2" />
+                                Sauvegarder
+                              </Button>
+                            </div>
                           </div>
                         ))}
                       </div>
