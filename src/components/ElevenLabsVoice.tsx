@@ -78,15 +78,30 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
 }) => {
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [isLoadingUrl, setIsLoadingUrl] = useState(false);
+  const [selectedVoiceId, setSelectedVoiceId] = useState<string>(DEFAULT_VOICE.id);
+  const [customVoiceId, setCustomVoiceId] = useState('');
+  const [useCustomVoice, setUseCustomVoice] = useState(false);
   const { toast } = useToast();
   const { subscription } = useSubscription();
 
   const conversation = useConversation({
+    overrides: useCustomVoice && customVoiceId ? {
+      tts: {
+        voiceId: customVoiceId
+      }
+    } : selectedVoiceId !== DEFAULT_VOICE.id ? {
+      tts: {
+        voiceId: selectedVoiceId
+      }
+    } : undefined,
     onConnect: () => {
       console.log('Connected to ElevenLabs');
+      const voiceName = useCustomVoice && customVoiceId 
+        ? 'personnalisée' 
+        : FRENCH_FEMALE_VOICES.find(v => v.id === selectedVoiceId)?.name || 'par défaut';
       toast({
         title: "Connecté",
-        description: "Conversation vocale démarrée",
+        description: `Voix: ${voiceName}`,
       });
     },
     onDisconnect: () => {
@@ -192,52 +207,88 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
           </p>
         </div>
 
-        {/* Voice Clones Section - Info Only */}
-        <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 p-4 rounded-lg border border-purple-500/20">
-          <h4 className="font-semibold mb-3 flex items-center gap-2 text-purple-600 dark:text-purple-400">
-            <Sparkles className="w-4 h-4" />
-            Voice Clones et Voix Premium
-          </h4>
-          <p className="text-sm text-muted-foreground">
-            Pour utiliser un voice clone personnalisé ou une voix premium, configurez-le directement dans votre{' '}
-            <a 
-              href="https://elevenlabs.io/app/conversational-ai" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="text-purple-600 hover:underline font-medium"
-            >
-              agent ElevenLabs
-            </a>
-            . Créez votre voice clone dans{' '}
-            <a 
-              href="https://elevenlabs.io/voice-lab" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="text-purple-600 hover:underline font-medium"
-            >
-              Voice Lab
-            </a>
-            .
-          </p>
-        </div>
-
-        {/* Premium Voices List */}
-        <div className="bg-muted/50 p-4 rounded-lg border">
-          <h4 className="font-semibold mb-3 flex items-center gap-2">
-            <Info className="w-4 h-4" />
-            Voix françaises premium disponibles
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {FRENCH_FEMALE_VOICES.map(voice => (
-              <div
-                key={voice.id}
-                className="flex flex-col p-3 rounded-md bg-background/70 transition-colors"
-              >
-                <span className="font-medium text-sm">{voice.name}</span>
-                <span className="text-xs text-muted-foreground">{voice.description}</span>
+        {/* Voice Selection */}
+        <div className="space-y-4">
+          {/* Custom Voice ID Input */}
+          <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 p-4 rounded-lg border border-purple-500/20">
+            <h4 className="font-semibold mb-3 flex items-center gap-2 text-purple-600 dark:text-purple-400">
+              <Sparkles className="w-4 h-4" />
+              Voix personnalisée (Agathe, etc.)
+            </h4>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="useCustomVoice"
+                  checked={useCustomVoice}
+                  onChange={(e) => setUseCustomVoice(e.target.checked)}
+                  disabled={isConnected}
+                  className="w-4 h-4 accent-purple-500"
+                />
+                <label htmlFor="useCustomVoice" className="text-sm font-medium cursor-pointer">
+                  Utiliser une voix personnalisée
+                </label>
               </div>
-            ))}
+              {useCustomVoice && (
+                <div className="space-y-2 pl-6">
+                  <label className="text-sm text-muted-foreground">
+                    ID de votre voix (ex: ID d'Agathe)
+                  </label>
+                  <input
+                    type="text"
+                    value={customVoiceId}
+                    onChange={(e) => setCustomVoiceId(e.target.value)}
+                    placeholder="Collez l'ID de votre voix ici..."
+                    disabled={isConnected}
+                    className="w-full px-3 py-2 rounded-md border bg-background text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    💡 Trouvez l'ID dans{' '}
+                    <a 
+                      href="https://elevenlabs.io/voice-lab" 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-purple-600 hover:underline font-medium"
+                    >
+                      Voice Lab
+                    </a>
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
+
+          {/* Premium Voices Selection */}
+          {!useCustomVoice && (
+            <div className="bg-muted/50 p-4 rounded-lg border">
+              <h4 className="font-semibold mb-3 flex items-center gap-2">
+                <Info className="w-4 h-4" />
+                Sélectionnez une voix premium
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {FRENCH_FEMALE_VOICES.map(voice => (
+                  <button
+                    key={voice.id}
+                    onClick={() => setSelectedVoiceId(voice.id)}
+                    disabled={isConnected}
+                    className={`flex flex-col p-3 rounded-md transition-all text-left ${
+                      selectedVoiceId === voice.id
+                        ? 'bg-purple-500/20 border-2 border-purple-500'
+                        : 'bg-background/70 hover:bg-background border-2 border-transparent'
+                    } ${isConnected ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  >
+                    <span className="font-medium text-sm flex items-center gap-2">
+                      {selectedVoiceId === voice.id && (
+                        <div className="w-2 h-2 rounded-full bg-purple-500" />
+                      )}
+                      {voice.name}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{voice.description}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Configuration Instructions */}
