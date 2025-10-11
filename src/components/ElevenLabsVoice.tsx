@@ -141,20 +141,10 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
       // Check if user has premium access
       const isPremium = subscription.subscribed && subscription.plan_type !== 'free';
       
-      // For this example, we'll use a demo agent ID
-      // In production, you would create agents via ElevenLabs dashboard
-      const demoAgentId = 'your-agent-id-here';
-      
-      if (!demoAgentId || demoAgentId === 'your-agent-id-here') {
-        toast({
-          title: "Configuration requise",
-          description: "Veuillez configurer un agent ElevenLabs dans le tableau de bord",
-          variant: "destructive",
-        });
-        return;
-      }
+      // Agent Agathe configuré
+      const agentId = 'agent_5501k79dakb3eay91b90g55520cr';
 
-      const url = await getSignedUrl(demoAgentId);
+      const url = await getSignedUrl(agentId);
       if (!url) return;
 
       setSignedUrl(url);
