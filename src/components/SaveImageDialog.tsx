@@ -128,16 +128,16 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Save Your Girlfriend</DialogTitle>
+          <DialogTitle>Enregistrer les informations de votre girlfriend</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
+            <Label htmlFor="name">Nom</Label>
             <Input
               id="name"
               type="text"
-              placeholder="Enter a name for your girlfriend"
+              placeholder="Entrez un nom pour votre girlfriend"
               value={name}
               onChange={(e) => setName(e.target.value)}
               disabled={isSaving}
@@ -166,14 +166,14 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
             onClick={onClose}
             disabled={isSaving}
           >
-            Cancel
+            Annuler
           </Button>
           <Button 
             onClick={handleSave}
             disabled={isSaving || !name.trim()}
           >
             {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Save
+            Enregistrer
           </Button>
         </DialogFooter>
       </DialogContent>

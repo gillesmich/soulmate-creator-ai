@@ -66,11 +66,29 @@ export const getCurrentCharacter = (): CharacterData | null => {
   
   try {
     const character = JSON.parse(stored);
-    // Retrieve the image from sessionStorage if available
+    
+    // Try to retrieve images array from sessionStorage first
+    const imagesJson = sessionStorage.getItem('currentCharacterImages');
+    if (imagesJson) {
+      try {
+        const images = JSON.parse(imagesJson);
+        if (Array.isArray(images) && images.length > 0) {
+          character.images = images;
+          character.image = images[0];
+          return character;
+        }
+      } catch (e) {
+        console.warn('Could not parse images from sessionStorage:', e);
+      }
+    }
+    
+    // Fallback to single image from sessionStorage
     const image = sessionStorage.getItem('currentCharacterImage');
     if (image) {
       character.image = image;
+      character.images = [image];
     }
+    
     return character;
   } catch {
     return null;
@@ -82,8 +100,23 @@ export const setCurrentCharacter = (character: CharacterData): void => {
   const { image, images, ...characterWithoutImages } = character;
   localStorage.setItem(CURRENT_CHARACTER_KEY, JSON.stringify(characterWithoutImages));
   
-  // Store only the first image URL separately if it exists
-  if (image) {
+  // Store images array in sessionStorage if it exists
+  if (images && images.length > 0) {
+    try {
+      sessionStorage.setItem('currentCharacterImages', JSON.stringify(images));
+    } catch (e) {
+      console.warn('Could not store images in sessionStorage:', e);
+      // Fallback to just storing the first image
+      if (image) {
+        try {
+          sessionStorage.setItem('currentCharacterImage', image);
+        } catch (err) {
+          console.warn('Could not store single image in sessionStorage:', err);
+        }
+      }
+    }
+  } else if (image) {
+    // Store single image if no images array
     try {
       sessionStorage.setItem('currentCharacterImage', image);
     } catch (e) {
