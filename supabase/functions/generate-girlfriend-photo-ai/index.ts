@@ -8,25 +8,34 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
 
-// Validation schema
+// Sanitize function to prevent prompt injection
+const sanitizeText = (text: string): string => {
+  return text
+    .replace(/[<>]/g, '')
+    .replace(/[\r\n]+/g, ' ')
+    .trim()
+    .substring(0, 200);
+};
+
+// Validation schema with strict constraints
 const CharacterSchema = z.object({
-  hairColor: z.string().max(50),
-  hairStyle: z.string().max(50),
-  bodyType: z.string().max(50),
-  eyeColor: z.string().max(50),
-  outfit: z.string().max(50).optional(),
-  personality: z.string().max(100).optional(),
-  clothing: z.string().max(50).optional(),
-  imageStyle: z.string().max(50).optional(),
-  avatarView: z.string().max(50).optional(),
+  hairColor: z.string().trim().min(1).max(50).transform(sanitizeText),
+  hairStyle: z.string().trim().min(1).max(50).transform(sanitizeText),
+  bodyType: z.string().trim().min(1).max(50).transform(sanitizeText),
+  eyeColor: z.string().trim().min(1).max(50).transform(sanitizeText),
+  outfit: z.string().trim().max(50).transform(sanitizeText).optional(),
+  personality: z.string().trim().max(100).transform(sanitizeText).optional(),
+  clothing: z.string().trim().max(50).transform(sanitizeText).optional(),
+  imageStyle: z.string().trim().max(50).transform(sanitizeText).optional(),
+  avatarView: z.string().trim().max(50).transform(sanitizeText).optional(),
 });
 
 const ImageGenerationSchema = z.object({
   character: CharacterSchema,
   seed: z.number().optional(),
-  attitude: z.string().max(100).optional(),
-  scenery: z.string().max(200).optional(),
-  retryAttempt: z.number().optional(),
+  attitude: z.string().trim().max(100).transform(sanitizeText).optional(),
+  scenery: z.string().trim().max(200).transform(sanitizeText).optional(),
+  retryAttempt: z.number().int().min(0).max(5).optional(),
 });
 
 serve(async (req) => {
@@ -52,7 +61,6 @@ serve(async (req) => {
     const { data: userId, error: validateError } = await supabase.rpc('validate_api_key', { key: apiKey });
     
     if (validateError || !userId) {
-      console.error('API key validation error:', validateError);
       return new Response(JSON.stringify({ error: 'Invalid API key' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -96,7 +104,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Generating image with Lovable AI (Gemini) - Attempt ${retryAttempt + 1}...`);
+    
 
     // Build detailed prompt based on image style
     const outfitMap = {
@@ -167,9 +175,6 @@ serve(async (req) => {
     const sceneryDescription = scenery ? ` Set in ${scenery}.` : '';
     const prompt = `${stylePrefix}${characterDescription} ${clothingDescription}. ${viewType}${sceneryDescription}${styleSuffix}. Character seed: ${seedNum}`;
 
-    console.log('Prompt:', prompt);
-    console.log('Seed:', seedNum);
-
     // Call Lovable AI (Gemini Nano banana model for image generation)
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -190,9 +195,6 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Lovable AI error:', response.status, errorText);
-      
       let errorMessage = '';
       
       if (response.status === 429) {
@@ -204,7 +206,7 @@ serve(async (req) => {
       } else if (response.status === 400) {
         errorMessage = 'Invalid request. Please check your character settings.';
       } else {
-        errorMessage = `Image generation failed (${response.status}). Please try again.`;
+        errorMessage = 'Image generation failed. Please try again.';
       }
       
       return new Response(
@@ -217,13 +219,11 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log('Response structure:', JSON.stringify(data, null, 2));
     
     // Extract the image from Gemini response
     const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
     
     if (!imageUrl) {
-      console.error('No image in response:', JSON.stringify(data, null, 2));
       return new Response(
         JSON.stringify({ error: 'No image was generated. Please try again.' }), 
         { 
@@ -233,8 +233,6 @@ serve(async (req) => {
       );
     }
 
-    console.log('Image generated successfully');
-
     return new Response(JSON.stringify({ 
       image: imageUrl,
       prompt: prompt,
@@ -243,16 +241,11 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Error in generate-girlfriend-photo-ai function:', error);
-    
-    const errorMessage = error.message || 'Unexpected error during image generation';
-    const statusCode = error.status || 500;
-    
     return new Response(JSON.stringify({ 
-      error: errorMessage,
+      error: 'An error occurred during image generation',
       details: 'Please try again or contact support if the problem persists.'
     }), {
-      status: statusCode,
+      status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

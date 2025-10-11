@@ -10,23 +10,32 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
 
-// Validation schema
+// Sanitize function to prevent prompt injection
+const sanitizeText = (text: string): string => {
+  return text
+    .replace(/[<>]/g, '') // Remove potential HTML/script tags
+    .replace(/[\r\n]+/g, ' ') // Normalize line breaks
+    .trim()
+    .substring(0, 500); // Hard limit
+};
+
+// Validation schema with strict constraints
 const MessageSchema = z.object({
-  message: z.string().trim().min(1).max(1000),
+  message: z.string().trim().min(1).max(1000).transform(sanitizeText),
   character: z.object({
-    hairColor: z.string().max(50),
-    hairStyle: z.string().max(50),
-    bodyType: z.string().max(50),
-    personality: z.string().max(100),
-    outfit: z.string().max(50),
-    eyeColor: z.string().max(50),
-    interests: z.string().max(200).optional(),
-    hobbies: z.string().max(200).optional(),
-    characterTraits: z.string().max(200).optional(),
+    hairColor: z.string().trim().min(1).max(50).transform(sanitizeText),
+    hairStyle: z.string().trim().min(1).max(50).transform(sanitizeText),
+    bodyType: z.string().trim().min(1).max(50).transform(sanitizeText),
+    personality: z.string().trim().min(1).max(100).transform(sanitizeText),
+    outfit: z.string().trim().min(1).max(50).transform(sanitizeText),
+    eyeColor: z.string().trim().min(1).max(50).transform(sanitizeText),
+    interests: z.string().trim().max(200).transform(sanitizeText).optional(),
+    hobbies: z.string().trim().max(200).transform(sanitizeText).optional(),
+    characterTraits: z.string().trim().max(200).transform(sanitizeText).optional(),
   }),
   conversationHistory: z.array(z.object({
     sender: z.enum(['user', 'assistant']),
-    content: z.string().max(1000)
+    content: z.string().trim().max(1000).transform(sanitizeText)
   })).max(20)
 });
 
@@ -54,7 +63,6 @@ serve(async (req) => {
     const { data: userId, error: validateError } = await supabase.rpc('validate_api_key', { key: apiKey });
     
     if (validateError || !userId) {
-      console.error('API key validation error:', validateError);
       return new Response(JSON.stringify({ error: 'Invalid API key' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -119,22 +127,17 @@ You should embody these characteristics in your responses. Be flirty, caring, an
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      console.error('OpenAI API error:', error);
       throw new Error('Failed to generate response');
     }
 
     const data = await response.json();
     const generatedResponse = data.choices[0].message.content;
 
-    console.log('Generated response:', generatedResponse);
-
     return new Response(JSON.stringify({ response: generatedResponse }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Error in chat-with-girlfriend function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: 'An error occurred processing your request' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

@@ -24,28 +24,18 @@ serve(async (req) => {
   let characterData: any = null;
   
   socket.onopen = () => {
-    console.log("[DEBUG] Client WebSocket connected at", new Date().toISOString());
-    
-    // Don't connect to OpenAI yet - wait for character data first
+    // Client WebSocket connected - waiting for character data
   };
 
   socket.onmessage = (event) => {
     const message = JSON.parse(event.data);
-    console.log("[DEBUG] Client message type:", message.type);
 
     // Handle character configuration
     if (message.type === 'session.update' && message.session?.character) {
       characterData = message.session.character;
-      console.log("[DEBUG] ✅ Received character data:");
-      console.log("[DEBUG] - Personality:", characterData.personality);
-      console.log("[DEBUG] - Character Traits:", characterData.characterTraits);
-      console.log("[DEBUG] - Interests:", characterData.interests);
-      console.log("[DEBUG] - Hobbies:", characterData.hobbies);
-      console.log("[DEBUG] Full character data:", JSON.stringify(characterData, null, 2));
       
       // Now connect to OpenAI with character-specific configuration
       if (!openAISocket) {
-        console.log("[DEBUG] 🚀 Initializing OpenAI with character personality");
         initializeOpenAI();
       }
       return;
@@ -54,7 +44,6 @@ serve(async (req) => {
     // Forward audio messages to OpenAI
     if (message.type === 'input_audio_buffer.append' || message.type === 'input_audio_buffer.commit') {
       if (openAISocket && openAISocket.readyState === WebSocket.OPEN) {
-        console.log("[DEBUG] Audio input received, length:", message.audio?.length || 0);
         openAISocket.send(event.data);
       }
     }
@@ -62,7 +51,6 @@ serve(async (req) => {
 
   const initializeOpenAI = () => {
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    console.log("[DEBUG] OpenAI API key present:", !!openAIApiKey);
     if (!openAIApiKey) {
       socket.send(JSON.stringify({
         type: 'error',
@@ -119,7 +107,6 @@ Souviens-toi: tu n'es pas un assistant IA, tu es une vraie personne avec des ém
     : "Tu es une petite amie virtuelle douce, authentique et attentionnée. Exprime tes émotions naturellement, sois affectueuse et parle français de manière parfaitement naturelle avec des expressions courantes.";
 
     const wsUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01`;
-    console.log("[DEBUG] Connecting to OpenAI Realtime API with character personality");
     
     openAISocket = new WebSocket(wsUrl, [
       "realtime",
@@ -128,8 +115,6 @@ Souviens-toi: tu n'es pas un assistant IA, tu es une vraie personne avec des ém
     ]);
     
     openAISocket.onopen = async () => {
-      console.log("[DEBUG] Connected to OpenAI Realtime API at", new Date().toISOString());
-
       // Configure the session with character-specific personality
       const sessionConfig = {
         type: "session.update",
@@ -152,35 +137,15 @@ Souviens-toi: tu n'es pas un assistant IA, tu es une vraie personne avec des ém
           max_response_output_tokens: "inf"
         }
       };
-      console.log("[DEBUG] 📤 Sending session config with personality");
-      console.log("[DEBUG] Instructions preview:", personalityPrompt.substring(0, 200) + "...");
       openAISocket.send(JSON.stringify(sessionConfig));
     };
 
     openAISocket.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-        console.log("[DEBUG] OpenAI message type:", message.type);
-        
-        // Log audio-related events
-        if (message.type === 'response.audio.delta') {
-          console.log("[DEBUG] Audio delta received, length:", message.delta?.length || 0);
-        } else if (message.type === 'response.audio.done') {
-          console.log("[DEBUG] Audio response completed");
-        } else if (message.type === 'error') {
-          console.error("[DEBUG] OpenAI error:", JSON.stringify(message, null, 2));
-        }
-        
-        // Forward messages from OpenAI to client
-        socket.send(event.data);
-      } catch (e) {
-        console.error("[DEBUG] Error parsing OpenAI message:", e);
-        socket.send(event.data);
-      }
+      // Forward messages from OpenAI to client
+      socket.send(event.data);
     };
 
-    openAISocket.onerror = (error) => {
-      console.error("[DEBUG] OpenAI WebSocket error:", error);
+    openAISocket.onerror = () => {
       socket.send(JSON.stringify({
         type: 'error',
         message: 'OpenAI connection error'
@@ -188,18 +153,15 @@ Souviens-toi: tu n'es pas un assistant IA, tu es une vraie personne avec des ém
     };
 
     openAISocket.onclose = () => {
-      console.log("[DEBUG] OpenAI WebSocket closed");
       socket.close();
     };
   };
 
-  socket.onerror = (error) => {
-    console.error("[DEBUG] Client WebSocket error:", error);
+  socket.onerror = () => {
     openAISocket?.close();
   };
 
   socket.onclose = () => {
-    console.log("[DEBUG] Client WebSocket closed");
     openAISocket?.close();
   };
 
