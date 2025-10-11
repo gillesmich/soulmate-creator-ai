@@ -694,6 +694,33 @@ const Customize = () => {
     }
   };
 
+  const resetCustomize = () => {
+    setCharacter({
+      hairColor: 'blonde',
+      hairStyle: 'long',
+      bodyType: 'slim',
+      personality: 'sweet',
+      outfit: 'casual',
+      eyeColor: 'blue',
+      age: 'medium age',
+      voice: 'alloy',
+      avatarView: 'bust',
+      clothing: 'clothed',
+      imageStyle: 'realistic',
+      interests: '',
+      hobbies: '',
+      characterTraits: ''
+    });
+    setGeneratedImages([]);
+    setCurrentBatchSeed(null);
+    setSceneryTheme('');
+    localStorage.removeItem('currentCharacter');
+    toast({
+      title: "Nouveau profil",
+      description: "Créez un nouveau personnage",
+    });
+  };
+
   const startChat = () => {
     const mainImage = generatedImages.length > 0 ? generatedImages[0].url : '';
     const allImages = generatedImages.map(img => img.url);
@@ -706,14 +733,24 @@ const Customize = () => {
       <div className="max-w-6xl mx-auto">
         {/* Header with Auth buttons */}
         <div className="flex justify-between items-center mb-6">
-          <Button
-            variant="outline"
-            onClick={() => navigate('/gallery')}
-            className="gap-2"
-          >
-            <Images className="h-4 w-4" />
-            Browse Profiles
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/gallery')}
+              className="gap-2"
+            >
+              <Images className="h-4 w-4" />
+              Browse Profiles
+            </Button>
+            <Button
+              variant="outline"
+              onClick={resetCustomize}
+              className="gap-2"
+            >
+              <Sparkles className="h-4 w-4" />
+              Créer nouveau
+            </Button>
+          </div>
           
           <div className="flex gap-2">
             {user ? (
