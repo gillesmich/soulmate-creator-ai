@@ -2,7 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Play, Trash2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, Play, Trash2, Images } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { getSavedCharacters, deleteCharacter, setCurrentCharacter, type SavedCharacter } from '@/utils/characterStorage';
@@ -12,6 +15,8 @@ const CharacterGallery = () => {
   const { toast } = useToast();
   const [characters, setCharacters] = useState<SavedCharacter[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCharacter, setSelectedCharacter] = useState<SavedCharacter | null>(null);
+  const [showImagesDialog, setShowImagesDialog] = useState(false);
 
   useEffect(() => {
     loadCharacters();
@@ -28,7 +33,8 @@ const CharacterGallery = () => {
   const selectCharacter = (character: SavedCharacter) => {
     setCurrentCharacter({
       ...character,
-      image: character.image
+      image: character.image,
+      images: character.images || [character.image]
     });
     
     toast({
@@ -37,6 +43,11 @@ const CharacterGallery = () => {
     });
     
     navigate('/chat');
+  };
+
+  const viewCharacterImages = (character: SavedCharacter) => {
+    setSelectedCharacter(character);
+    setShowImagesDialog(true);
   };
 
   const handleDelete = (id: string, name: string) => {
@@ -49,7 +60,10 @@ const CharacterGallery = () => {
   };
 
   const editCharacter = (character: SavedCharacter) => {
-    setCurrentCharacter(character);
+    setCurrentCharacter({
+      ...character,
+      images: character.images || [character.image]
+    });
     navigate('/customize');
   };
 
@@ -102,61 +116,139 @@ const CharacterGallery = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {characters.map((character) => (
-              <Card key={character.id} className="overflow-hidden hover:shadow-lg transition-shadow border-primary/10">
-                <div className="aspect-square relative overflow-hidden">
-                  <img
-                    src={character.image}
-                    alt={character.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg text-center">{character.name}</CardTitle>
-                  <div className="text-sm text-muted-foreground text-center space-y-1">
-                    <p className="capitalize">
-                      {character.personality} • {character.hairColor} {character.hairStyle}
-                    </p>
-                    <p className="capitalize">
-                      {character.eyeColor} eyes • {character.bodyType}
-                    </p>
+            {characters.map((character) => {
+              const imageCount = character.images?.length || 1;
+              return (
+                <Card key={character.id} className="overflow-hidden hover:shadow-lg transition-shadow border-primary/10">
+                  <div 
+                    className="aspect-square relative overflow-hidden cursor-pointer group"
+                    onClick={() => viewCharacterImages(character)}
+                  >
+                    <img
+                      src={character.image}
+                      alt={character.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    />
+                    {imageCount > 1 && (
+                      <Badge className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm">
+                        <Images className="h-3 w-3 mr-1" />
+                        {imageCount}
+                      </Badge>
+                    )}
                   </div>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      className="flex-1 bg-primary hover:bg-primary/90"
-                      onClick={() => selectCharacter(character)}
-                    >
-                      <Play className="h-4 w-4 mr-2" />
-                      Chat
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => editCharacter(character)}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleDelete(character.id, character.name)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground text-center mt-2">
-                    Created {new Date(character.createdAt).toLocaleDateString()}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center gap-3 mb-2">
+                      <Avatar className="h-10 w-10 border-2 border-primary/20">
+                        <AvatarImage src={character.image} alt={character.name} />
+                        <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                          {character.name.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <CardTitle className="text-lg">{character.name}</CardTitle>
+                    </div>
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      <p className="capitalize">
+                        {character.personality} • {character.hairColor} {character.hairStyle}
+                      </p>
+                      <p className="capitalize">
+                        {character.eyeColor} eyes • {character.bodyType}
+                      </p>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        className="flex-1 bg-primary hover:bg-primary/90"
+                        onClick={() => selectCharacter(character)}
+                      >
+                        <Play className="h-4 w-4 mr-2" />
+                        Chat
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => editCharacter(character)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleDelete(character.id, character.name)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground text-center mt-2">
+                      Created {new Date(character.createdAt).toLocaleDateString()}
+                    </p>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
+
+      {/* Images Dialog */}
+      <Dialog open={showImagesDialog} onOpenChange={setShowImagesDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <Avatar className="h-12 w-12 border-2 border-primary/20">
+                <AvatarImage src={selectedCharacter?.image} alt={selectedCharacter?.name} />
+                <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                  {selectedCharacter?.name.substring(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <DialogTitle className="text-2xl">{selectedCharacter?.name}</DialogTitle>
+                <p className="text-sm text-muted-foreground capitalize">
+                  {selectedCharacter?.personality} • {selectedCharacter?.hairColor} {selectedCharacter?.hairStyle}
+                </p>
+              </div>
+            </div>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+            {selectedCharacter?.images?.map((imageUrl, index) => (
+              <div key={index} className="aspect-square rounded-lg overflow-hidden border border-border hover:border-primary transition-colors">
+                <img
+                  src={imageUrl}
+                  alt={`${selectedCharacter.name} - Image ${index + 1}`}
+                  className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
+                  onClick={() => window.open(imageUrl, '_blank')}
+                />
+              </div>
+            ))}
+          </div>
+
+          <div className="flex gap-2 mt-4">
+            <Button
+              className="flex-1 bg-primary hover:bg-primary/90"
+              onClick={() => {
+                if (selectedCharacter) selectCharacter(selectedCharacter);
+                setShowImagesDialog(false);
+              }}
+            >
+              <Play className="h-4 w-4 mr-2" />
+              Start Chat
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => {
+                if (selectedCharacter) editCharacter(selectedCharacter);
+                setShowImagesDialog(false);
+              }}
+            >
+              Edit Character
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
