@@ -1177,7 +1177,6 @@ const Customize = () => {
                     }} 
                     className="w-full bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent/70"
                     size="lg"
-                    disabled={generatedImages.length === 0}
                   >
                     <Mic className="h-4 w-4 mr-2" />
                     Voice Chat
