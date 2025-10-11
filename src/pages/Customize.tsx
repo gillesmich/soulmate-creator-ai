@@ -579,6 +579,10 @@ const Customize = () => {
   };
 
   const generateWithScenery = async () => {
+    console.log('Generate with scenery called');
+    console.log('Scenery theme:', sceneryTheme);
+    console.log('Current batch seed:', currentBatchSeed);
+    
     if (!sceneryTheme.trim()) {
       toast({
         title: "Thème manquant",
@@ -588,22 +592,21 @@ const Customize = () => {
       return;
     }
 
-    if (!currentBatchSeed) {
-      toast({
-        title: "Pas de seed",
-        description: "Générez d'abord des photos pour créer un avatar de base",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsGenerating(true);
+    console.log('Starting generation of 10 photos with scenery...');
     
     const imagesToGenerate = 10;
     let successCount = 0;
     let failedCount = 0;
     
     try {
+      // Use existing seed or generate a new one
+      const characterSeed = currentBatchSeed || Date.now();
+      if (!currentBatchSeed) {
+        setCurrentBatchSeed(characterSeed);
+        console.log('No seed found, generated new seed:', characterSeed);
+      }
+      
       const generationPromises = Array.from({ length: imagesToGenerate }, async (_, index) => {
         const maxRetries = 2;
         let lastError = null;
@@ -618,11 +621,13 @@ const Customize = () => {
                   avatarView: selectedViews[0] || 'bust',
                   clothing: selectedClothing[0] || 'clothed'
                 },
-                seed: currentBatchSeed,
+                seed: characterSeed,
                 scenery: sceneryTheme,
                 retryAttempt: attempt
               }
             });
+
+            console.log(`Photo ${index + 1} response:`, { data, error });
 
             if (error) {
               throw error;
@@ -903,13 +908,15 @@ const Customize = () => {
                   <Button 
                     onClick={generateWithScenery} 
                     className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90"
-                    disabled={isGenerating || !currentBatchSeed || !sceneryTheme.trim()}
+                    disabled={isGenerating || !sceneryTheme.trim()}
                   >
                     <Sparkles className="h-4 w-4 mr-2" />
                     Générer 10 photos avec ce décor
                   </Button>
                   <p className="text-xs text-muted-foreground">
-                    Utilisez le même avatar que les photos existantes avec un nouveau décor
+                    {currentBatchSeed 
+                      ? "Utilisez le même avatar que les photos existantes avec un nouveau décor"
+                      : "Créez un nouvel avatar avec ce décor (pas de photos existantes)"}
                   </p>
                 </CardContent>
               </Card>
