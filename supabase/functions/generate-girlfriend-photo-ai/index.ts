@@ -12,18 +12,30 @@ serve(async (req) => {
   }
 
   try {
-    const { character } = await req.json();
+    const { character, seed, retryAttempt = 0 } = await req.json();
 
     if (!character) {
-      throw new Error('Character description is required');
+      return new Response(
+        JSON.stringify({ error: 'Character description is required' }), 
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+      return new Response(
+        JSON.stringify({ error: 'LOVABLE_API_KEY is not configured. Please contact support.' }), 
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
-    console.log('Generating image with Lovable AI (Gemini)...');
+    console.log(`Generating image with Lovable AI (Gemini) - Attempt ${retryAttempt + 1}...`);
 
     // Build detailed prompt based on image style
     const outfitMap = {
@@ -49,6 +61,22 @@ serve(async (req) => {
       clothingDescription = `wearing ${safeOutfit} clothing`;
     }
     
+    // Generate unique but consistent character features using seed
+    const faceShapes = ['oval', 'heart-shaped', 'round', 'angular'];
+    const noseTypes = ['small', 'delicate', 'slightly upturned', 'refined'];
+    const lipTypes = ['full', 'natural', 'soft', 'well-defined'];
+    const skinTones = ['fair', 'olive', 'tan', 'porcelain'];
+    
+    // Use seed to ensure same features across all generations in this batch
+    const seedNum = seed || Date.now();
+    const faceShape = faceShapes[seedNum % faceShapes.length];
+    const noseType = noseTypes[(seedNum >> 2) % noseTypes.length];
+    const lipType = lipTypes[(seedNum >> 4) % lipTypes.length];
+    const skinTone = skinTones[(seedNum >> 6) % skinTones.length];
+    
+    // Build consistent character description
+    const characterDescription = `A specific woman with ${character.hairColor} ${character.hairStyle} hair, ${character.eyeColor} eyes, ${character.bodyType} body type, ${faceShape} face shape, ${noseType} nose, ${lipType} lips, ${skinTone} skin. She has a ${character.personality} personality expression.`;
+    
     // Build style-specific prompt
     const imageStyle = character.imageStyle || 'realistic';
     let stylePrefix = '';
@@ -56,21 +84,22 @@ serve(async (req) => {
     
     if (imageStyle === 'anime') {
       stylePrefix = 'Anime style illustration of ';
-      styleSuffix = ', high quality anime art, detailed anime style, vibrant colors, professional anime artwork, Studio Ghibli quality';
+      styleSuffix = ', high quality anime art, detailed anime style, vibrant colors, professional anime artwork, Studio Ghibli quality, consistent character design';
     } else if (imageStyle === 'cartoon') {
       stylePrefix = 'Cartoon style illustration of ';
-      styleSuffix = ', high quality cartoon art, cel-shaded, vibrant colors, professional cartoon illustration, Pixar quality';
+      styleSuffix = ', high quality cartoon art, cel-shaded, vibrant colors, professional cartoon illustration, Pixar quality, consistent character design';
     } else if (imageStyle === 'digital art') {
       stylePrefix = 'Digital art painting of ';
-      styleSuffix = ', high quality digital painting, artistic style, detailed brush strokes, professional digital artwork, ArtStation quality';
+      styleSuffix = ', high quality digital painting, artistic style, detailed brush strokes, professional digital artwork, ArtStation quality, consistent character design';
     } else {
       stylePrefix = 'A beautiful realistic photo of ';
-      styleSuffix = ', professional photography, high quality, realistic lighting, detailed features, elegant pose, 4K resolution, fashion photography style';
+      styleSuffix = ', professional photography, high quality, realistic lighting, detailed features, elegant pose, 4K resolution, fashion photography style, consistent character';
     }
     
-    const prompt = `${stylePrefix}a woman with ${character.hairColor} ${character.hairStyle} hair, ${character.eyeColor} eyes, ${character.bodyType} body type, ${clothingDescription}. She has a ${character.personality} personality expression. ${viewType}${styleSuffix}.`;
+    const prompt = `${stylePrefix}${characterDescription} ${clothingDescription}. ${viewType}${styleSuffix}. Character seed: ${seedNum}`;
 
     console.log('Prompt:', prompt);
+    console.log('Seed:', seedNum);
 
     // Call Lovable AI (Gemini Nano banana model for image generation)
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -93,16 +122,29 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Lovable AI error:', errorText);
+      console.error('Lovable AI error:', response.status, errorText);
+      
+      let errorMessage = '';
       
       if (response.status === 429) {
-        throw new Error('Rate limit exceeded. Please try again in a moment.');
-      }
-      if (response.status === 402) {
-        throw new Error('Credits exhausted. Please add credits to your Lovable workspace.');
+        errorMessage = 'Rate limit exceeded. Please wait 60 seconds before trying again.';
+      } else if (response.status === 402) {
+        errorMessage = 'Credits exhausted. Please add credits in Settings → Workspace → Usage.';
+      } else if (response.status === 500) {
+        errorMessage = 'AI service temporarily unavailable. Please try again in a few moments.';
+      } else if (response.status === 400) {
+        errorMessage = 'Invalid request. Please check your character settings.';
+      } else {
+        errorMessage = `Image generation failed (${response.status}). Please try again.`;
       }
       
-      throw new Error(`Failed to generate image: ${response.status}`);
+      return new Response(
+        JSON.stringify({ error: errorMessage, status: response.status }), 
+        { 
+          status: response.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     const data = await response.json();
@@ -113,21 +155,35 @@ serve(async (req) => {
     
     if (!imageUrl) {
       console.error('No image in response:', JSON.stringify(data, null, 2));
-      throw new Error('No image was generated');
+      return new Response(
+        JSON.stringify({ error: 'No image was generated. Please try again.' }), 
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     console.log('Image generated successfully');
 
     return new Response(JSON.stringify({ 
       image: imageUrl,
-      prompt: prompt 
+      prompt: prompt,
+      seed: seedNum
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('Error in generate-girlfriend-photo-ai function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
+    
+    const errorMessage = error.message || 'Unexpected error during image generation';
+    const statusCode = error.status || 500;
+    
+    return new Response(JSON.stringify({ 
+      error: errorMessage,
+      details: 'Please try again or contact support if the problem persists.'
+    }), {
+      status: statusCode,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

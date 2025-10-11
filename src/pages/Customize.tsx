@@ -49,10 +49,11 @@ const Customize = () => {
     hobbies: '',
     characterTraits: ''
   });
-  const [generatedImages, setGeneratedImages] = useState<{url: string, style: string}[]>([]);
+  const [generatedImages, setGeneratedImages] = useState<{url: string, style: string, view: string}[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [selectedStyles, setSelectedStyles] = useState<string[]>(['realistic']);
+  const [selectedViews, setSelectedViews] = useState<string[]>(['bust']);
 
   // Load character from localStorage on mount if exists
   useEffect(() => {
@@ -75,7 +76,7 @@ const Customize = () => {
         characterTraits: savedCharacter.characterTraits || ''
       });
       if (savedCharacter.image) {
-        setGeneratedImages([{ url: savedCharacter.image, style: savedCharacter.imageStyle || 'realistic' }]);
+        setGeneratedImages([{ url: savedCharacter.image, style: savedCharacter.imageStyle || 'realistic', view: savedCharacter.avatarView || 'bust' }]);
       }
     }
   }, []);
@@ -110,6 +111,16 @@ const Customize = () => {
     });
   };
 
+  const toggleView = (view: string) => {
+    setSelectedViews(prev => {
+      if (prev.includes(view)) {
+        return prev.filter(v => v !== view);
+      } else {
+        return [...prev, view];
+      }
+    });
+  };
+
   const generatePhoto = async () => {
     if (selectedStyles.length === 0) {
       toast({
@@ -120,37 +131,120 @@ const Customize = () => {
       return;
     }
 
+    if (selectedViews.length === 0) {
+      toast({
+        title: "Aucune vue sélectionnée",
+        description: "Veuillez sélectionner au moins une vue (buste ou corps entier)",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsGenerating(true);
     setGeneratedImages([]);
     
+    const totalImages = selectedStyles.length * selectedViews.length;
+    let successCount = 0;
+    let failedCount = 0;
+    
     try {
-      // Generate images for each selected style in parallel
-      const generationPromises = selectedStyles.map(async (style) => {
-        const { data, error } = await supabase.functions.invoke('generate-girlfriend-photo-ai', {
-          body: { character: { ...character, imageStyle: style } }
-        });
-
-        if (error) {
-          console.error(`Error generating ${style} image:`, error);
-          throw error;
-        }
-
-        console.log(`${style} photo generation response:`, data);
-        return { url: data.image, style };
-      });
-
-      const results = await Promise.all(generationPromises);
-      setGeneratedImages(results);
+      // Generate a unique seed for this batch to ensure consistency
+      const characterSeed = Date.now();
       
-      toast({
-        title: "✨ Photos générées!",
-        description: `${results.length} image(s) créée(s) avec Lovable AI`,
-      });
+      // Generate images for each combination of style and view
+      const generationPromises = selectedStyles.flatMap(style => 
+        selectedViews.map(async (view) => {
+          const maxRetries = 2;
+          let lastError = null;
+          
+          for (let attempt = 0; attempt <= maxRetries; attempt++) {
+            try {
+              const { data, error } = await supabase.functions.invoke('generate-girlfriend-photo-ai', {
+                body: { 
+                  character: { 
+                    ...character, 
+                    imageStyle: style,
+                    avatarView: view
+                  },
+                  seed: characterSeed,
+                  retryAttempt: attempt
+                }
+              });
+
+              if (error) {
+                throw error;
+              }
+
+              if (!data?.image) {
+                throw new Error('Aucune image générée');
+              }
+
+              console.log(`${style} ${view} photo generated successfully`);
+              successCount++;
+              return { url: data.image, style, view };
+            } catch (err) {
+              lastError = err;
+              console.error(`Tentative ${attempt + 1}/${maxRetries + 1} échouée pour ${style} ${view}:`, err);
+              
+              if (attempt < maxRetries) {
+                // Wait before retry (exponential backoff)
+                await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+              }
+            }
+          }
+          
+          // All retries failed
+          failedCount++;
+          console.error(`Échec définitif pour ${style} ${view}:`, lastError);
+          throw lastError;
+        })
+      );
+
+      const results = await Promise.allSettled(generationPromises);
+      
+      // Filter successful results
+      const successfulImages = results
+        .filter(result => result.status === 'fulfilled')
+        .map(result => (result as PromiseFulfilledResult<any>).value);
+      
+      setGeneratedImages(successfulImages);
+      
+      if (successfulImages.length > 0) {
+        toast({
+          title: "✨ Photos générées!",
+          description: `${successfulImages.length}/${totalImages} image(s) créée(s) avec succès. Le même personnage est représenté dans toutes les vues.`,
+        });
+      }
+      
+      if (failedCount > 0) {
+        toast({
+          title: "⚠️ Génération partielle",
+          description: `${failedCount} image(s) n'ont pas pu être générée(s). Réessayez ou vérifiez vos crédits Lovable AI.`,
+          variant: "destructive",
+        });
+      }
+      
+      if (successfulImages.length === 0) {
+        throw new Error('Aucune image n\'a pu être générée');
+      }
     } catch (error) {
       console.error('Error generating photos:', error);
+      
+      let errorMessage = "Impossible de générer les photos. ";
+      
+      if (error.message?.includes('Rate limit')) {
+        errorMessage += "Limite de requêtes atteinte. Attendez quelques instants.";
+      } else if (error.message?.includes('Credits') || error.message?.includes('402')) {
+        errorMessage += "Crédits Lovable AI épuisés. Ajoutez des crédits dans Settings → Workspace → Usage.";
+      } else if (error.message?.includes('429')) {
+        errorMessage += "Trop de requêtes. Attendez 1 minute avant de réessayer.";
+      } else {
+        errorMessage += "Réessayez dans quelques instants.";
+      }
+      
       toast({
-        title: "Échec de la génération",
-        description: error.message || "Impossible de générer les photos. Réessayez.",
+        title: "❌ Échec de la génération",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -247,6 +341,37 @@ const Customize = () => {
                 </CardContent>
               </Card>
 
+              {/* Multi-select for avatar views */}
+              <Card className="border-primary/10">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    Vues de l'avatar (sélection multiple)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-3">
+                    {options.avatarView.map((view) => (
+                      <Button
+                        key={view}
+                        variant={selectedViews.includes(view) ? "default" : "outline"}
+                        onClick={() => toggleView(view)}
+                        className={`capitalize ${
+                          selectedViews.includes(view)
+                            ? "bg-primary text-primary-foreground" 
+                            : "hover:bg-accent"
+                        }`}
+                      >
+                        {view}
+                      </Button>
+                    ))}
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Sélectionnez buste et/ou corps entier. Le même personnage sera généré pour toutes les vues.
+                  </p>
+                </CardContent>
+              </Card>
+
               {/* Text customization fields */}
               <Card className="border-primary/10">
                 <CardHeader>
@@ -305,23 +430,31 @@ const Customize = () => {
                   {isGenerating ? (
                     <div className="space-y-4 flex flex-col items-center justify-center h-full">
                       <RefreshCw className="h-12 w-12 text-primary animate-spin mx-auto" />
-                      <p className="text-sm text-muted-foreground">Génération de {selectedStyles.length} image(s)...</p>
+                      <p className="text-sm text-muted-foreground">
+                        Génération de {selectedStyles.length * selectedViews.length} image(s)...
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Le même personnage sera créé pour toutes les vues
+                      </p>
                     </div>
                   ) : generatedImages.length > 0 ? (
                     <div className="space-y-3">
                       <div className="grid grid-cols-1 gap-3 max-h-[500px] overflow-y-auto">
                         {generatedImages.map((img, idx) => (
                           <div key={idx} className="space-y-2">
-                            <Badge variant="secondary" className="mb-1">{img.style}</Badge>
+                            <div className="flex gap-2 justify-center mb-1">
+                              <Badge variant="secondary">{img.style}</Badge>
+                              <Badge variant="outline">{img.view}</Badge>
+                            </div>
                             <img 
                               src={img.url} 
-                              alt={`AI Girlfriend - ${img.style}`} 
+                              alt={`AI Girlfriend - ${img.style} ${img.view}`} 
                               className="w-full rounded-lg shadow-lg"
                               onError={(e) => {
                                 console.error('Image load error:', e);
                                 console.log('Image src:', img.url);
                               }}
-                              onLoad={() => console.log(`Image ${img.style} loaded successfully`)}
+                              onLoad={() => console.log(`Image ${img.style} ${img.view} loaded successfully`)}
                             />
                             <Button 
                               onClick={() => setShowSaveDialog(true)} 
@@ -348,12 +481,15 @@ const Customize = () => {
                   ) : (
                     <div className="space-y-4 flex flex-col items-center justify-center h-full">
                       <div className="text-6xl">📸</div>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Générer {selectedStyles.length * selectedViews.length} image(s) du même personnage
+                      </p>
                       <Button 
                         onClick={generatePhoto} 
                         className="bg-primary hover:bg-primary/90"
-                        disabled={selectedStyles.length === 0}
+                        disabled={selectedStyles.length === 0 || selectedViews.length === 0}
                       >
-                        Générer {selectedStyles.length} photo(s)
+                        Générer les photos
                       </Button>
                     </div>
                   )}
