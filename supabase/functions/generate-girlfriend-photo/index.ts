@@ -1,12 +1,26 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
+
+// Validation schema
+const CharacterSchema = z.object({
+  hairColor: z.string().max(50),
+  hairStyle: z.string().max(50),
+  bodyType: z.string().max(50),
+  personality: z.string().max(100),
+  outfit: z.string().max(50),
+  eyeColor: z.string().max(50),
+  avatarView: z.string().max(50).optional(),
+  clothing: z.string().max(50).optional(),
+});
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -15,7 +29,45 @@ serve(async (req) => {
   }
 
   try {
-    const { character } = await req.json();
+    // Validate API key
+    const apiKey = req.headers.get('x-api-key');
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: 'API key required' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    const { data: userId, error: validateError } = await supabase.rpc('validate_api_key', { key: apiKey });
+    
+    if (validateError || !userId) {
+      console.error('API key validation error:', validateError);
+      return new Response(JSON.stringify({ error: 'Invalid API key' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const body = await req.json();
+    
+    // Validate input
+    const validationResult = CharacterSchema.safeParse(body.character);
+    if (!validationResult.success) {
+      return new Response(JSON.stringify({ 
+        error: 'Invalid input', 
+        details: validationResult.error.issues 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const character = validationResult.data;
 
     if (!character) {
       throw new Error('Character description is required');

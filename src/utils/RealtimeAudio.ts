@@ -1,5 +1,29 @@
 import { supabase } from "@/integrations/supabase/client";
 
+// Store API key
+let cachedApiKey: string | null = null;
+
+async function getApiKey(): Promise<string | null> {
+  if (cachedApiKey) return cachedApiKey;
+  
+  try {
+    const { data, error } = await supabase
+      .from("api_keys")
+      .select("key_value")
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error) throw error;
+    cachedApiKey = data?.key_value || null;
+    return cachedApiKey;
+  } catch (error) {
+    console.error("Error fetching API key:", error);
+    return null;
+  }
+}
+
 export class AudioRecorder {
   private stream: MediaStream | null = null;
   private audioContext: AudioContext | null = null;
@@ -74,8 +98,17 @@ export class RealtimeChat {
   async init(character?: any) {
     try {
       console.log('Requesting ephemeral token...');
+      
+      const apiKey = await getApiKey();
+      if (!apiKey) {
+        throw new Error('API key required. Please create an API key in Settings.');
+      }
+      
       const { data: tokenData, error: tokenError } = await supabase.functions.invoke("realtime-token", {
-        body: { character }
+        body: { character },
+        headers: {
+          'x-api-key': apiKey
+        }
       });
       
       if (tokenError) {

@@ -1,13 +1,23 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const DID_API_KEY = Deno.env.get('DID_API_KEY');
 const DID_API_URL = 'https://api.d-id.com';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
+
+// Validation schema
+const VideoSchema = z.object({
+  imageUrl: z.string().url().max(2000),
+  text: z.string().max(500).optional(),
+  audioUrl: z.string().url().max(2000).optional(),
+  voice: z.string().max(100).optional(),
+});
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -15,7 +25,45 @@ serve(async (req) => {
   }
 
   try {
-    const { imageUrl, text, audioUrl, voice } = await req.json();
+    // Validate API key
+    const apiKey = req.headers.get('x-api-key');
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: 'API key required' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    const { data: userId, error: validateError } = await supabase.rpc('validate_api_key', { key: apiKey });
+    
+    if (validateError || !userId) {
+      console.error('API key validation error:', validateError);
+      return new Response(JSON.stringify({ error: 'Invalid API key' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const body = await req.json();
+    
+    // Validate input
+    const validationResult = VideoSchema.safeParse(body);
+    if (!validationResult.success) {
+      return new Response(JSON.stringify({ 
+        error: 'Invalid input', 
+        details: validationResult.error.issues 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { imageUrl, text, audioUrl, voice } = validationResult.data;
 
     if (!imageUrl) {
       throw new Error('Image URL is required');
