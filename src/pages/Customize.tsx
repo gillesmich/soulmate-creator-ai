@@ -76,8 +76,24 @@ const Customize = () => {
         hobbies: savedCharacter.hobbies || '',
         characterTraits: savedCharacter.characterTraits || ''
       });
-      if (savedCharacter.image) {
-        setGeneratedImages([{ url: savedCharacter.image, style: savedCharacter.imageStyle || 'realistic', view: savedCharacter.avatarView || 'bust', clothing: savedCharacter.clothing || 'clothed' }]);
+      
+      // Load all saved images or just the main one
+      if (savedCharacter.images && savedCharacter.images.length > 0) {
+        setGeneratedImages(
+          savedCharacter.images.map((url, index) => ({
+            url,
+            style: savedCharacter.imageStyle || 'realistic',
+            view: savedCharacter.avatarView || 'bust',
+            clothing: savedCharacter.clothing || 'clothed'
+          }))
+        );
+      } else if (savedCharacter.image) {
+        setGeneratedImages([{ 
+          url: savedCharacter.image, 
+          style: savedCharacter.imageStyle || 'realistic', 
+          view: savedCharacter.avatarView || 'bust', 
+          clothing: savedCharacter.clothing || 'clothed' 
+        }]);
       }
     }
   }, []);
@@ -342,7 +358,8 @@ const Customize = () => {
 
   const startChat = () => {
     const mainImage = generatedImages.length > 0 ? generatedImages[0].url : '';
-    setCurrentCharacter({ ...character, image: mainImage });
+    const allImages = generatedImages.map(img => img.url);
+    setCurrentCharacter({ ...character, image: mainImage, images: allImages });
     navigate('/chat');
   };
 
@@ -649,7 +666,8 @@ const Customize = () => {
                   <Button 
                     onClick={() => {
                       const mainImage = generatedImages.length > 0 ? generatedImages[0].url : '';
-                      setCurrentCharacter({ ...character, image: mainImage });
+                      const allImages = generatedImages.map(img => img.url);
+                      setCurrentCharacter({ ...character, image: mainImage, images: allImages });
                       navigate('/voice-chat');
                     }} 
                     className="w-full bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent/70"

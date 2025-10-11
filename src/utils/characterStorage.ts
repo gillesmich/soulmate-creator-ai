@@ -11,6 +11,7 @@ export interface CharacterData {
   clothing?: string;
   imageStyle?: string;
   image?: string;
+  images?: string[]; // Multiple generated images
   name?: string;
   interests?: string;
   hobbies?: string;

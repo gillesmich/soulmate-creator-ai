@@ -25,6 +25,7 @@ interface CharacterOptions {
   outfit: string;
   eyeColor: string;
   image?: string;
+  images?: string[];
 }
 
 const Chat = () => {
@@ -37,11 +38,13 @@ const Chat = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [showLargeAvatar, setShowLargeAvatar] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
   const wsRef = useRef<WebSocket | null>(null);
   const audioRecorderRef = useRef<AudioRecorder | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const imageRotationInterval = useRef<NodeJS.Timeout | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -71,6 +74,21 @@ const Chat = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Auto-rotate images when large avatar is shown
+  useEffect(() => {
+    if (showLargeAvatar && character?.images && character.images.length > 1) {
+      imageRotationInterval.current = setInterval(() => {
+        setCurrentImageIndex(prev => (prev + 1) % (character.images?.length || 1));
+      }, 3000); // Change image every 3 seconds
+
+      return () => {
+        if (imageRotationInterval.current) {
+          clearInterval(imageRotationInterval.current);
+        }
+      };
+    }
+  }, [showLargeAvatar, character?.images]);
 
   const connect = async () => {
     try {
@@ -433,7 +451,7 @@ const Chat = () => {
         </p>
       </div>
 
-      {/* Large Avatar Modal */}
+      {/* Large Avatar Modal with Image Rotation */}
       {showLargeAvatar && (
         <div 
           className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4"
@@ -442,12 +460,36 @@ const Chat = () => {
           <div className="relative max-w-[90vw] max-h-[90vh]">
             <div className="w-[80vmin] h-[80vmin] max-w-[600px] max-h-[600px]">
               <LipSyncAvatar 
-                imageUrl={character.image} 
+                imageUrl={
+                  character?.images && character.images.length > 0
+                    ? character.images[currentImageIndex]
+                    : character?.image
+                } 
                 isSpeaking={isSpeaking}
                 size="large"
-                className="w-full h-full"
+                className="w-full h-full transition-opacity duration-500"
               />
             </div>
+            
+            {/* Image Counter */}
+            {character?.images && character.images.length > 1 && (
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2 bg-black/70 px-4 py-2 rounded-full">
+                <span className="text-white text-sm">
+                  {currentImageIndex + 1} / {character.images.length}
+                </span>
+                <div className="flex gap-1">
+                  {character.images.map((_, index) => (
+                    <div
+                      key={index}
+                      className={`w-2 h-2 rounded-full transition-colors ${
+                        index === currentImageIndex ? 'bg-primary' : 'bg-white/30'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+            
             <button
               onClick={(e) => {
                 e.stopPropagation();
