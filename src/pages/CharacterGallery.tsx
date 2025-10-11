@@ -9,6 +9,7 @@ import { ArrowLeft, Play, Trash2, Images } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { getSavedCharacters, deleteCharacter, setCurrentCharacter, type SavedCharacter } from '@/utils/characterStorage';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 
 const CharacterGallery = () => {
   const navigate = useNavigate();
@@ -227,6 +228,21 @@ const CharacterGallery = () => {
                       <p className="capitalize">
                         {character.eyeColor} eyes • {character.bodyType}
                       </p>
+                      {character.interests && (
+                        <p className="text-xs mt-2">
+                          <span className="font-semibold">Intérêts:</span> {character.interests}
+                        </p>
+                      )}
+                      {character.hobbies && (
+                        <p className="text-xs">
+                          <span className="font-semibold">Hobbies:</span> {character.hobbies}
+                        </p>
+                      )}
+                      {character.characterTraits && (
+                        <p className="text-xs">
+                          <span className="font-semibold">Traits:</span> {character.characterTraits}
+                        </p>
+                      )}
                     </div>
                   </CardHeader>
                   <CardContent className="pt-0">
@@ -266,9 +282,9 @@ const CharacterGallery = () => {
         )}
       </div>
 
-      {/* Images Dialog */}
+      {/* Images Dialog avec Carousel */}
       <Dialog open={showImagesDialog} onOpenChange={setShowImagesDialog}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center gap-3">
               <Avatar className="h-12 w-12 border-2 border-primary/20">
@@ -286,18 +302,69 @@ const CharacterGallery = () => {
             </div>
           </DialogHeader>
           
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-            {selectedCharacter?.images?.map((imageUrl, index) => (
-              <div key={index} className="aspect-square rounded-lg overflow-hidden border border-border hover:border-primary transition-colors">
+          {/* Character Details */}
+          <div className="bg-muted/50 rounded-lg p-4 space-y-2 text-sm">
+            <p className="capitalize">
+              <span className="font-semibold">Apparence:</span> {selectedCharacter?.eyeColor} eyes • {selectedCharacter?.bodyType} • {selectedCharacter?.age}
+            </p>
+            {selectedCharacter?.interests && (
+              <p>
+                <span className="font-semibold">Intérêts:</span> {selectedCharacter.interests}
+              </p>
+            )}
+            {selectedCharacter?.hobbies && (
+              <p>
+                <span className="font-semibold">Hobbies:</span> {selectedCharacter.hobbies}
+              </p>
+            )}
+            {selectedCharacter?.characterTraits && (
+              <p>
+                <span className="font-semibold">Traits de caractère:</span> {selectedCharacter.characterTraits}
+              </p>
+            )}
+          </div>
+
+          {/* Images Carousel */}
+          {selectedCharacter?.images && selectedCharacter.images.length > 1 ? (
+            <div className="mt-4">
+              <h3 className="font-semibold mb-3 text-center">
+                {selectedCharacter.images.length} Images
+              </h3>
+              <Carousel 
+                className="w-full max-w-2xl mx-auto"
+                opts={{
+                  align: "center",
+                  loop: true,
+                }}
+              >
+                <CarouselContent>
+                  {selectedCharacter.images.map((imageUrl, index) => (
+                    <CarouselItem key={index}>
+                      <div className="aspect-square rounded-lg overflow-hidden border border-border">
+                        <img
+                          src={imageUrl}
+                          alt={`${selectedCharacter.name} - Image ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious className="left-2" />
+                <CarouselNext className="right-2" />
+              </Carousel>
+            </div>
+          ) : (
+            <div className="mt-4">
+              <div className="aspect-square rounded-lg overflow-hidden border border-border max-w-md mx-auto">
                 <img
-                  src={imageUrl}
-                  alt={`${selectedCharacter.name} - Image ${index + 1}`}
-                  className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
-                  onClick={() => window.open(imageUrl, '_blank')}
+                  src={selectedCharacter?.image}
+                  alt={selectedCharacter?.name}
+                  className="w-full h-full object-cover"
                 />
               </div>
-            ))}
-          </div>
+            </div>
+          )}
 
           <div className="flex gap-2 mt-4">
             <Button

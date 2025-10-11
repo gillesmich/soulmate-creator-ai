@@ -28,8 +28,8 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
   const handleSave = async () => {
     if (!name.trim()) {
       toast({
-        title: "Name Required",
-        description: "Please enter a name for your girlfriend image",
+        title: "Nom requis",
+        description: "Veuillez entrer un nom pour votre profil",
         variant: "destructive",
       });
       return;
@@ -42,24 +42,36 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
       
       if (!user) {
         toast({
-          title: "Authentication Required",
-          description: "Please sign in to save your images to the cloud.",
+          title: "Authentification requise",
+          description: "Connectez-vous pour sauvegarder dans le cloud.",
           variant: "destructive",
         });
         setIsSaving(false);
         return;
       }
 
-      // Save to localStorage first with all images
+      // Check if a profile with this name already exists
+      const { data: existingProfile } = await supabase
+        .from('saved_girlfriend_images')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('name', name.trim())
+        .single();
+
+      // Save to localStorage first with all images and complete character data
+      const completeCharacterData = {
+        ...characterData,
+        image: imageUrls[0],
+        images: imageUrls,
+        interests: characterData.interests || '',
+        hobbies: characterData.hobbies || '',
+        characterTraits: characterData.characterTraits || ''
+      };
+      
       const savedCharacter = saveToLocalStorage(
-        { ...characterData, image: imageUrls[0], images: imageUrls },
+        completeCharacterData,
         name.trim()
       );
-
-      toast({
-        title: "Saved Locally!",
-        description: `${name} has been saved to your browser.`,
-      });
 
       // Upload all images to Supabase storage
       const uploadedUrls: string[] = [];
@@ -80,7 +92,7 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
 
         if (uploadError) {
           console.error('Error uploading image:', uploadError);
-          continue; // Skip this image but continue with others
+          continue;
         }
 
         const { data: urlData } = supabase.storage
@@ -90,35 +102,58 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
         uploadedUrls.push(urlData.publicUrl);
       }
 
-      // Save to database with all uploaded URLs
-      const { error: dbError } = await supabase
-        .from('saved_girlfriend_images')
-        .insert({
-          user_id: user.id,
-          name: name.trim(),
-          image_url: uploadedUrls[0] || '', // Keep first image as main
-          image_urls: uploadedUrls, // Save all images
-          character_data: characterData
-        });
+      // Update or Insert depending on whether profile exists
+      let dbError;
+      if (existingProfile) {
+        // Update existing profile
+        const { error } = await supabase
+          .from('saved_girlfriend_images')
+          .update({
+            image_url: uploadedUrls[0] || '',
+            image_urls: uploadedUrls,
+            character_data: completeCharacterData
+          })
+          .eq('id', existingProfile.id);
+        dbError = error;
+        
+        if (!error) {
+          toast({
+            title: "✅ Profil mis à jour!",
+            description: `${name} et ses ${imageUrls.length} image(s) ont été mises à jour.`,
+          });
+        }
+      } else {
+        // Insert new profile
+        const { error } = await supabase
+          .from('saved_girlfriend_images')
+          .insert({
+            user_id: user.id,
+            name: name.trim(),
+            image_url: uploadedUrls[0] || '',
+            image_urls: uploadedUrls,
+            character_data: completeCharacterData
+          });
+        dbError = error;
+        
+        if (!error) {
+          toast({
+            title: "✅ Profil sauvegardé!",
+            description: `${name} et ses ${imageUrls.length} image(s) ont été sauvegardées.`,
+          });
+        }
+      }
 
       if (dbError) throw dbError;
-      
-      toast({
-        title: "✅ Sauvegardé!",
-        description: `${name} et ses ${imageUrls.length} image(s) ont été sauvegardées.`,
-      });
 
       setName('');
       onClose();
     } catch (error) {
       console.error('Error saving to cloud:', error);
       toast({
-        title: "Saved Locally",
-        description: "Saved to your browser, but cloud backup failed.",
-        variant: "default",
+        title: "Erreur",
+        description: "Erreur lors de la sauvegarde. Réessayez.",
+        variant: "destructive",
       });
-      setName('');
-      onClose();
     } finally {
       setIsSaving(false);
     }
