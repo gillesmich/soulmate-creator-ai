@@ -39,11 +39,6 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
   const { subscription } = useSubscription();
 
   const conversation = useConversation({
-    overrides: selectedVoiceId !== 'agent' ? {
-      tts: {
-        voiceId: selectedVoiceId
-      }
-    } : undefined,
     onConnect: () => {
       console.log('Connected to ElevenLabs');
       const voiceName = selectedVoiceId === 'agent' 
@@ -151,9 +146,18 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
       const audioContext = new AudioContext();
       await audioContext.resume();
       
-      await conversation.startSession({ 
-        signedUrl: url 
-      });
+      const sessionConfig: any = { signedUrl: url };
+      
+      // Appliquer les overrides de voix si une voix spécifique est sélectionnée
+      if (selectedVoiceId !== 'agent') {
+        sessionConfig.overrides = {
+          tts: {
+            voiceId: selectedVoiceId
+          }
+        };
+      }
+      
+      await conversation.startSession(sessionConfig);
       
       console.log('Conversation started successfully');
     } catch (error) {
@@ -206,7 +210,6 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
               <RadioGroup 
                 value={selectedVoiceId} 
                 onValueChange={setSelectedVoiceId}
-                disabled={isConnected}
                 className="space-y-2 max-h-96 overflow-y-auto"
               >
                 {/* Option voix de l'agent (Agathe) */}

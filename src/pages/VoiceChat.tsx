@@ -16,29 +16,17 @@ const VoiceChat = () => {
 
   // Load character images on mount
   useEffect(() => {
-    console.log('[VOICE CHAT] Loading character images...');
     const savedCharacter = getCurrentCharacter();
-    console.log('[VOICE CHAT] Character loaded:', savedCharacter);
     
     if (savedCharacter) {
-      if (savedCharacter.images && savedCharacter.images.length > 0) {
-        console.log('[VOICE CHAT] Found images array:', savedCharacter.images.length);
-        setCharacterImages(savedCharacter.images);
-      } else if (savedCharacter.image) {
-        console.log('[VOICE CHAT] Found single image');
-        setCharacterImages([savedCharacter.image]);
-      } else {
-        console.log('[VOICE CHAT] No images found in character');
-      }
-    } else {
-      console.log('[VOICE CHAT] No saved character found');
+      const images = savedCharacter.images && savedCharacter.images.length > 0 
+        ? savedCharacter.images 
+        : savedCharacter.image 
+          ? [savedCharacter.image] 
+          : [];
+      setCharacterImages(images);
     }
   }, []);
-
-  // Debug: Log when characterImages changes
-  useEffect(() => {
-    console.log('[VOICE CHAT] characterImages updated:', characterImages.length);
-  }, [characterImages]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
