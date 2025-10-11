@@ -49,9 +49,10 @@ const Customize = () => {
     hobbies: '',
     characterTraits: ''
   });
-  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [generatedImages, setGeneratedImages] = useState<{url: string, style: string}[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [selectedStyles, setSelectedStyles] = useState<string[]>(['realistic']);
 
   // Load character from localStorage on mount if exists
   useEffect(() => {
@@ -74,7 +75,7 @@ const Customize = () => {
         characterTraits: savedCharacter.characterTraits || ''
       });
       if (savedCharacter.image) {
-        setGeneratedImage(savedCharacter.image);
+        setGeneratedImages([{ url: savedCharacter.image, style: savedCharacter.imageStyle || 'realistic' }]);
       }
     }
   }, []);
@@ -95,30 +96,61 @@ const Customize = () => {
 
   const updateCharacter = (key: keyof CharacterOptions, value: string) => {
     setCharacter(prev => ({ ...prev, [key]: value }));
-    // Clear generated image when character changes
-    setGeneratedImage(null);
+    // Clear generated images when character changes
+    setGeneratedImages([]);
+  };
+
+  const toggleStyle = (style: string) => {
+    setSelectedStyles(prev => {
+      if (prev.includes(style)) {
+        return prev.filter(s => s !== style);
+      } else {
+        return [...prev, style];
+      }
+    });
   };
 
   const generatePhoto = async () => {
+    if (selectedStyles.length === 0) {
+      toast({
+        title: "Aucun style sélectionné",
+        description: "Veuillez sélectionner au moins un style d'image",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsGenerating(true);
+    setGeneratedImages([]);
+    
     try {
-      const { data, error } = await supabase.functions.invoke('generate-girlfriend-photo-ai', {
-        body: { character }
+      // Generate images for each selected style in parallel
+      const generationPromises = selectedStyles.map(async (style) => {
+        const { data, error } = await supabase.functions.invoke('generate-girlfriend-photo-ai', {
+          body: { character: { ...character, imageStyle: style } }
+        });
+
+        if (error) {
+          console.error(`Error generating ${style} image:`, error);
+          throw error;
+        }
+
+        console.log(`${style} photo generation response:`, data);
+        return { url: data.image, style };
       });
 
-      if (error) throw error;
-
-      console.log('Photo generation response:', data);
-      setGeneratedImage(data.image);
+      const results = await Promise.all(generationPromises);
+      setGeneratedImages(results);
+      
       toast({
-        title: "✨ Photo Generated!",
-        description: "Generated with Lovable AI (FREE until Oct 13th)",
+        title: "✨ Photos générées!",
+        description: `${results.length} image(s) créée(s) avec Lovable AI`,
       });
     } catch (error) {
-      console.error('Error generating photo:', error);
+      console.error('Error generating photos:', error);
       toast({
-        title: "Generation Failed",
-        description: error.message || "Failed to generate photo. Please try again.",
+        title: "Échec de la génération",
+        description: error.message || "Impossible de générer les photos. Réessayez.",
         variant: "destructive",
       });
     } finally {
@@ -129,7 +161,8 @@ const Customize = () => {
   // Remove auto-generation on mount
 
   const startChat = () => {
-    setCurrentCharacter({ ...character, image: generatedImage || '' });
+    const mainImage = generatedImages.length > 0 ? generatedImages[0].url : '';
+    setCurrentCharacter({ ...character, image: mainImage });
     navigate('/chat');
   };
 
@@ -149,34 +182,70 @@ const Customize = () => {
           {/* Customization Options */}
           <div className="lg:col-span-2">
             <div className="grid gap-6">
-              {Object.entries(options).map(([category, choices]) => (
-                <Card key={category} className="border-primary/10">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 capitalize">
-                      <Sparkles className="h-4 w-4 text-primary" />
-                      {category.replace(/([A-Z])/g, ' $1')}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {choices.map((choice) => (
-                        <Button
-                          key={choice}
-                          variant={character[category as keyof CharacterOptions] === choice ? "default" : "outline"}
-                          onClick={() => updateCharacter(category as keyof CharacterOptions, choice)}
-                          className={`capitalize ${
-                            character[category as keyof CharacterOptions] === choice 
-                              ? "bg-primary text-primary-foreground" 
-                              : "hover:bg-accent"
-                          }`}
-                        >
-                          {choice}
-                        </Button>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+              {Object.entries(options).map(([category, choices]) => {
+                // Skip imageStyle as we handle it separately for multi-select
+                if (category === 'imageStyle') return null;
+                
+                return (
+                  <Card key={category} className="border-primary/10">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 capitalize">
+                        <Sparkles className="h-4 w-4 text-primary" />
+                        {category.replace(/([A-Z])/g, ' $1')}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {choices.map((choice) => (
+                          <Button
+                            key={choice}
+                            variant={character[category as keyof CharacterOptions] === choice ? "default" : "outline"}
+                            onClick={() => updateCharacter(category as keyof CharacterOptions, choice)}
+                            className={`capitalize ${
+                              character[category as keyof CharacterOptions] === choice 
+                                ? "bg-primary text-primary-foreground" 
+                                : "hover:bg-accent"
+                            }`}
+                          >
+                            {choice}
+                          </Button>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+
+              {/* Multi-select for image styles */}
+              <Card className="border-primary/10">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    Styles d'image (sélection multiple)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {options.imageStyle.map((style) => (
+                      <Button
+                        key={style}
+                        variant={selectedStyles.includes(style) ? "default" : "outline"}
+                        onClick={() => toggleStyle(style)}
+                        className={`capitalize ${
+                          selectedStyles.includes(style)
+                            ? "bg-primary text-primary-foreground" 
+                            : "hover:bg-accent"
+                        }`}
+                      >
+                        {style}
+                      </Button>
+                    ))}
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Sélectionnez un ou plusieurs styles pour générer plusieurs images
+                  </p>
+                </CardContent>
+              </Card>
 
               {/* Text customization fields */}
               <Card className="border-primary/10">
@@ -232,51 +301,59 @@ const Customize = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="bg-gradient-to-b from-primary/10 to-accent/10 rounded-lg p-4 text-center min-h-[400px] flex items-center justify-center">
+                <div className="bg-gradient-to-b from-primary/10 to-accent/10 rounded-lg p-4 text-center min-h-[400px]">
                   {isGenerating ? (
-                    <div className="space-y-4">
+                    <div className="space-y-4 flex flex-col items-center justify-center h-full">
                       <RefreshCw className="h-12 w-12 text-primary animate-spin mx-auto" />
-                      <p className="text-sm text-muted-foreground">Generating your girlfriend's photo...</p>
+                      <p className="text-sm text-muted-foreground">Génération de {selectedStyles.length} image(s)...</p>
                     </div>
-                  ) : generatedImage ? (
+                  ) : generatedImages.length > 0 ? (
                     <div className="space-y-3">
-                      <img 
-                        src={generatedImage} 
-                        alt="Your AI Girlfriend" 
-                        className="w-full max-w-sm rounded-lg shadow-lg"
-                        onError={(e) => {
-                          console.error('Image load error:', e);
-                          console.log('Image src:', generatedImage);
-                        }}
-                        onLoad={() => console.log('Image loaded successfully')}
-                      />
+                      <div className="grid grid-cols-1 gap-3 max-h-[500px] overflow-y-auto">
+                        {generatedImages.map((img, idx) => (
+                          <div key={idx} className="space-y-2">
+                            <Badge variant="secondary" className="mb-1">{img.style}</Badge>
+                            <img 
+                              src={img.url} 
+                              alt={`AI Girlfriend - ${img.style}`} 
+                              className="w-full rounded-lg shadow-lg"
+                              onError={(e) => {
+                                console.error('Image load error:', e);
+                                console.log('Image src:', img.url);
+                              }}
+                              onLoad={() => console.log(`Image ${img.style} loaded successfully`)}
+                            />
+                            <Button 
+                              onClick={() => setShowSaveDialog(true)} 
+                              variant="outline" 
+                              size="sm"
+                              className="hover:bg-accent w-full"
+                            >
+                              <Save className="h-4 w-4 mr-2" />
+                              Sauvegarder
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
                       <Button 
                         onClick={generatePhoto} 
                         variant="outline" 
                         size="sm"
-                        className="hover:bg-accent mr-2"
+                        className="hover:bg-accent w-full mt-2"
                       >
                         <RefreshCw className="h-4 w-4 mr-2" />
-                        Generate New Photo
-                      </Button>
-                      <Button 
-                        onClick={() => setShowSaveDialog(true)} 
-                        variant="outline" 
-                        size="sm"
-                        className="hover:bg-accent"
-                      >
-                        <Save className="h-4 w-4 mr-2" />
-                        Save Image
+                        Générer de nouvelles photos
                       </Button>
                     </div>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-4 flex flex-col items-center justify-center h-full">
                       <div className="text-6xl">📸</div>
                       <Button 
                         onClick={generatePhoto} 
                         className="bg-primary hover:bg-primary/90"
+                        disabled={selectedStyles.length === 0}
                       >
-                        Generate Photo
+                        Générer {selectedStyles.length} photo(s)
                       </Button>
                     </div>
                   )}
@@ -298,7 +375,7 @@ const Customize = () => {
                     onClick={startChat} 
                     className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
                     size="lg"
-                    disabled={!generatedImage}
+                    disabled={generatedImages.length === 0}
                   >
                     <MessageCircle className="h-4 w-4 mr-2" />
                     Start Chatting
@@ -306,12 +383,13 @@ const Customize = () => {
                   
                   <Button 
                     onClick={() => {
-                      setCurrentCharacter({ ...character, image: generatedImage || '' });
+                      const mainImage = generatedImages.length > 0 ? generatedImages[0].url : '';
+                      setCurrentCharacter({ ...character, image: mainImage });
                       navigate('/voice-chat');
                     }} 
                     className="w-full bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent/70"
                     size="lg"
-                    disabled={!generatedImage}
+                    disabled={generatedImages.length === 0}
                   >
                     <Mic className="h-4 w-4 mr-2" />
                     Voice Chat
@@ -320,9 +398,9 @@ const Customize = () => {
               </CardContent>
             </Card>
 
-            {generatedImage && (
+            {generatedImages.length > 0 && (
               <div className="mt-4">
-                <VideoGenerator imageUrl={generatedImage} />
+                <VideoGenerator imageUrl={generatedImages[0].url} />
               </div>
             )}
           </div>
@@ -332,7 +410,7 @@ const Customize = () => {
       <SaveImageDialog 
         isOpen={showSaveDialog}
         onClose={() => setShowSaveDialog(false)}
-        imageUrl={generatedImage || ''}
+        imageUrl={generatedImages.length > 0 ? generatedImages[0].url : ''}
         characterData={character}
       />
     </div>
