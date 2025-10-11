@@ -74,17 +74,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signUp = async (email: string, password: string) => {
-    // Restrict signup to authorized email only
-    if (email !== 'gillesmich@yahoo.fr') {
-      const error = { message: "L'inscription n'est pas autorisée pour cet email." };
-      toast({
-        title: "Accès refusé",
-        description: "L'inscription est actuellement restreinte.",
-        variant: "destructive",
-      });
-      return { error };
-    }
-
     const redirectUrl = `${window.location.origin}/`;
     
     const { error } = await supabase.auth.signUp({
@@ -112,17 +101,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signIn = async (email: string, password: string) => {
-    // Restrict signin to authorized email only
-    if (email !== 'gillesmich@yahoo.fr') {
-      const error = { message: "Accès refusé pour cet email." };
-      toast({
-        title: "Accès refusé",
-        description: "Vous n'êtes pas autorisé à accéder à cette application.",
-        variant: "destructive",
-      });
-      return { error };
-    }
-
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
