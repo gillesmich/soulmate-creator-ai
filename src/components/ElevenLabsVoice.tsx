@@ -80,15 +80,22 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
   const [isLoadingUrl, setIsLoadingUrl] = useState(false);
   const [customVoiceId, setCustomVoiceId] = useState('');
   const [useCustomVoice, setUseCustomVoice] = useState(false);
+  const [selectedVoiceId, setSelectedVoiceId] = useState<string>(DEFAULT_VOICE.id);
   const { toast } = useToast();
   const { subscription } = useSubscription();
 
   const conversation = useConversation({
+    overrides: {
+      tts: {
+        voiceId: useCustomVoice && customVoiceId ? customVoiceId : selectedVoiceId
+      }
+    },
     onConnect: () => {
       console.log('Connected to ElevenLabs');
+      const voiceName = FRENCH_FEMALE_VOICES.find(v => v.id === selectedVoiceId)?.name || 'personnalisée';
       toast({
         title: "Connecté",
-        description: "Conversation vocale démarrée",
+        description: `Conversation avec la voix ${voiceName}`,
       });
     },
     onDisconnect: () => {
@@ -236,23 +243,36 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
         </div>
 
         {/* Premium Voices Section */}
-        <div className="bg-muted/50 p-4 rounded-lg border">
-          <h4 className="font-semibold mb-3 flex items-center gap-2">
-            <Info className="w-4 h-4" />
-            Voix françaises premium disponibles
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {FRENCH_FEMALE_VOICES.map(voice => (
-              <div 
-                key={voice.id} 
-                className="flex flex-col p-3 rounded-md bg-background/70 hover:bg-background transition-colors"
-              >
-                <span className="font-medium text-sm">{voice.name}</span>
-                <span className="text-xs text-muted-foreground">{voice.description}</span>
-              </div>
-            ))}
+        {!useCustomVoice && (
+          <div className="bg-muted/50 p-4 rounded-lg border">
+            <h4 className="font-semibold mb-3 flex items-center gap-2">
+              <Info className="w-4 h-4" />
+              Sélectionnez votre voix française premium
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {FRENCH_FEMALE_VOICES.map(voice => (
+                <button
+                  key={voice.id}
+                  onClick={() => setSelectedVoiceId(voice.id)}
+                  disabled={isConnected}
+                  className={`flex flex-col p-3 rounded-md transition-all text-left ${
+                    selectedVoiceId === voice.id
+                      ? 'bg-purple-500/20 border-2 border-purple-500'
+                      : 'bg-background/70 hover:bg-background border-2 border-transparent'
+                  } ${isConnected ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  <span className="font-medium text-sm flex items-center gap-2">
+                    {selectedVoiceId === voice.id && (
+                      <div className="w-2 h-2 rounded-full bg-purple-500" />
+                    )}
+                    {voice.name}
+                  </span>
+                  <span className="text-xs text-muted-foreground">{voice.description}</span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Configuration Instructions */}
         <div className="bg-blue-500/10 p-4 rounded-lg border border-blue-500/20">
