@@ -54,3 +54,15 @@ verify_jwt = false
 
 [functions.generate-girlfriend-photo-ai]
 verify_jwt = false
+
+[functions.create-checkout]
+verify_jwt = false
+
+[functions.check-subscription]
+verify_jwt = false
+
+[functions.customer-portal]
+verify_jwt = false
+
+[functions.get-elevenlabs-agent]
+verify_jwt = false

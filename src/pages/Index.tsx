@@ -2,18 +2,34 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Heart, Sparkles, MessageCircle, Palette, Users, LogOut } from 'lucide-react';
+import { Heart, Sparkles, MessageCircle, Palette, Users, LogOut, CreditCard } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ApiKeyInfo } from '@/components/ApiKeyInfo';
 
 const Index = () => {
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { signOut, subscription } = useAuth();
+
+  const isPremium = subscription.subscribed && subscription.plan_type !== 'free';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-romantic via-background to-accent/20">
       <div className="container mx-auto px-4 py-16">
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-end mb-4 gap-2">
+          {isPremium && (
+            <div className="bg-gradient-to-r from-amber-500 to-amber-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2">
+              <Sparkles className="h-4 w-4" />
+              Premium
+            </div>
+          )}
+          <Button 
+            onClick={() => navigate('/pricing')}
+            variant="outline"
+            className="border-primary/20"
+          >
+            <CreditCard className="h-4 w-4 mr-2" />
+            {isPremium ? 'Gérer' : 'Premium'}
+          </Button>
           <Button 
             onClick={signOut}
             variant="outline"
