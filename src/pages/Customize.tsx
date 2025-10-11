@@ -295,6 +295,152 @@ const Customize = () => {
     }
   };
 
+  const generateMorePhotos = async () => {
+    if (selectedStyles.length === 0) {
+      toast({
+        title: "Aucun style sélectionné",
+        description: "Veuillez sélectionner au moins un style d'image",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (selectedViews.length === 0) {
+      toast({
+        title: "Aucune vue sélectionnée",
+        description: "Veuillez sélectionner au moins une vue (buste ou corps entier)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (selectedClothing.length === 0) {
+      toast({
+        title: "Aucune tenue sélectionnée",
+        description: "Veuillez sélectionner au moins une tenue",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    
+    const totalImages = selectedStyles.length * selectedViews.length * selectedClothing.length;
+    let successCount = 0;
+    let failedCount = 0;
+    
+    try {
+      // Use the same seed to maintain consistency with existing images
+      const characterSeed = currentBatchSeed || Date.now();
+      if (!currentBatchSeed) {
+        setCurrentBatchSeed(characterSeed);
+      }
+      
+      // Generate images for each combination of style, view, and clothing
+      const generationPromises = selectedStyles.flatMap(style => 
+        selectedViews.flatMap(view =>
+          selectedClothing.map(async (clothing) => {
+            const maxRetries = 2;
+            let lastError = null;
+            
+            for (let attempt = 0; attempt <= maxRetries; attempt++) {
+              try {
+                const { data, error } = await supabase.functions.invoke('generate-girlfriend-photo-ai', {
+                  body: { 
+                    character: { 
+                      ...character, 
+                      imageStyle: style,
+                      avatarView: view,
+                      clothing: clothing
+                    },
+                    seed: characterSeed,
+                    retryAttempt: attempt
+                  }
+                });
+
+                if (error) {
+                  throw error;
+                }
+
+                if (!data?.image) {
+                  throw new Error('Aucune image générée');
+                }
+
+                console.log(`${style} ${view} ${clothing} photo generated successfully`);
+                successCount++;
+                return { url: data.image, style, view, clothing };
+              } catch (err) {
+                lastError = err;
+                console.error(`Tentative ${attempt + 1}/${maxRetries + 1} échouée pour ${style} ${view} ${clothing}:`, err);
+                
+                if (attempt < maxRetries) {
+                  // Wait before retry (exponential backoff)
+                  await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+                }
+              }
+            }
+            
+            // All retries failed
+            failedCount++;
+            console.error(`Échec définitif pour ${style} ${view} ${clothing}:`, lastError);
+            throw lastError;
+          })
+        )
+      );
+
+      const results = await Promise.allSettled(generationPromises);
+      
+      // Filter successful results
+      const successfulImages = results
+        .filter(result => result.status === 'fulfilled')
+        .map(result => (result as PromiseFulfilledResult<any>).value);
+      
+      // Add new images to existing ones instead of replacing
+      setGeneratedImages(prev => [...prev, ...successfulImages]);
+      
+      if (successfulImages.length > 0) {
+        toast({
+          title: "✨ Photos supplémentaires générées!",
+          description: `${successfulImages.length}/${totalImages} image(s) ajoutée(s) avec succès. Total: ${generatedImages.length + successfulImages.length} images.`,
+        });
+      }
+      
+      if (failedCount > 0) {
+        toast({
+          title: "⚠️ Génération partielle",
+          description: `${failedCount} image(s) n'ont pas pu être générée(s). Réessayez ou vérifiez vos crédits Lovable AI.`,
+          variant: "destructive",
+        });
+      }
+      
+      if (successfulImages.length === 0) {
+        throw new Error('Aucune image n\'a pu être générée');
+      }
+    } catch (error) {
+      console.error('Error generating more photos:', error);
+      
+      let errorMessage = "Impossible de générer plus de photos. ";
+      
+      if (error.message?.includes('Rate limit')) {
+        errorMessage += "Limite de requêtes atteinte. Attendez quelques instants.";
+      } else if (error.message?.includes('Credits') || error.message?.includes('402')) {
+        errorMessage += "Crédits Lovable AI épuisés. Ajoutez des crédits dans Settings → Workspace → Usage.";
+      } else if (error.message?.includes('429')) {
+        errorMessage += "Trop de requêtes. Attendez 1 minute avant de réessayer.";
+      } else {
+        errorMessage += "Réessayez dans quelques instants.";
+      }
+      
+      toast({
+        title: "❌ Échec de la génération",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   // Remove auto-generation on mount
 
   const regenerateSpecificImage = async (style: string, view: string, clothing: string) => {
@@ -704,6 +850,16 @@ const Customize = () => {
                         >
                           <RefreshCw className="h-4 w-4 mr-2" />
                           Générer de nouvelles photos
+                        </Button>
+                        <Button 
+                          onClick={generateMorePhotos} 
+                          variant="outline" 
+                          size="sm"
+                          className="hover:bg-primary/10 w-full border-primary/50"
+                          disabled={isGenerating || generatedImages.length === 0}
+                        >
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Ajouter plus de photos
                         </Button>
                         <Button 
                           onClick={() => setShowAttitudeDialog(true)} 
