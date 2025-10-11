@@ -16,15 +16,29 @@ const VoiceChat = () => {
 
   // Load character images on mount
   useEffect(() => {
+    console.log('[VOICE CHAT] Loading character images...');
     const savedCharacter = getCurrentCharacter();
+    console.log('[VOICE CHAT] Character loaded:', savedCharacter);
+    
     if (savedCharacter) {
       if (savedCharacter.images && savedCharacter.images.length > 0) {
+        console.log('[VOICE CHAT] Found images array:', savedCharacter.images.length);
         setCharacterImages(savedCharacter.images);
       } else if (savedCharacter.image) {
+        console.log('[VOICE CHAT] Found single image');
         setCharacterImages([savedCharacter.image]);
+      } else {
+        console.log('[VOICE CHAT] No images found in character');
       }
+    } else {
+      console.log('[VOICE CHAT] No saved character found');
     }
   }, []);
+
+  // Debug: Log when characterImages changes
+  useEffect(() => {
+    console.log('[VOICE CHAT] characterImages updated:', characterImages.length);
+  }, [characterImages]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
@@ -46,7 +60,7 @@ const VoiceChat = () => {
         </div>
 
         {/* Avatar Carousel with Lip Sync */}
-        {characterImages.length > 0 && (
+        {characterImages.length > 0 ? (
           <div className="mb-8 flex justify-center">
             <Carousel className="w-full max-w-sm">
               <CarouselContent>
@@ -69,6 +83,17 @@ const VoiceChat = () => {
                 </>
               )}
             </Carousel>
+          </div>
+        ) : (
+          <div className="mb-8 flex justify-center">
+            <div className="text-center p-8 bg-muted/50 rounded-lg border border-dashed">
+              <p className="text-muted-foreground">
+                Aucune photo de personnage disponible.
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Créez un personnage sur la page Personnaliser pour voir son avatar ici.
+              </p>
+            </div>
           </div>
         )}
 
