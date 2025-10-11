@@ -15,6 +15,11 @@ const LipSyncAvatar: React.FC<LipSyncAvatarProps> = ({
   className = '',
   onClick
 }) => {
+  // Debug: Log when isSpeaking changes
+  React.useEffect(() => {
+    console.log('[LIPSYNC AVATAR] isSpeaking:', isSpeaking);
+  }, [isSpeaking]);
+
   const sizeClasses = {
     small: 'w-16 h-16',
     medium: 'w-32 h-32',

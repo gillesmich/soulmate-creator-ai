@@ -66,6 +66,7 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
   const { status, isSpeaking } = conversation;
 
   useEffect(() => {
+    console.log('[ELEVENLABS] isSpeaking changed:', isSpeaking);
     if (onSpeakingChange) {
       onSpeakingChange(isSpeaking);
     }

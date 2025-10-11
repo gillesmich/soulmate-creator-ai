@@ -14,6 +14,11 @@ const VoiceChat = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [characterImages, setCharacterImages] = useState<string[]>([]);
 
+  // Debug: Log when isSpeaking changes
+  useEffect(() => {
+    console.log('[VOICE CHAT] isSpeaking changed:', isSpeaking);
+  }, [isSpeaking]);
+
   // Load character images on mount
   useEffect(() => {
     const savedCharacter = getCurrentCharacter();
