@@ -80,6 +80,8 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
         console.log('Fetching ElevenLabs voices...');
         const { data, error } = await supabase.functions.invoke('get-elevenlabs-voices');
         
+        console.log('Voice fetch result:', { data, error });
+        
         if (error) {
           console.error('Error fetching voices:', error);
           throw error;
@@ -88,6 +90,8 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
         if (data?.voices && Array.isArray(data.voices)) {
           console.log(`Loaded ${data.voices.length} voices`);
           setAvailableVoices(data.voices);
+        } else {
+          console.warn('No voices returned from API');
         }
       } catch (error) {
         console.error('Failed to load voices:', error);

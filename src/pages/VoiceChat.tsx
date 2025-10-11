@@ -22,6 +22,7 @@ const VoiceChat = () => {
   // Load character images on mount
   useEffect(() => {
     const savedCharacter = getCurrentCharacter();
+    console.log('[VOICE CHAT] Loaded character:', savedCharacter);
     
     if (savedCharacter) {
       const images = savedCharacter.images && savedCharacter.images.length > 0 
@@ -29,7 +30,10 @@ const VoiceChat = () => {
         : savedCharacter.image 
           ? [savedCharacter.image] 
           : [];
+      console.log('[VOICE CHAT] Character images:', images);
       setCharacterImages(images);
+    } else {
+      console.log('[VOICE CHAT] No character found');
     }
   }, []);
 
