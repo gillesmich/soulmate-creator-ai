@@ -738,7 +738,7 @@ const Customize = () => {
     const mainImage = generatedImages.length > 0 ? generatedImages[0].url : '';
     const allImages = generatedImages.map(img => img.url);
     setCurrentCharacter({ ...character, image: mainImage, images: allImages });
-    navigate('/chat');
+    navigate('/voice-chat');
   };
 
   return (
