@@ -4,11 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Heart, MessageCircle, Sparkles, RefreshCw, Save, Mic, Wand2 } from 'lucide-react';
+import { Heart, MessageCircle, Sparkles, RefreshCw, Save, Mic, Wand2, LogIn, LogOut, Images } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import SaveImageDialog from '@/components/SaveImageDialog';
 import AttitudeVariationsDialog from '@/components/AttitudeVariationsDialog';
 import VideoGenerator from '@/components/VideoGenerator';
@@ -34,6 +35,7 @@ interface CharacterOptions {
 const Customize = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, signOut } = useAuth();
   const [character, setCharacter] = useState<CharacterOptions>({
     hairColor: 'blonde',
     hairStyle: 'long',
@@ -704,6 +706,40 @@ const Customize = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-romantic via-background to-accent/20 p-4">
       <div className="max-w-6xl mx-auto">
+        {/* Header with Auth buttons */}
+        <div className="flex justify-between items-center mb-6">
+          <Button
+            variant="outline"
+            onClick={() => navigate('/character-gallery')}
+            className="gap-2"
+          >
+            <Images className="h-4 w-4" />
+            Browse Profiles
+          </Button>
+          
+          <div className="flex gap-2">
+            {user ? (
+              <Button
+                variant="outline"
+                onClick={signOut}
+                className="gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                Déconnexion
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={() => navigate('/auth')}
+                className="gap-2"
+              >
+                <LogIn className="h-4 w-4" />
+                Connexion
+              </Button>
+            )}
+          </div>
+        </div>
+
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent mb-4">
             Create Your Perfect Girlfriend
