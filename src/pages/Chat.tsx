@@ -126,6 +126,28 @@ const Chat = () => {
       wsRef.current.onopen = () => {
         console.log('[VOICE CHAT] ✅ Connected to voice chat WebSocket');
         console.log('[VOICE CHAT] WebSocket readyState:', wsRef.current?.readyState);
+        
+        // Send character information to the server
+        if (wsRef.current && character) {
+          console.log('[VOICE CHAT] 📤 Sending character data to server');
+          wsRef.current.send(JSON.stringify({
+            type: 'session.update',
+            session: {
+              character: {
+                hairColor: character.hairColor,
+                hairStyle: character.hairStyle,
+                bodyType: character.bodyType,
+                personality: character.personality,
+                outfit: character.outfit,
+                eyeColor: character.eyeColor,
+                interests: (character as any).interests,
+                hobbies: (character as any).hobbies,
+                characterTraits: (character as any).characterTraits
+              }
+            }
+          }));
+        }
+        
         setIsConnected(true);
         toast({
           title: "Connecté",
