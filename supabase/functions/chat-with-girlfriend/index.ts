@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
@@ -8,6 +9,26 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
+
+// Validation schema
+const MessageSchema = z.object({
+  message: z.string().trim().min(1).max(1000),
+  character: z.object({
+    hairColor: z.string().max(50),
+    hairStyle: z.string().max(50),
+    bodyType: z.string().max(50),
+    personality: z.string().max(100),
+    outfit: z.string().max(50),
+    eyeColor: z.string().max(50),
+    interests: z.string().max(200).optional(),
+    hobbies: z.string().max(200).optional(),
+    characterTraits: z.string().max(200).optional(),
+  }),
+  conversationHistory: z.array(z.object({
+    sender: z.enum(['user', 'assistant']),
+    content: z.string().max(1000)
+  })).max(20)
+});
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -40,7 +61,21 @@ serve(async (req) => {
       });
     }
 
-    const { message, character, conversationHistory } = await req.json();
+    const body = await req.json();
+    
+    // Validate input
+    const validationResult = MessageSchema.safeParse(body);
+    if (!validationResult.success) {
+      return new Response(JSON.stringify({ 
+        error: 'Invalid input', 
+        details: validationResult.error.issues 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { message, character, conversationHistory } = validationResult.data;
 
     if (!message) {
       throw new Error('Message is required');

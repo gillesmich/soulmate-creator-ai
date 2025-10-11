@@ -55,7 +55,7 @@ export type Database = {
           image_url: string
           image_urls: Json | null
           name: string
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           character_data: Json
@@ -64,7 +64,7 @@ export type Database = {
           image_url: string
           image_urls?: Json | null
           name: string
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           character_data?: Json
@@ -73,7 +73,7 @@ export type Database = {
           image_url?: string
           image_urls?: Json | null
           name?: string
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: []
       }

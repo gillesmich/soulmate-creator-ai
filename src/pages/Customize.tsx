@@ -10,6 +10,8 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useApiKey } from '@/hooks/useApiKey';
+import { invokeFunctionWithApiKey } from '@/utils/apiHelper';
 import SaveImageDialog from '@/components/SaveImageDialog';
 import AttitudeVariationsDialog from '@/components/AttitudeVariationsDialog';
 import VideoGenerator from '@/components/VideoGenerator';
@@ -36,6 +38,7 @@ const Customize = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, signOut } = useAuth();
+  const { apiKey, loading: apiKeyLoading } = useApiKey();
   const [character, setCharacter] = useState<CharacterOptions>({
     hairColor: 'blonde',
     hairStyle: 'long',
@@ -201,7 +204,9 @@ const Customize = () => {
             
             for (let attempt = 0; attempt <= maxRetries; attempt++) {
               try {
-                const { data, error } = await supabase.functions.invoke('generate-girlfriend-photo-ai', {
+                const { data, error } = await invokeFunctionWithApiKey({
+                  functionName: 'generate-girlfriend-photo-ai',
+                  apiKey,
                   body: { 
                     character: { 
                       ...character, 
@@ -346,7 +351,9 @@ const Customize = () => {
             
             for (let attempt = 0; attempt <= maxRetries; attempt++) {
               try {
-                const { data, error } = await supabase.functions.invoke('generate-girlfriend-photo-ai', {
+                const { data, error } = await invokeFunctionWithApiKey({
+                  functionName: 'generate-girlfriend-photo-ai',
+                  apiKey,
                   body: { 
                     character: { 
                       ...character, 
@@ -451,7 +458,9 @@ const Customize = () => {
       // Réutiliser le seed du batch actuel pour garder le même personnage
       const characterSeed = currentBatchSeed || Date.now();
       
-      const { data, error } = await supabase.functions.invoke('generate-girlfriend-photo-ai', {
+      const { data, error } = await invokeFunctionWithApiKey({
+        functionName: 'generate-girlfriend-photo-ai',
+        apiKey,
         body: { 
           character: { 
             ...character, 
@@ -519,7 +528,9 @@ const Customize = () => {
       
       const generationPromises = attitudes.map(async (attitude) => {
         try {
-          const { data, error } = await supabase.functions.invoke('generate-girlfriend-photo-ai', {
+          const { data, error } = await invokeFunctionWithApiKey({
+            functionName: 'generate-girlfriend-photo-ai',
+            apiKey,
             body: { 
               character: { 
                 ...character, 
@@ -613,7 +624,9 @@ const Customize = () => {
         
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
           try {
-            const { data, error } = await supabase.functions.invoke('generate-girlfriend-photo-ai', {
+            const { data, error } = await invokeFunctionWithApiKey({
+              functionName: 'generate-girlfriend-photo-ai',
+              apiKey,
               body: { 
                 character: { 
                   ...character, 
