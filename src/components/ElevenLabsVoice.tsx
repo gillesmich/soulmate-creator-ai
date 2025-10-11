@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useConversation } from '@11labs/react';
+import { useConversation } from '@elevenlabs/react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Mic, MicOff, Loader2, Info, Sparkles } from 'lucide-react';
