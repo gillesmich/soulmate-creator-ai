@@ -41,24 +41,27 @@ const VoiceAvatar: React.FC<VoiceAvatarProps> = ({ imageUrl }) => {
   const startConversation = async () => {
     try {
       setIsLoading(true);
-      console.log('Starting conversation...');
+      console.log('[VOICE AVATAR] 🎬 Starting conversation...');
       
       // Get character from localStorage
       const characterStr = localStorage.getItem('girlfriendCharacter');
       const character = characterStr ? JSON.parse(characterStr) : null;
+      console.log('[VOICE AVATAR] Character loaded:', !!character);
       
       chatRef.current = new RealtimeChat(handleMessage);
+      console.log('[VOICE AVATAR] Initializing RealtimeChat...');
       await chatRef.current.init(character);
       
       setIsConnected(true);
       setIsLoading(false);
+      console.log('[VOICE AVATAR] ✅ Conversation started successfully');
       
       toast({
         title: "Connecté",
         description: "L'avatar est prêt à discuter avec vous",
       });
     } catch (error) {
-      console.error('Error starting conversation:', error);
+      console.error('[VOICE AVATAR] ❌ Error starting conversation:', error);
       setIsLoading(false);
       toast({
         title: "Erreur",
@@ -69,9 +72,11 @@ const VoiceAvatar: React.FC<VoiceAvatarProps> = ({ imageUrl }) => {
   };
 
   const endConversation = () => {
+    console.log('[VOICE AVATAR] 🛑 Ending conversation');
     chatRef.current?.disconnect();
     setIsConnected(false);
     setIsSpeaking(false);
+    console.log('[VOICE AVATAR] ✅ Conversation ended');
     toast({
       title: "Déconnecté",
       description: "La conversation est terminée",

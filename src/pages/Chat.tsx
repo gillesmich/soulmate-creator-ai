@@ -9,6 +9,7 @@ import { AudioRecorder, encodeAudioForAPI } from '@/utils/AudioRecorder';
 import { playAudioData } from '@/utils/AudioPlayer';
 import LipSyncAvatar from '@/components/LipSyncAvatar';
 import { getCurrentCharacter } from '@/utils/characterStorage';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 
 interface Message {
   id: string;
@@ -92,14 +93,18 @@ const Chat = () => {
 
   const connect = async () => {
     try {
+      console.log('[VOICE CHAT] Connect button clicked');
+      console.log('[VOICE CHAT] Current connection state:', isConnected);
+      
       // Check if browser supports getUserMedia
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.error('[VOICE CHAT] Browser does not support audio recording');
         throw new Error('Your browser does not support audio recording');
       }
 
       // Request microphone permission first with better error handling
-      console.log('Requesting microphone permission...');
-      const stream = await navigator.mediaDevices.getUserMedia({ 
+      console.log('[VOICE CHAT] Requesting microphone permission...');
+      const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           sampleRate: 24000,
           channelCount: 1,
@@ -111,38 +116,51 @@ const Chat = () => {
       
       // Stop the test stream immediately - we just needed permission
       stream.getTracks().forEach(track => track.stop());
-      console.log('Microphone permission granted');
+      console.log('[VOICE CHAT] Microphone permission granted');
       
       // Connect to WebSocket - using the correct format for Supabase edge functions
       const wsUrl = `wss://edisqdyywdfcwxrnewqw.supabase.co/functions/v1/realtime-voice-chat`;
-      console.log('Connecting to WebSocket:', wsUrl);
+      console.log('[VOICE CHAT] Connecting to WebSocket:', wsUrl);
       wsRef.current = new WebSocket(wsUrl);
 
       wsRef.current.onopen = () => {
-        console.log('Connected to voice chat WebSocket');
+        console.log('[VOICE CHAT] ✅ Connected to voice chat WebSocket');
+        console.log('[VOICE CHAT] WebSocket readyState:', wsRef.current?.readyState);
         setIsConnected(true);
         toast({
-          title: "Connected",
-          description: "Voice chat is ready!",
+          title: "Connecté",
+          description: "Chat vocal prêt !",
         });
       };
 
       wsRef.current.onmessage = async (event) => {
         const data = JSON.parse(event.data);
-        console.log('Received message:', data.type);
+        console.log('[VOICE CHAT] 📨 Received message:', data.type);
+        if (data.type === 'error') {
+          console.error('[VOICE CHAT] ❌ Error from server:', data.message);
+        }
 
         if (data.type === 'response.audio.delta') {
+          console.log('[VOICE CHAT] 🔊 Audio delta received, size:', data.delta?.length || 0);
           if (!isMuted && audioContextRef.current) {
-            // Convert base64 to Uint8Array
-            const binaryString = atob(data.delta);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-              bytes[i] = binaryString.charCodeAt(i);
+            try {
+              // Convert base64 to Uint8Array
+              const binaryString = atob(data.delta);
+              const bytes = new Uint8Array(binaryString.length);
+              for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+              }
+              console.log('[VOICE CHAT] 🎵 Playing audio chunk, bytes:', bytes.length);
+              await playAudioData(audioContextRef.current, bytes);
+            } catch (audioError) {
+              console.error('[VOICE CHAT] ❌ Error playing audio:', audioError);
             }
-            await playAudioData(audioContextRef.current, bytes);
+          } else if (isMuted) {
+            console.log('[VOICE CHAT] 🔇 Audio muted, not playing');
           }
           setIsSpeaking(true);
         } else if (data.type === 'response.audio.done') {
+          console.log('[VOICE CHAT] ✅ Audio response complete');
           setIsSpeaking(false);
         } else if (data.type === 'conversation.item.input_audio_transcription.completed') {
           // Add user's transcribed message
@@ -198,26 +216,26 @@ const Chat = () => {
       };
 
       wsRef.current.onerror = (error) => {
-        console.error('WebSocket connection error:', error);
-        console.log('WebSocket URL was:', wsUrl);
-        console.log('WebSocket readyState:', wsRef.current?.readyState);
+        console.error('[VOICE CHAT] ❌ WebSocket connection error:', error);
+        console.log('[VOICE CHAT] WebSocket URL was:', wsUrl);
+        console.log('[VOICE CHAT] WebSocket readyState:', wsRef.current?.readyState);
         toast({
-          title: "Connection Error",
-          description: "Failed to connect to voice chat. Please try again.",
+          title: "Erreur de connexion",
+          description: "Impossible de se connecter au chat vocal. Réessayez.",
           variant: "destructive",
         });
       };
 
       wsRef.current.onclose = () => {
-        console.log('WebSocket closed');
+        console.log('[VOICE CHAT] 🔌 WebSocket closed');
         setIsConnected(false);
         setIsRecording(false);
         setIsSpeaking(false);
       };
 
     } catch (error) {
-      console.error('Error connecting:', error);
-      let errorMessage = "Failed to connect to voice chat. Please try again.";
+      console.error('[VOICE CHAT] ❌ Error connecting:', error);
+      let errorMessage = "Impossible de se connecter au chat vocal. Réessayez.";
       
       if (error instanceof Error) {
         if (error.name === 'NotAllowedError') {
@@ -254,45 +272,54 @@ const Chat = () => {
   };
 
   const startRecording = async () => {
+    console.log('[VOICE CHAT] 🎤 Start recording button pressed');
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      console.error('[VOICE CHAT] ❌ Cannot record - not connected. ReadyState:', wsRef.current?.readyState);
       toast({
-        title: "Not Connected",
-        description: "Please connect to voice chat first",
+        title: "Non connecté",
+        description: "Connectez-vous au chat vocal d'abord",
         variant: "destructive",
       });
       return;
     }
 
     try {
+      console.log('[VOICE CHAT] Starting audio recorder...');
       audioRecorderRef.current = new AudioRecorder((audioData) => {
         if (wsRef.current?.readyState === WebSocket.OPEN) {
           const encodedAudio = encodeAudioForAPI(audioData);
+          console.log('[VOICE CHAT] 📤 Sending audio chunk, size:', encodedAudio.length);
           wsRef.current.send(JSON.stringify({
             type: 'input_audio_buffer.append',
             audio: encodedAudio
           }));
+        } else {
+          console.warn('[VOICE CHAT] ⚠️ Cannot send audio - WebSocket not open');
         }
       });
 
       await audioRecorderRef.current.start();
       setIsRecording(true);
+      console.log('[VOICE CHAT] ✅ Recording started successfully');
     } catch (error) {
-      console.error('Error starting recording:', error);
+      console.error('[VOICE CHAT] ❌ Error starting recording:', error);
       toast({
-        title: "Recording Error",
-        description: "Failed to start recording",
+        title: "Erreur d'enregistrement",
+        description: "Impossible de démarrer l'enregistrement",
         variant: "destructive",
       });
     }
   };
 
   const stopRecording = () => {
+    console.log('[VOICE CHAT] 🛑 Stop recording');
     if (audioRecorderRef.current) {
       audioRecorderRef.current.stop();
       audioRecorderRef.current = null;
       
       // Commit the audio buffer when stopping recording
       if (wsRef.current?.readyState === WebSocket.OPEN) {
+        console.log('[VOICE CHAT] 📤 Committing audio buffer');
         wsRef.current.send(JSON.stringify({
           type: 'input_audio_buffer.commit'
         }));
@@ -451,42 +478,58 @@ const Chat = () => {
         </p>
       </div>
 
-      {/* Large Avatar Modal with Image Rotation */}
+      {/* Large Avatar Modal with Carousel */}
       {showLargeAvatar && (
         <div 
           className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-          onClick={() => setShowLargeAvatar(false)}
+          onClick={(e) => {
+            // Only close if clicking the backdrop, not the carousel
+            if (e.target === e.currentTarget) {
+              setShowLargeAvatar(false);
+            }
+          }}
         >
-          <div className="relative max-w-[90vw] max-h-[90vh]">
-            <div className="w-[80vmin] h-[80vmin] max-w-[600px] max-h-[600px]">
-              <LipSyncAvatar 
-                imageUrl={
-                  character?.images && character.images.length > 0
-                    ? character.images[currentImageIndex]
-                    : character?.image
-                } 
-                isSpeaking={isSpeaking}
-                size="large"
-                className="w-full h-full transition-opacity duration-500"
-              />
-            </div>
-            
-            {/* Image Counter */}
-            {character?.images && character.images.length > 1 && (
-              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2 bg-black/70 px-4 py-2 rounded-full">
-                <span className="text-white text-sm">
-                  {currentImageIndex + 1} / {character.images.length}
-                </span>
-                <div className="flex gap-1">
-                  {character.images.map((_, index) => (
-                    <div
-                      key={index}
-                      className={`w-2 h-2 rounded-full transition-colors ${
-                        index === currentImageIndex ? 'bg-primary' : 'bg-white/30'
-                      }`}
-                    />
+          <div className="relative max-w-[90vw] max-h-[90vh] w-full flex items-center justify-center">
+            {character?.images && character.images.length > 1 ? (
+              <Carousel 
+                className="w-full max-w-[600px]"
+                opts={{
+                  align: "center",
+                  loop: true,
+                }}
+              >
+                <CarouselContent>
+                  {character.images.map((img, index) => (
+                    <CarouselItem key={index}>
+                      <div className="w-[80vmin] h-[80vmin] max-w-[600px] max-h-[600px] mx-auto">
+                        <LipSyncAvatar 
+                          imageUrl={img} 
+                          isSpeaking={isSpeaking}
+                          size="large"
+                          className="w-full h-full"
+                        />
+                      </div>
+                    </CarouselItem>
                   ))}
+                </CarouselContent>
+                <CarouselPrevious className="left-4 bg-black/50 border-white/20 hover:bg-black/70 text-white" />
+                <CarouselNext className="right-4 bg-black/50 border-white/20 hover:bg-black/70 text-white" />
+                
+                {/* Image Counter */}
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2 bg-black/70 px-4 py-2 rounded-full">
+                  <span className="text-white text-sm">
+                    {character.images.length} images
+                  </span>
                 </div>
+              </Carousel>
+            ) : (
+              <div className="w-[80vmin] h-[80vmin] max-w-[600px] max-h-[600px]">
+                <LipSyncAvatar 
+                  imageUrl={character?.image} 
+                  isSpeaking={isSpeaking}
+                  size="large"
+                  className="w-full h-full"
+                />
               </div>
             )}
             

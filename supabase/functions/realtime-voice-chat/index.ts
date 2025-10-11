@@ -37,15 +37,16 @@ serve(async (req) => {
     }
 
     // Connect to OpenAI with proper authentication
+    // Note: WebSocket doesn't support custom headers in standard way
+    // We use protocols parameter to pass authentication
     const wsUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01`;
     console.log("[DEBUG] Connecting to OpenAI Realtime API");
     
-    openAISocket = new WebSocket(wsUrl, {
-      headers: {
-        "Authorization": `Bearer ${openAIApiKey}`,
-        "OpenAI-Beta": "realtime=v1"
-      }
-    });
+    openAISocket = new WebSocket(wsUrl, [
+      "realtime",
+      `openai-insecure-api-key.${openAIApiKey}`,
+      "openai-beta.realtime-v1"
+    ]);
     
     openAISocket.onopen = async () => {
       console.log("[DEBUG] Connected to OpenAI Realtime API at", new Date().toISOString());
