@@ -58,20 +58,13 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
         .eq('name', name.trim())
         .single();
 
-      // Save to localStorage first with all images and complete character data
+      // Prepare complete character data (without images for localStorage)
       const completeCharacterData = {
         ...characterData,
-        image: imageUrls[0],
-        images: imageUrls,
         interests: characterData.interests || '',
         hobbies: characterData.hobbies || '',
         characterTraits: characterData.characterTraits || ''
       };
-      
-      const savedCharacter = saveToLocalStorage(
-        completeCharacterData,
-        name.trim()
-      );
 
       // Upload all images to Supabase storage
       const uploadedUrls: string[] = [];

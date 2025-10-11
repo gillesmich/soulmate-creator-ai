@@ -26,83 +26,71 @@ const CharacterGallery = () => {
   const loadCharacters = async () => {
     setLoading(true);
     
-    // Load from localStorage
-    const localCharacters = getSavedCharacters();
-    
-    // Also try to load from Supabase to get complete image arrays
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
-        const { data: supabaseCharacters } = await supabase
+        // Load exclusively from Supabase for authenticated users
+        const { data: supabaseCharacters, error } = await supabase
           .from('saved_girlfriend_images')
           .select('*')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
         
-        if (supabaseCharacters) {
-          // Merge Supabase data with localStorage data
-          const mergedCharacters = localCharacters.map(localChar => {
-            const supabaseChar = supabaseCharacters.find(sc => sc.name === localChar.name);
-            if (supabaseChar && supabaseChar.image_urls && Array.isArray(supabaseChar.image_urls)) {
-              return {
-                ...localChar,
-                images: supabaseChar.image_urls.filter((url): url is string => typeof url === 'string'),
-                image: (Array.isArray(supabaseChar.image_urls) && typeof supabaseChar.image_urls[0] === 'string') 
-                  ? supabaseChar.image_urls[0] 
-                  : localChar.image
-              };
-            }
-            return localChar;
+        if (error) {
+          console.error('Error loading from Supabase:', error);
+          setCharacters([]);
+          setLoading(false);
+          return;
+        }
+        
+        if (supabaseCharacters && supabaseCharacters.length > 0) {
+          const loadedCharacters = supabaseCharacters.map(sc => {
+            const characterData = typeof sc.character_data === 'object' && sc.character_data !== null 
+              ? sc.character_data as Record<string, any>
+              : {};
+            
+            const imageUrls = Array.isArray(sc.image_urls) 
+              ? sc.image_urls.filter((url): url is string => typeof url === 'string')
+              : [sc.image_url];
+            
+            return {
+              id: sc.id,
+              name: sc.name,
+              image: sc.image_url,
+              images: imageUrls,
+              createdAt: sc.created_at,
+              hairColor: characterData.hairColor || 'blonde',
+              hairStyle: characterData.hairStyle || 'long',
+              bodyType: characterData.bodyType || 'slim',
+              personality: characterData.personality || 'sweet',
+              outfit: characterData.outfit || 'casual',
+              eyeColor: characterData.eyeColor || 'blue',
+              age: characterData.age || 'medium age',
+              voice: characterData.voice,
+              avatarView: characterData.avatarView,
+              clothing: characterData.clothing,
+              imageStyle: characterData.imageStyle,
+              interests: characterData.interests || '',
+              hobbies: characterData.hobbies || '',
+              characterTraits: characterData.characterTraits || ''
+            };
           });
           
-          // Also add any Supabase characters not in localStorage
-          supabaseCharacters.forEach(sc => {
-            if (!mergedCharacters.find(mc => mc.name === sc.name)) {
-              const characterData = typeof sc.character_data === 'object' && sc.character_data !== null 
-                ? sc.character_data as Record<string, any>
-                : {};
-              
-              const imageUrls = Array.isArray(sc.image_urls) 
-                ? sc.image_urls.filter((url): url is string => typeof url === 'string')
-                : [sc.image_url];
-              
-              mergedCharacters.push({
-                id: sc.id,
-                name: sc.name,
-                image: sc.image_url,
-                images: imageUrls,
-                createdAt: sc.created_at,
-                hairColor: characterData.hairColor || 'blonde',
-                hairStyle: characterData.hairStyle || 'long',
-                bodyType: characterData.bodyType || 'slim',
-                personality: characterData.personality || 'sweet',
-                outfit: characterData.outfit || 'casual',
-                eyeColor: characterData.eyeColor || 'blue',
-                age: characterData.age || 'medium age',
-                voice: characterData.voice,
-                avatarView: characterData.avatarView,
-                clothing: characterData.clothing,
-                imageStyle: characterData.imageStyle,
-                interests: characterData.interests,
-                hobbies: characterData.hobbies,
-                characterTraits: characterData.characterTraits
-              });
-            }
-          });
-          
-          setCharacters(mergedCharacters);
+          setCharacters(loadedCharacters);
           setLoading(false);
           return;
         }
       }
+      
+      // No user or no characters
+      setCharacters([]);
+      setLoading(false);
     } catch (error) {
-      console.error('Error loading from Supabase:', error);
+      console.error('Error loading characters:', error);
+      setCharacters([]);
+      setLoading(false);
     }
-    
-    // Fallback to localStorage only
-    setCharacters(localCharacters);
-    setLoading(false);
   };
 
   const selectCharacter = (character: SavedCharacter) => {
