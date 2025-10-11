@@ -318,29 +318,31 @@ const CharacterGallery = () => {
               <h3 className="font-semibold mb-3 text-center">
                 {selectedCharacter.images.length} Images
               </h3>
-              <Carousel 
-                className="w-full max-w-2xl mx-auto"
-                opts={{
-                  align: "center",
-                  loop: true,
-                }}
-              >
-                <CarouselContent>
-                  {selectedCharacter.images.map((imageUrl, index) => (
-                    <CarouselItem key={index}>
-                      <div className="aspect-square rounded-lg overflow-hidden border border-border">
-                        <img
-                          src={imageUrl}
-                          alt={`${selectedCharacter.name} - Image ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-                <CarouselPrevious className="left-2" />
-                <CarouselNext className="right-2" />
-              </Carousel>
+              <div className="relative px-12">
+                <Carousel 
+                  className="w-full max-w-2xl mx-auto"
+                  opts={{
+                    align: "center",
+                    loop: true,
+                  }}
+                >
+                  <CarouselContent>
+                    {selectedCharacter.images.map((imageUrl, index) => (
+                      <CarouselItem key={index}>
+                        <div className="aspect-square rounded-lg overflow-hidden border border-border">
+                          <img
+                            src={imageUrl}
+                            alt={`${selectedCharacter.name} - Image ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious />
+                  <CarouselNext />
+                </Carousel>
+              </div>
             </div>
           ) : (
             <div className="mt-4">
