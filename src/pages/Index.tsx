@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Heart, Sparkles, MessageCircle, Palette, Users, LogOut, Key } from 'lucide-react';
+import { Heart, Sparkles, MessageCircle, Palette, Users, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ApiKeyInfo } from '@/components/ApiKeyInfo';
 
@@ -13,15 +13,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-romantic via-background to-accent/20">
       <div className="container mx-auto px-4 py-16">
-        <div className="flex justify-between mb-4">
-          <Button 
-            onClick={() => navigate('/api-keys')}
-            variant="outline"
-            className="border-primary/20"
-          >
-            <Key className="h-4 w-4 mr-2" />
-            Gérer les clés API
-          </Button>
+        <div className="flex justify-end mb-4">
           <Button 
             onClick={signOut}
             variant="outline"
