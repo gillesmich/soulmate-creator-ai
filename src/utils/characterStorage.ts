@@ -65,12 +65,29 @@ export const getCurrentCharacter = (): CharacterData | null => {
   if (!stored) return null;
   
   try {
-    return JSON.parse(stored);
+    const character = JSON.parse(stored);
+    // Retrieve the image from sessionStorage if available
+    const image = sessionStorage.getItem('currentCharacterImage');
+    if (image) {
+      character.image = image;
+    }
+    return character;
   } catch {
     return null;
   }
 };
 
 export const setCurrentCharacter = (character: CharacterData): void => {
-  localStorage.setItem(CURRENT_CHARACTER_KEY, JSON.stringify(character));
+  // Remove images to avoid localStorage quota exceeded error
+  const { image, images, ...characterWithoutImages } = character;
+  localStorage.setItem(CURRENT_CHARACTER_KEY, JSON.stringify(characterWithoutImages));
+  
+  // Store only the first image URL separately if it exists
+  if (image) {
+    try {
+      sessionStorage.setItem('currentCharacterImage', image);
+    } catch (e) {
+      console.warn('Could not store image in sessionStorage:', e);
+    }
+  }
 };
