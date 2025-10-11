@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, Mic, MicOff, Volume2, VolumeX, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AudioRecorder, encodeAudioForAPI } from '@/utils/AudioRecorder';
 import { playAudioData } from '@/utils/AudioPlayer';
 import LipSyncAvatar from '@/components/LipSyncAvatar';
 import { getCurrentCharacter } from '@/utils/characterStorage';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { Input } from '@/components/ui/input';
 
 interface Message {
   id: string;
@@ -40,6 +41,7 @@ const Chat = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [showLargeAvatar, setShowLargeAvatar] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [textInput, setTextInput] = useState('');
   
   const wsRef = useRef<WebSocket | null>(null);
   const audioRecorderRef = useRef<AudioRecorder | null>(null);
@@ -199,7 +201,7 @@ const Chat = () => {
           // Handle AI response transcript (for display)
           setMessages(prev => {
             const lastMessage = prev[prev.length - 1];
-            if (lastMessage && lastMessage.sender === 'ai' && lastMessage.id === 'current-ai-response') {
+            if (lastMessage && lastMessage.sender === 'ai' && lastMessage.id.startsWith('ai-streaming-')) {
               return [
                 ...prev.slice(0, -1),
                 { ...lastMessage, content: lastMessage.content + data.delta }
@@ -208,7 +210,7 @@ const Chat = () => {
               return [
                 ...prev,
                 {
-                  id: 'current-ai-response',
+                  id: `ai-streaming-${Date.now()}`,
                   content: data.delta,
                   sender: 'ai',
                   timestamp: new Date()
@@ -220,10 +222,10 @@ const Chat = () => {
           // Finalize AI response
           setMessages(prev => {
             const lastMessage = prev[prev.length - 1];
-            if (lastMessage && lastMessage.id === 'current-ai-response') {
+            if (lastMessage && lastMessage.id.startsWith('ai-streaming-')) {
               return [
                 ...prev.slice(0, -1),
-                { ...lastMessage, id: Date.now().toString() }
+                { ...lastMessage, id: `ai-${Date.now()}` }
               ];
             }
             return prev;
@@ -354,6 +356,41 @@ const Chat = () => {
     setIsMuted(!isMuted);
   };
 
+  const sendTextMessage = () => {
+    if (!textInput.trim() || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
+    // Add user message to chat
+    const userMessage: Message = {
+      id: `user-${Date.now()}`,
+      content: textInput,
+      sender: 'user',
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, userMessage]);
+
+    // Send text to OpenAI
+    wsRef.current.send(JSON.stringify({
+      type: 'conversation.item.create',
+      item: {
+        type: 'message',
+        role: 'user',
+        content: [
+          {
+            type: 'input_text',
+            text: textInput
+          }
+        ]
+      }
+    }));
+
+    // Trigger response
+    wsRef.current.send(JSON.stringify({ type: 'response.create' }));
+
+    setTextInput('');
+  };
+
   if (!character) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-romantic via-background to-accent/20 flex items-center justify-center">
@@ -422,6 +459,36 @@ const Chat = () => {
         </div>
       </div>
 
+      {/* Image Carousel Banner */}
+      {character.images && character.images.length > 0 && (
+        <div className="border-b border-primary/10 bg-background/30 backdrop-blur-sm py-3">
+          <div className="max-w-4xl mx-auto px-4">
+            <Carousel className="w-full">
+              <CarouselContent className="-ml-2">
+                {character.images.map((img, index) => (
+                  <CarouselItem key={index} className="pl-2 basis-1/6 md:basis-1/8 lg:basis-1/10">
+                    <div 
+                      className="cursor-pointer group relative"
+                      onClick={() => {
+                        setCurrentImageIndex(index);
+                        setShowLargeAvatar(true);
+                      }}
+                    >
+                      <Avatar className="w-16 h-16 border-2 border-primary/20 group-hover:border-primary transition-colors">
+                        <AvatarImage src={img} alt={`Character ${index + 1}`} />
+                        <AvatarFallback>AI</AvatarFallback>
+                      </Avatar>
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious className="left-0" />
+              <CarouselNext className="right-0" />
+            </Carousel>
+          </div>
+        </div>
+      )}
+
       {/* Chat Area */}
       <div className="max-w-4xl mx-auto p-4 h-[calc(100vh-200px)] flex flex-col">
         <Card className="flex-1 border-primary/10">
@@ -467,6 +534,29 @@ const Chat = () => {
           </CardContent>
         </Card>
 
+        {/* Text Input */}
+        <div className="mt-4 flex gap-2">
+          <Input
+            value={textInput}
+            onChange={(e) => setTextInput(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                sendTextMessage();
+              }
+            }}
+            placeholder={isConnected ? "Tapez votre message..." : "Connectez-vous d'abord"}
+            disabled={!isConnected}
+            className="flex-1"
+          />
+          <Button
+            onClick={sendTextMessage}
+            disabled={!isConnected || !textInput.trim()}
+            size="icon"
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
+
         {/* Voice Controls */}
         <div className="mt-4 flex justify-center">
           <div className="flex items-center gap-4">
@@ -476,7 +566,7 @@ const Chat = () => {
                 !isConnected 
                   ? 'bg-muted hover:bg-muted/80 cursor-not-allowed opacity-50' 
                   : isRecording 
-                    ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse' 
+                    ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse'
                     : 'bg-primary hover:bg-primary/90'
               }`}
               onMouseDown={isConnected ? startRecording : undefined}
