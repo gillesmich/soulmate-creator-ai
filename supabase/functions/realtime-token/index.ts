@@ -48,8 +48,8 @@ serve(async (req) => {
     const { character } = await req.json().catch(() => ({ character: {} }));
     console.log('Character received:', character ? 'Yes' : 'No');
     
-    // Voix françaises féminines uniquement (OpenAI)
-    const FRENCH_FEMALE_VOICES = ['alloy', 'shimmer', 'nova'];
+    // Voix françaises féminines supportées par OpenAI Realtime
+    const FRENCH_FEMALE_VOICES = ['alloy', 'shimmer', 'coral'];
     const voice = character?.voice && FRENCH_FEMALE_VOICES.includes(character.voice) 
       ? character.voice 
       : "alloy";
