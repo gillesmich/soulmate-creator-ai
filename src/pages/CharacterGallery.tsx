@@ -105,7 +105,7 @@ const CharacterGallery = () => {
       description: `${character.name} is now your active character`,
     });
     
-    navigate('/chat');
+    navigate('/voice-chat');
   };
 
   const viewCharacterImages = (character: SavedCharacter) => {
