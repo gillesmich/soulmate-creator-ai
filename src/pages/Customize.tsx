@@ -49,11 +49,12 @@ const Customize = () => {
     hobbies: '',
     characterTraits: ''
   });
-  const [generatedImages, setGeneratedImages] = useState<{url: string, style: string, view: string}[]>([]);
+  const [generatedImages, setGeneratedImages] = useState<{url: string, style: string, view: string, clothing: string}[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [selectedStyles, setSelectedStyles] = useState<string[]>(['realistic']);
   const [selectedViews, setSelectedViews] = useState<string[]>(['bust']);
+  const [selectedClothing, setSelectedClothing] = useState<string[]>(['clothed']);
 
   // Load character from localStorage on mount if exists
   useEffect(() => {
@@ -76,7 +77,7 @@ const Customize = () => {
         characterTraits: savedCharacter.characterTraits || ''
       });
       if (savedCharacter.image) {
-        setGeneratedImages([{ url: savedCharacter.image, style: savedCharacter.imageStyle || 'realistic', view: savedCharacter.avatarView || 'bust' }]);
+        setGeneratedImages([{ url: savedCharacter.image, style: savedCharacter.imageStyle || 'realistic', view: savedCharacter.avatarView || 'bust', clothing: savedCharacter.clothing || 'clothed' }]);
       }
     }
   }, []);
@@ -121,6 +122,16 @@ const Customize = () => {
     });
   };
 
+  const toggleClothing = (clothing: string) => {
+    setSelectedClothing(prev => {
+      if (prev.includes(clothing)) {
+        return prev.filter(c => c !== clothing);
+      } else {
+        return [...prev, clothing];
+      }
+    });
+  };
+
   const generatePhoto = async () => {
     if (selectedStyles.length === 0) {
       toast({
@@ -140,10 +151,19 @@ const Customize = () => {
       return;
     }
 
+    if (selectedClothing.length === 0) {
+      toast({
+        title: "Aucune tenue sélectionnée",
+        description: "Veuillez sélectionner au moins une tenue",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsGenerating(true);
     setGeneratedImages([]);
     
-    const totalImages = selectedStyles.length * selectedViews.length;
+    const totalImages = selectedStyles.length * selectedViews.length * selectedClothing.length;
     let successCount = 0;
     let failedCount = 0;
     
@@ -151,53 +171,56 @@ const Customize = () => {
       // Generate a unique seed for this batch to ensure consistency
       const characterSeed = Date.now();
       
-      // Generate images for each combination of style and view
+      // Generate images for each combination of style, view, and clothing
       const generationPromises = selectedStyles.flatMap(style => 
-        selectedViews.map(async (view) => {
-          const maxRetries = 2;
-          let lastError = null;
-          
-          for (let attempt = 0; attempt <= maxRetries; attempt++) {
-            try {
-              const { data, error } = await supabase.functions.invoke('generate-girlfriend-photo-ai', {
-                body: { 
-                  character: { 
-                    ...character, 
-                    imageStyle: style,
-                    avatarView: view
-                  },
-                  seed: characterSeed,
-                  retryAttempt: attempt
+        selectedViews.flatMap(view =>
+          selectedClothing.map(async (clothing) => {
+            const maxRetries = 2;
+            let lastError = null;
+            
+            for (let attempt = 0; attempt <= maxRetries; attempt++) {
+              try {
+                const { data, error } = await supabase.functions.invoke('generate-girlfriend-photo-ai', {
+                  body: { 
+                    character: { 
+                      ...character, 
+                      imageStyle: style,
+                      avatarView: view,
+                      clothing: clothing
+                    },
+                    seed: characterSeed,
+                    retryAttempt: attempt
+                  }
+                });
+
+                if (error) {
+                  throw error;
                 }
-              });
 
-              if (error) {
-                throw error;
-              }
+                if (!data?.image) {
+                  throw new Error('Aucune image générée');
+                }
 
-              if (!data?.image) {
-                throw new Error('Aucune image générée');
-              }
-
-              console.log(`${style} ${view} photo generated successfully`);
-              successCount++;
-              return { url: data.image, style, view };
-            } catch (err) {
-              lastError = err;
-              console.error(`Tentative ${attempt + 1}/${maxRetries + 1} échouée pour ${style} ${view}:`, err);
-              
-              if (attempt < maxRetries) {
-                // Wait before retry (exponential backoff)
-                await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+                console.log(`${style} ${view} ${clothing} photo generated successfully`);
+                successCount++;
+                return { url: data.image, style, view, clothing };
+              } catch (err) {
+                lastError = err;
+                console.error(`Tentative ${attempt + 1}/${maxRetries + 1} échouée pour ${style} ${view} ${clothing}:`, err);
+                
+                if (attempt < maxRetries) {
+                  // Wait before retry (exponential backoff)
+                  await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+                }
               }
             }
-          }
-          
-          // All retries failed
-          failedCount++;
-          console.error(`Échec définitif pour ${style} ${view}:`, lastError);
-          throw lastError;
-        })
+            
+            // All retries failed
+            failedCount++;
+            console.error(`Échec définitif pour ${style} ${view} ${clothing}:`, lastError);
+            throw lastError;
+          })
+        )
       );
 
       const results = await Promise.allSettled(generationPromises);
@@ -254,7 +277,7 @@ const Customize = () => {
 
   // Remove auto-generation on mount
 
-  const regenerateSpecificImage = async (style: string, view: string) => {
+  const regenerateSpecificImage = async (style: string, view: string, clothing: string) => {
     setIsGenerating(true);
     
     try {
@@ -265,7 +288,8 @@ const Customize = () => {
           character: { 
             ...character, 
             imageStyle: style,
-            avatarView: view
+            avatarView: view,
+            clothing: clothing
           },
           seed: characterSeed,
           retryAttempt: 0
@@ -283,15 +307,15 @@ const Customize = () => {
       // Replace the specific image in the array
       setGeneratedImages(prev => 
         prev.map(img => 
-          img.style === style && img.view === view 
-            ? { url: data.image, style, view }
+          img.style === style && img.view === view && img.clothing === clothing
+            ? { url: data.image, style, view, clothing }
             : img
         )
       );
       
       toast({
         title: "✨ Image régénérée!",
-        description: `Image ${style} ${view} recréée avec succès`,
+        description: `Image ${style} ${view} ${clothing} recréée avec succès`,
       });
     } catch (error) {
       console.error('Error regenerating image:', error);
@@ -339,8 +363,8 @@ const Customize = () => {
           <div className="lg:col-span-2">
             <div className="grid gap-6">
               {Object.entries(options).map(([category, choices]) => {
-                // Skip imageStyle as we handle it separately for multi-select
-                if (category === 'imageStyle') return null;
+                // Skip imageStyle, avatarView, and clothing as we handle them separately for multi-select
+                if (category === 'imageStyle' || category === 'avatarView' || category === 'clothing') return null;
                 
                 return (
                   <Card key={category} className="border-primary/10">
@@ -434,6 +458,37 @@ const Customize = () => {
                 </CardContent>
               </Card>
 
+              {/* Multi-select for clothing */}
+              <Card className="border-primary/10">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    Tenues (sélection multiple)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-3 gap-3">
+                    {options.clothing.map((clothing) => (
+                      <Button
+                        key={clothing}
+                        variant={selectedClothing.includes(clothing) ? "default" : "outline"}
+                        onClick={() => toggleClothing(clothing)}
+                        className={`capitalize ${
+                          selectedClothing.includes(clothing)
+                            ? "bg-primary text-primary-foreground" 
+                            : "hover:bg-accent"
+                        }`}
+                      >
+                        {clothing}
+                      </Button>
+                    ))}
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Sélectionnez une ou plusieurs tenues. Le même personnage sera généré pour toutes les tenues.
+                  </p>
+                </CardContent>
+              </Card>
+
               {/* Text customization fields */}
               <Card className="border-primary/10">
                 <CardHeader>
@@ -520,7 +575,7 @@ const Customize = () => {
                             />
                             <div className="grid grid-cols-2 gap-2">
                               <Button 
-                                onClick={() => regenerateSpecificImage(img.style, img.view)} 
+                                onClick={() => regenerateSpecificImage(img.style, img.view, img.clothing)} 
                                 variant="outline" 
                                 size="sm"
                                 disabled={isGenerating}
