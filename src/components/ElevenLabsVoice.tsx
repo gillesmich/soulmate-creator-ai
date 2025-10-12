@@ -92,11 +92,25 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
     },
     onError: (error) => {
       console.error('[ELEVENLABS] Connection error:', error);
-      toast({
-        title: "Erreur",
-        description: "Erreur de connexion vocale",
-        variant: "destructive",
-      });
+      
+      // Convertir l'erreur en chaîne pour la vérification
+      const errorStr = String(error);
+      
+      // Si l'erreur concerne la voix, informer l'utilisateur
+      if (errorStr.toLowerCase().includes('voice') || 
+          errorStr.toLowerCase().includes('tts')) {
+        toast({
+          title: "Erreur de voix",
+          description: "Cette voix n'est pas compatible avec cet agent. Essayez une autre voix.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Erreur",
+          description: "Erreur de connexion vocale",
+          variant: "destructive",
+        });
+      }
     },
     onMessage: (message) => {
       console.log('[ELEVENLABS] Message received:', message);
@@ -221,13 +235,21 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
       const audioContext = new AudioContext();
       await audioContext.resume();
       
-      // Configuration simplifiée - juste l'URL signée
-      // Les overrides de voix et personnalité doivent être configurés côté ElevenLabs
-      const sessionConfig = { 
+      const sessionConfig: any = { 
         signedUrl: url
       };
+
+      // Override UNIQUEMENT la voix si elle est sélectionnée
+      if (selectedVoiceId) {
+        console.log('[ELEVENLABS] Applying voice override:', selectedVoiceId);
+        sessionConfig.overrides = {
+          tts: {
+            voiceId: selectedVoiceId
+          }
+        };
+      }
       
-      console.log('[ELEVENLABS] Starting session with config:', sessionConfig);
+      console.log('[ELEVENLABS] Session config with voice override:', sessionConfig);
       
       await conversation.startSession(sessionConfig);
       
@@ -297,10 +319,15 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
               </div>
             </>
           )}
-          <div className="text-xs text-muted-foreground mt-2 p-2 bg-amber-500/10 border border-amber-500/20 rounded">
-            <Info className="w-3 h-3 inline mr-1" />
-            Les paramètres de voix et personnalité doivent être configurés directement dans l'agent ElevenLabs
-          </div>
+          {selectedVoiceId && (
+            <div className="flex items-center gap-2 text-sm">
+              <Mic className="w-4 h-4 text-muted-foreground" />
+              <span className="font-medium">Voix active:</span>
+              <span className="text-muted-foreground">
+                {availableVoices.find(v => v.voice_id === selectedVoiceId)?.name || selectedVoiceId}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Voice Selection */}
@@ -324,7 +351,18 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
             ) : (
               <RadioGroup 
                 value={selectedVoiceId} 
-                onValueChange={setSelectedVoiceId}
+                onValueChange={(value) => {
+                  setSelectedVoiceId(value);
+                  
+                  // Sauvegarder la voix dans le personnage
+                  if (currentCharacter) {
+                    const updatedCharacter = {
+                      ...currentCharacter,
+                      voice: value
+                    };
+                    setCurrentCharacter(updatedCharacter);
+                  }
+                }}
                 className="space-y-2 max-h-96 overflow-y-auto"
               >
                 {/* Toutes les voix disponibles */}
