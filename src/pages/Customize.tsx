@@ -778,6 +778,7 @@ const Customize = () => {
     setSelectedClothing(['clothed']);
     setCurrentCharacterId(null);
     setCurrentCharacterName(null);
+    setUploadedImage(null); // Clear uploaded image
     
     // Clear from localStorage
     localStorage.removeItem('currentCharacter');
@@ -903,8 +904,8 @@ const Customize = () => {
         throw new Error('Aucune image générée avec succès');
       }
 
-      // Reset uploaded image
-      setUploadedImage(null);
+      // Don't reset uploaded image after generation - keep it for more generations
+      // setUploadedImage(null);
     } catch (error) {
       console.error('Error generating from reference:', error);
       toast({
@@ -950,6 +951,8 @@ const Customize = () => {
         clothing: selectedChar.clothing || 'clothed'
       })));
     }
+    
+    setUploadedImage(null); // Clear any uploaded reference image
 
     setShowImportDialog(false);
     

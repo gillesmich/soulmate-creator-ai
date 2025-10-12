@@ -98,6 +98,10 @@ const CharacterGallery = () => {
   };
 
   const selectCharacter = (character: SavedCharacter) => {
+    // Store in sessionStorage for VoiceChat to access
+    sessionStorage.setItem('currentCharacterImages', JSON.stringify(character.images || [character.image]));
+    sessionStorage.setItem('currentCharacterImage', character.image);
+    
     setCurrentCharacter({
       ...character,
       image: character.image,
@@ -105,8 +109,8 @@ const CharacterGallery = () => {
     });
     
     toast({
-      title: "Character Selected",
-      description: `${character.name} is now your active character`,
+      title: "Personnage sélectionné",
+      description: `${character.name} est maintenant actif`,
     });
     
     navigate('/voice-chat');
@@ -117,13 +121,46 @@ const CharacterGallery = () => {
     setShowImagesDialog(true);
   };
 
-  const handleDelete = (id: string, name: string) => {
-    deleteCharacter(id);
-    setCharacters(getSavedCharacters());
-    toast({
-      title: "Character Deleted",
-      description: `${name} has been removed`,
-    });
+  const handleDelete = async (id: string, name: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: "Erreur",
+          description: "Vous devez être connecté pour supprimer un personnage",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Delete from Supabase
+      const { error } = await supabase
+        .from('saved_girlfriend_images')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error deleting character:', error);
+        throw error;
+      }
+
+      // Reload characters
+      await loadCharacters();
+      
+      toast({
+        title: "Personnage supprimé",
+        description: `${name} a été retiré`,
+      });
+    } catch (error) {
+      console.error('Error deleting character:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer le personnage",
+        variant: "destructive",
+      });
+    }
   };
 
   const editCharacter = (character: SavedCharacter) => {
