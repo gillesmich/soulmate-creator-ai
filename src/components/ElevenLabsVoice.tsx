@@ -27,6 +27,23 @@ interface Voice {
   preview_url?: string;
 }
 
+interface Agent {
+  agent_id: string;
+  name: string;
+  conversation_config?: {
+    agent?: {
+      prompt?: {
+        prompt?: string;
+      };
+      first_message?: string;
+      language?: string;
+    };
+    tts?: {
+      voice_id?: string;
+    };
+  };
+}
+
 const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({ 
   character, 
   onSpeakingChange 
@@ -36,6 +53,8 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
   const [selectedVoiceId, setSelectedVoiceId] = useState<string>('');
   const [availableVoices, setAvailableVoices] = useState<Voice[]>([]);
   const [isLoadingVoices, setIsLoadingVoices] = useState(false);
+  const [availableAgents, setAvailableAgents] = useState<Agent[]>([]);
+  const [isLoadingAgents, setIsLoadingAgents] = useState(false);
   const [currentCharacter, setCurrentCharacter] = useState<any>(null);
   const [agentId, setAgentId] = useState<string>('');
   const [agentName, setAgentName] = useState<string>('');
@@ -175,6 +194,55 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
     };
 
     fetchVoices();
+  }, [toast]);
+
+  // Charger tous les agents disponibles au démarrage
+  useEffect(() => {
+    const fetchAgents = async () => {
+      setIsLoadingAgents(true);
+      try {
+        console.log('[ELEVENLABS] Starting to fetch agents...');
+        const { data, error } = await supabase.functions.invoke('get-elevenlabs-agents');
+        
+        console.log('[ELEVENLABS] Agent fetch result:', { 
+          hasData: !!data, 
+          hasError: !!error,
+          agentCount: data?.agents?.length || 0,
+          error: error
+        });
+        
+        if (error) {
+          console.error('[ELEVENLABS] Error fetching agents:', error);
+          throw error;
+        }
+        
+        if (data?.agents && Array.isArray(data.agents)) {
+          console.log(`[ELEVENLABS] Successfully loaded ${data.agents.length} agents`);
+          if (data.agents.length > 0) {
+            console.log('[ELEVENLABS] First agent:', data.agents[0]);
+            // Sélectionner le premier agent par défaut si aucun n'est défini
+            if (!agentId) {
+              setAgentId(data.agents[0].agent_id);
+              setAgentName(data.agents[0].name);
+            }
+          }
+          setAvailableAgents(data.agents);
+        } else {
+          console.warn('[ELEVENLABS] No agents returned from API, data:', data);
+        }
+      } catch (error) {
+        console.error('[ELEVENLABS] Failed to load agents:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les agents.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoadingAgents(false);
+      }
+    };
+
+    fetchAgents();
   }, [toast]);
 
   const getSignedUrl = async (agentId: string) => {
@@ -328,6 +396,82 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
               </span>
             </div>
           )}
+        </div>
+
+        {/* Agent Selection */}
+        <div className="space-y-4">
+          <div className="bg-muted/50 p-4 rounded-lg border">
+            <div className="flex items-start gap-2 mb-3">
+              <User className="w-4 h-4 mt-0.5 text-muted-foreground" />
+              <div className="flex-1">
+                <h4 className="font-semibold">Sélectionnez un agent</h4>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Choisissez un agent ElevenLabs pour personnaliser la conversation.
+                </p>
+              </div>
+            </div>
+            
+            {isLoadingAgents ? (
+              <div className="flex items-center justify-center p-8">
+                <Loader2 className="w-6 h-6 animate-spin mr-2" />
+                <span className="text-sm text-muted-foreground">Chargement des agents...</span>
+              </div>
+            ) : (
+              <RadioGroup 
+                value={agentId} 
+                onValueChange={(value) => {
+                  const selectedAgent = availableAgents.find(a => a.agent_id === value);
+                  if (selectedAgent) {
+                    setAgentId(value);
+                    setAgentName(selectedAgent.name);
+                    
+                    // Sauvegarder l'agent dans le personnage
+                    if (currentCharacter) {
+                      const updatedCharacter = {
+                        ...currentCharacter,
+                        agentId: value,
+                        agentName: selectedAgent.name
+                      };
+                      setCurrentCharacter(updatedCharacter);
+                    }
+                  }
+                }}
+                className="space-y-2 max-h-64 overflow-y-auto"
+              >
+                {availableAgents.length > 0 ? (
+                  availableAgents.map((agent) => (
+                    <div 
+                      key={agent.agent_id} 
+                      className="flex items-start space-x-3 p-2 rounded-lg hover:bg-accent/5 border border-transparent hover:border-accent/20 transition-colors"
+                    >
+                      <RadioGroupItem 
+                        value={agent.agent_id} 
+                        id={agent.agent_id}
+                        disabled={isConnected}
+                      />
+                      <Label 
+                        htmlFor={agent.agent_id} 
+                        className={`flex flex-col cursor-pointer flex-1 ${
+                          isConnected ? 'opacity-50' : ''
+                        }`}
+                      >
+                        <span className="font-medium">{agent.name}</span>
+                        {agent.conversation_config?.agent?.prompt?.prompt && (
+                          <span className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                            {agent.conversation_config.agent.prompt.prompt.slice(0, 100)}...
+                          </span>
+                        )}
+                      </Label>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center p-4 text-sm text-muted-foreground">
+                    Aucun agent disponible. L'agent par défaut sera utilisé.
+                  </div>
+                )}
+              </RadioGroup>
+            )}
+          </div>
         </div>
 
         {/* Voice Selection */}

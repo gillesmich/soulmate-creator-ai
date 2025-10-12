@@ -69,3 +69,6 @@ verify_jwt = false
 
 [functions.get-elevenlabs-voices]
 verify_jwt = false
+
+[functions.get-elevenlabs-agents]
+verify_jwt = false
