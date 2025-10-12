@@ -72,3 +72,6 @@ verify_jwt = false
 
 [functions.get-elevenlabs-agents]
 verify_jwt = false
+
+[functions.create-elevenlabs-conversation]
+verify_jwt = false
