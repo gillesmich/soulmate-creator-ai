@@ -18,6 +18,7 @@ import SaveImageDialog from '@/components/SaveImageDialog';
 import AttitudeVariationsDialog from '@/components/AttitudeVariationsDialog';
 import VideoGenerator from '@/components/VideoGenerator';
 import VoiceSelector from '@/components/VoiceSelector';
+import ElevenLabsVoiceSelector from '@/components/ElevenLabsVoiceSelector';
 import { setCurrentCharacter, getCurrentCharacter } from '@/utils/characterStorage';
 
 interface SavedCharacter {
@@ -826,49 +827,73 @@ const Customize = () => {
       return;
     }
 
+    if (selectedStyles.length === 0) {
+      toast({
+        title: "Aucun style sélectionné",
+        description: "Veuillez sélectionner au moins un style d'image",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsAnalyzing(true);
-    setShowImportDialog(false);
+    setIsGenerating(true);
+    setGeneratedImages([]);
 
     try {
+      const characterSeed = Date.now();
+      setCurrentBatchSeed(characterSeed);
+      
       toast({
         title: "🎨 Génération en cours",
-        description: "Création d'un avatar basé sur l'image de référence...",
+        description: `Création de ${selectedStyles.length * selectedViews.length * selectedClothing.length} avatar(s) basé(s) sur l'image de référence...`,
       });
 
-      const characterSeed = Date.now();
-      
-      const { data, error } = await invokeFunctionWithApiKey({
-        functionName: 'generate-girlfriend-photo-ai',
-        apiKey,
-        body: { 
-          character: character,
-          seed: characterSeed,
-          referenceImage: uploadedImage,
-          retryAttempt: 0
-        }
-      });
+      // Generate images for each selected combination
+      const generationPromises = selectedStyles.flatMap(style => 
+        selectedViews.flatMap(view =>
+          selectedClothing.map(async (clothing) => {
+            try {
+              const { data, error } = await invokeFunctionWithApiKey({
+                functionName: 'generate-girlfriend-photo-ai',
+                apiKey,
+                body: { 
+                  character: {
+                    ...character,
+                    imageStyle: style,
+                    avatarView: view,
+                    clothing: clothing
+                  },
+                  seed: characterSeed,
+                  referenceImage: uploadedImage,
+                  retryAttempt: 0
+                }
+              });
 
-      if (error) {
-        throw error;
+              if (error) throw error;
+              if (!data?.image) throw new Error('Aucune image générée');
+
+              return { url: data.image, style, view, clothing };
+            } catch (error) {
+              console.error(`Erreur pour ${style} ${view} ${clothing}:`, error);
+              return null;
+            }
+          })
+        )
+      );
+
+      const results = await Promise.all(generationPromises);
+      const validImages = results.filter((img): img is {url: string, style: string, view: string, clothing: string} => img !== null);
+
+      if (validImages.length > 0) {
+        setGeneratedImages(validImages);
+        toast({
+          title: "✅ Avatars générés !",
+          description: `${validImages.length} avatar(s) créé(s) avec succès à partir de l'image de référence`,
+        });
+      } else {
+        throw new Error('Aucune image générée avec succès');
       }
-
-      if (!data?.image) {
-        throw new Error('Aucune image générée');
-      }
-
-      setGeneratedImages([{
-        url: data.image,
-        style: character.imageStyle || 'realistic',
-        view: character.avatarView || 'bust',
-        clothing: character.clothing || 'clothed'
-      }]);
-      
-      setCurrentBatchSeed(characterSeed);
-
-      toast({
-        title: "✅ Avatar généré !",
-        description: "Avatar créé avec succès à partir de l'image de référence",
-      });
 
       // Reset uploaded image
       setUploadedImage(null);
@@ -876,11 +901,12 @@ const Customize = () => {
       console.error('Error generating from reference:', error);
       toast({
         title: "❌ Échec de la génération",
-        description: "Impossible de générer l'avatar. Veuillez réessayer.",
+        description: "Impossible de générer les avatars. Veuillez réessayer.",
         variant: "destructive",
       });
     } finally {
       setIsAnalyzing(false);
+      setIsGenerating(false);
     }
   };
 
@@ -1211,17 +1237,17 @@ const Customize = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Mic className="h-4 w-4 text-primary" />
-                    Voix française
+                    Voix ElevenLabs
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <VoiceSelector 
+                  <ElevenLabsVoiceSelector 
                     value={character.voice}
                     onChange={(value) => updateCharacter('voice', value)}
                     label="Sélectionnez la voix de conversation"
                   />
                   <p className="text-sm text-muted-foreground mt-2">
-                    Toutes les voix sont françaises féminines
+                    Inclut toutes les voix et agents ElevenLabs
                   </p>
                 </CardContent>
               </Card>
