@@ -174,30 +174,20 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
       
       const sessionConfig: any = { signedUrl: url };
       
-      // Toujours override la voix de l'agent avec la voix sélectionnée
-      console.log('[ELEVENLABS] Overriding agent voice with:', selectedVoiceId);
-      const selectedVoice = availableVoices.find(v => v.voice_id === selectedVoiceId);
-      console.log('[ELEVENLABS] Selected voice details:', selectedVoice?.name);
-      
-      // Les overrides doivent être appliqués selon la doc ElevenLabs
-      sessionConfig.overrides = {
-        agent: {
-          prompt: {
-            prompt: character?.personality || "Tu es une petite amie virtuelle charmante et attentionnée. Tu parles français naturellement."
-          },
-          firstMessage: "Salut ! Comment vas-tu aujourd'hui ?",
-          language: "fr"
-        },
-        tts: {
-          voiceId: selectedVoiceId
-        }
-      };
-      
-      console.log('[ELEVENLABS] Config with overrides:', {
-        hasOverrides: !!sessionConfig.overrides,
-        voiceId: sessionConfig.overrides.tts.voiceId,
-        language: sessionConfig.overrides.agent.language
-      });
+      // Configuration selon la documentation ElevenLabs
+      if (selectedVoiceId) {
+        console.log('[ELEVENLABS] Using selected voice:', selectedVoiceId);
+        const selectedVoice = availableVoices.find(v => v.voice_id === selectedVoiceId);
+        console.log('[ELEVENLABS] Selected voice details:', selectedVoice?.name);
+        
+        sessionConfig.overrides = {
+          tts: {
+            voiceId: selectedVoiceId
+          }
+        };
+        
+        console.log('[ELEVENLABS] Session config:', JSON.stringify(sessionConfig, null, 2));
+      }
       
       await conversation.startSession(sessionConfig);
       

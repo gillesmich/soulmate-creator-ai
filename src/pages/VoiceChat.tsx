@@ -113,9 +113,9 @@ const VoiceChat = () => {
           </p>
         </div>
 
-        {/* Avatar Carousel with Lip Sync */}
-        {characterImages.length > 0 ? (
-          <div className="mb-8 flex justify-center">
+        {/* Avatar Carousel with Lip Sync - Always visible */}
+        <div className="mb-8 flex justify-center">
+          {characterImages.length > 0 ? (
             <Carousel className="w-full max-w-sm">
               <CarouselContent>
                 {characterImages.map((imageUrl, index) => (
@@ -132,24 +132,22 @@ const VoiceChat = () => {
               </CarouselContent>
               {characterImages.length > 1 && (
                 <>
-                  <CarouselPrevious />
-                  <CarouselNext />
+                  <CarouselPrevious className="left-0" />
+                  <CarouselNext className="right-0" />
                 </>
               )}
             </Carousel>
-          </div>
-        ) : (
-          <div className="mb-8 flex justify-center">
-            <div className="text-center p-8 bg-muted/50 rounded-lg border border-dashed">
+          ) : (
+            <div className="text-center p-8 bg-muted/50 rounded-lg border border-dashed max-w-sm">
               <p className="text-muted-foreground">
                 Aucune photo de personnage disponible.
               </p>
               <p className="text-sm text-muted-foreground mt-2">
-                Créez un personnage sur la page Personnaliser pour voir son avatar ici.
+                Créez un personnage sur la page Personnaliser pour voir l'avatar avec lipsync ici.
               </p>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         <Tabs defaultValue="elevenlabs" className="max-w-4xl mx-auto">
           <TabsList className="grid w-full grid-cols-2">
