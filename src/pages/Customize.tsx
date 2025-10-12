@@ -97,6 +97,8 @@ const Customize = () => {
   const [savedCharacters, setSavedCharacters] = useState<SavedCharacter[]>([]);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [currentCharacterId, setCurrentCharacterId] = useState<string | null>(null);
+  const [currentCharacterName, setCurrentCharacterName] = useState<string | null>(null);
 
   // Load character from localStorage on mount if exists
   useEffect(() => {
@@ -119,6 +121,10 @@ const Customize = () => {
         characterTraits: savedCharacter.characterTraits || '',
         ethnicity: savedCharacter.ethnicity || 'caucasian'
       });
+      
+      // Set current character ID and name for updates
+      setCurrentCharacterId(savedCharacter.id || null);
+      setCurrentCharacterName(savedCharacter.name || null);
       
       // Load all saved images or just the main one
       if (savedCharacter.images && savedCharacter.images.length > 0) {
@@ -770,6 +776,8 @@ const Customize = () => {
     setSelectedStyles(['realistic']);
     setSelectedViews(['bust']);
     setSelectedClothing(['clothed']);
+    setCurrentCharacterId(null);
+    setCurrentCharacterName(null);
     
     // Clear from localStorage
     localStorage.removeItem('currentCharacter');
@@ -928,6 +936,10 @@ const Customize = () => {
       characterTraits: selectedChar.characterTraits || '',
       ethnicity: selectedChar.ethnicity || 'caucasian'
     });
+
+    // Set current character ID and name for future updates
+    setCurrentCharacterId(selectedChar.id);
+    setCurrentCharacterName(selectedChar.name);
 
     // Load existing images
     if (selectedChar.images && selectedChar.images.length > 0) {
@@ -1359,27 +1371,16 @@ const Customize = () => {
                               }}
                               onLoad={() => console.log(`Image ${img.style} ${img.view} loaded successfully`)}
                             />
-                            <div className="grid grid-cols-2 gap-2">
-                              <Button 
-                                onClick={() => regenerateSpecificImage(img.style, img.view, img.clothing)} 
-                                variant="outline" 
-                                size="sm"
-                                disabled={isGenerating}
-                                className="hover:bg-accent"
-                              >
-                                <RefreshCw className={`h-4 w-4 mr-2 ${isGenerating ? 'animate-spin' : ''}`} />
-                                Régénérer
-                              </Button>
-                              <Button 
-                                onClick={() => setShowSaveDialog(true)} 
-                                variant="outline" 
-                                size="sm"
-                                className="hover:bg-accent"
-                              >
-                                <Save className="h-4 w-4 mr-2" />
-                                Sauvegarder
-                              </Button>
-                            </div>
+                            <Button 
+                              onClick={() => regenerateSpecificImage(img.style, img.view, img.clothing)} 
+                              variant="outline" 
+                              size="sm"
+                              disabled={isGenerating}
+                              className="hover:bg-accent w-full"
+                            >
+                              <RefreshCw className={`h-4 w-4 mr-2 ${isGenerating ? 'animate-spin' : ''}`} />
+                              Régénérer
+                            </Button>
                           </div>
                         ))}
                       </div>
@@ -1448,6 +1449,18 @@ const Customize = () => {
                   </div>
                 </div>
 
+                {generatedImages.length > 0 && (
+                  <Button 
+                    onClick={() => setShowSaveDialog(true)} 
+                    variant="default" 
+                    size="lg"
+                    className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {currentCharacterName ? `Mettre à jour ${currentCharacterName}` : 'Sauvegarder le profil'}
+                  </Button>
+                )}
+                
                 <div className="space-y-2">
                   <Button 
                     onClick={startChat} 
@@ -1486,7 +1499,13 @@ const Customize = () => {
         isOpen={showSaveDialog} 
         onClose={() => setShowSaveDialog(false)} 
         imageUrls={generatedImages.map(img => img.url)} 
-        characterData={character} 
+        characterData={character}
+        existingCharacterId={currentCharacterId}
+        existingCharacterName={currentCharacterName}
+        onSaveComplete={(id, name) => {
+          setCurrentCharacterId(id);
+          setCurrentCharacterName(name);
+        }}
       />
       
       <AttitudeVariationsDialog 

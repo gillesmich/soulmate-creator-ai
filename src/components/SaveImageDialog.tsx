@@ -13,17 +13,30 @@ interface SaveImageDialogProps {
   onClose: () => void;
   imageUrls: string[]; // Changed to array
   characterData: any;
+  existingCharacterId?: string | null;
+  existingCharacterName?: string | null;
+  onSaveComplete?: (id: string, name: string) => void;
 }
 
 const SaveImageDialog: React.FC<SaveImageDialogProps> = ({ 
   isOpen, 
   onClose, 
   imageUrls, 
-  characterData 
+  characterData,
+  existingCharacterId,
+  existingCharacterName,
+  onSaveComplete
 }) => {
   const [name, setName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+
+  // Set name from existing character when dialog opens
+  React.useEffect(() => {
+    if (isOpen && existingCharacterName) {
+      setName(existingCharacterName);
+    }
+  }, [isOpen, existingCharacterName]);
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -50,13 +63,28 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
         return;
       }
 
-      // Check if a profile with this name already exists
-      const { data: existingProfile } = await supabase
-        .from('saved_girlfriend_images')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('name', name.trim())
-        .single();
+      // Check if we're updating an existing character or need to check for duplicate name
+      let profileIdToUpdate = existingCharacterId;
+      
+      if (!profileIdToUpdate) {
+        // Only check for duplicate name if creating new character
+        const { data: duplicateProfile } = await supabase
+          .from('saved_girlfriend_images')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('name', name.trim())
+          .single();
+        
+        if (duplicateProfile) {
+          toast({
+            title: "Nom déjà utilisé",
+            description: "Un profil avec ce nom existe déjà. Choisissez un autre nom.",
+            variant: "destructive",
+          });
+          setIsSaving(false);
+          return;
+        }
+      }
 
       // Prepare complete character data (without images for localStorage)
       const completeCharacterData = {
@@ -95,9 +123,11 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
         uploadedUrls.push(urlData.publicUrl);
       }
 
-      // Update or Insert depending on whether profile exists
+      // Update or Insert depending on whether we have an existing ID
       let dbError;
-      if (existingProfile) {
+      let savedId = profileIdToUpdate;
+      
+      if (profileIdToUpdate) {
         // Update existing profile
         const { error } = await supabase
           .from('saved_girlfriend_images')
@@ -106,7 +136,7 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
             image_urls: uploadedUrls,
             character_data: completeCharacterData
           })
-          .eq('id', existingProfile.id);
+          .eq('id', profileIdToUpdate);
         dbError = error;
         
         if (!error) {
@@ -114,10 +144,13 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
             title: "✅ Profil mis à jour!",
             description: `${name} et ses ${imageUrls.length} image(s) ont été mises à jour.`,
           });
+          if (onSaveComplete) {
+            onSaveComplete(profileIdToUpdate, name.trim());
+          }
         }
       } else {
         // Insert new profile
-        const { error } = await supabase
+        const { data: insertedData, error } = await supabase
           .from('saved_girlfriend_images')
           .insert({
             user_id: user.id,
@@ -125,14 +158,20 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
             image_url: uploadedUrls[0] || '',
             image_urls: uploadedUrls,
             character_data: completeCharacterData
-          });
+          })
+          .select('id')
+          .single();
         dbError = error;
         
-        if (!error) {
+        if (!error && insertedData) {
+          savedId = insertedData.id;
           toast({
             title: "✅ Profil sauvegardé!",
             description: `${name} et ses ${imageUrls.length} image(s) ont été sauvegardées.`,
           });
+          if (onSaveComplete) {
+            onSaveComplete(insertedData.id, name.trim());
+          }
         }
       }
 
@@ -156,22 +195,33 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Enregistrer les informations de votre girlfriend</DialogTitle>
+          <DialogTitle>
+            {existingCharacterId ? 'Mettre à jour le profil' : 'Enregistrer les informations de votre girlfriend'}
+          </DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Nom</Label>
-            <Input
-              id="name"
-              type="text"
-              placeholder="Entrez un nom pour votre girlfriend"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              disabled={isSaving}
-              maxLength={50}
-            />
-          </div>
+          {!existingCharacterId && (
+            <div className="space-y-2">
+              <Label htmlFor="name">Nom</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Entrez un nom pour votre girlfriend"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={isSaving}
+                maxLength={50}
+              />
+            </div>
+          )}
+          
+          {existingCharacterId && (
+            <div className="p-3 bg-primary/10 rounded-md">
+              <p className="text-sm font-medium">Mise à jour du profil: <span className="text-primary">{existingCharacterName}</span></p>
+              <p className="text-xs text-muted-foreground mt-1">Les nouvelles images remplaceront les anciennes</p>
+            </div>
+          )}
           
           <div className="flex flex-wrap justify-center gap-2 max-h-64 overflow-y-auto">
             {imageUrls.map((url, index) => (

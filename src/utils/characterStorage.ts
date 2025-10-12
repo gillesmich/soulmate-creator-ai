@@ -14,6 +14,7 @@ export interface CharacterData {
   image?: string;
   images?: string[]; // Multiple generated images
   name?: string;
+  id?: string; // ID when loaded from database
   interests?: string;
   hobbies?: string;
   characterTraits?: string;
