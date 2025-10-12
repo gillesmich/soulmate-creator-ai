@@ -189,6 +189,12 @@ const Customize = () => {
   };
 
   const generatePhoto = async () => {
+    // If there's an uploaded reference image, use generateFromReference instead
+    if (uploadedImage) {
+      await generateFromReference();
+      return;
+    }
+
     if (selectedStyles.length === 0) {
       toast({
         title: "Aucun style sélectionné",
@@ -801,7 +807,11 @@ const Customize = () => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const result = e.target?.result as string;
-      navigate('/import', { state: { uploadedImage: result } });
+      setUploadedImage(result);
+      toast({
+        title: "✅ Image chargée",
+        description: "L'image sera utilisée comme référence pour générer l'avatar",
+      });
     };
     reader.readAsDataURL(file);
   };
@@ -936,10 +946,9 @@ const Customize = () => {
               variant="outline"
               onClick={() => document.getElementById('reference-image-upload')?.click()}
               className="gap-2 bg-gradient-to-r from-blue-500/10 to-purple-500/10 hover:from-blue-500/20 hover:to-purple-500/20"
-              disabled={isAnalyzing}
             >
               <Upload className="h-4 w-4" />
-              {isAnalyzing ? 'Analyse en cours...' : 'Importer une photo'}
+              {uploadedImage ? 'Changer la photo' : 'Importer une photo'}
             </Button>
             <input
               id="reference-image-upload"
@@ -1027,6 +1036,40 @@ const Customize = () => {
                   </Card>
                 );
               })}
+
+              {/* Reference Image Preview */}
+              {uploadedImage && (
+                <Card className="border-primary/10 bg-gradient-to-br from-blue-500/5 to-purple-500/5">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 justify-between">
+                      <span className="flex items-center gap-2">
+                        <Upload className="h-4 w-4 text-primary" />
+                        Image de référence
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setUploadedImage(null)}
+                        className="h-8 w-8 p-0"
+                      >
+                        ✕
+                      </Button>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <img 
+                        src={uploadedImage} 
+                        alt="Reference" 
+                        className="w-full rounded-lg shadow-lg max-h-[300px] object-contain bg-muted"
+                      />
+                      <p className="text-sm text-muted-foreground text-center">
+                        Cette image sera utilisée comme référence pour générer l'avatar
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Multi-select for image styles */}
               <Card className="border-primary/10">
