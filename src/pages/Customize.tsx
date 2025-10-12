@@ -4,9 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Heart, MessageCircle, Sparkles, RefreshCw, Save, Mic, Wand2, LogIn, LogOut, Images } from 'lucide-react';
+import { Heart, MessageCircle, Sparkles, RefreshCw, Save, Mic, Wand2, LogIn, LogOut, Images, Upload } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,6 +19,29 @@ import AttitudeVariationsDialog from '@/components/AttitudeVariationsDialog';
 import VideoGenerator from '@/components/VideoGenerator';
 import VoiceSelector from '@/components/VoiceSelector';
 import { setCurrentCharacter, getCurrentCharacter } from '@/utils/characterStorage';
+
+interface SavedCharacter {
+  id: string;
+  name: string;
+  image: string;
+  images: string[];
+  createdAt: string;
+  hairColor: string;
+  hairStyle: string;
+  bodyType: string;
+  personality: string;
+  outfit: string;
+  eyeColor: string;
+  age: string;
+  voice?: string;
+  avatarView?: string;
+  clothing?: string;
+  imageStyle?: string;
+  interests?: string;
+  hobbies?: string;
+  characterTraits?: string;
+  ethnicity?: string;
+}
 
 interface CharacterOptions {
   hairColor: string;
@@ -67,6 +92,8 @@ const Customize = () => {
   const [selectedClothing, setSelectedClothing] = useState<string[]>(['clothed']);
   const [currentBatchSeed, setCurrentBatchSeed] = useState<number | null>(null);
   const [sceneryTheme, setSceneryTheme] = useState<string>('');
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [savedCharacters, setSavedCharacters] = useState<SavedCharacter[]>([]);
 
   // Load character from localStorage on mount if exists
   useEffect(() => {
@@ -731,11 +758,133 @@ const Customize = () => {
     });
     setGeneratedImages([]);
     setCurrentBatchSeed(null);
-    setSceneryTheme('');
+    setSelectedStyles(['realistic']);
+    setSelectedViews(['bust']);
+    setSelectedClothing(['clothed']);
+    
+    // Clear from localStorage
     localStorage.removeItem('currentCharacter');
+    sessionStorage.removeItem('currentCharacterImages');
+    
     toast({
-      title: "Nouveau profil",
-      description: "Créez un nouveau personnage",
+      title: "✨ Nouveau personnage",
+      description: "Prêt à créer un nouveau personnage !",
+    });
+  };
+
+  const loadSavedCharacters = async () => {
+    if (!user) {
+      toast({
+        title: "Connexion requise",
+        description: "Veuillez vous connecter pour importer un personnage",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { data: supabaseCharacters, error } = await supabase
+        .from('saved_girlfriend_images')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error loading from Supabase:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les personnages",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (supabaseCharacters && supabaseCharacters.length > 0) {
+        const loadedCharacters = supabaseCharacters.map(sc => {
+          const characterData = typeof sc.character_data === 'object' && sc.character_data !== null 
+            ? sc.character_data as Record<string, any>
+            : {};
+          
+          const imageUrls = Array.isArray(sc.image_urls) 
+            ? sc.image_urls.filter((url): url is string => typeof url === 'string')
+            : [sc.image_url];
+          
+          return {
+            id: sc.id,
+            name: sc.name,
+            image: sc.image_url,
+            images: imageUrls,
+            createdAt: sc.created_at,
+            hairColor: characterData.hairColor || 'blonde',
+            hairStyle: characterData.hairStyle || 'long',
+            bodyType: characterData.bodyType || 'slim',
+            personality: characterData.personality || 'sweet',
+            outfit: characterData.outfit || 'casual',
+            eyeColor: characterData.eyeColor || 'blue',
+            age: characterData.age || 'medium age',
+            voice: characterData.voice,
+            avatarView: characterData.avatarView,
+            clothing: characterData.clothing,
+            imageStyle: characterData.imageStyle,
+            interests: characterData.interests || '',
+            hobbies: characterData.hobbies || '',
+            characterTraits: characterData.characterTraits || '',
+            ethnicity: characterData.ethnicity || 'caucasian'
+          };
+        });
+        
+        setSavedCharacters(loadedCharacters);
+        setShowImportDialog(true);
+      } else {
+        toast({
+          title: "Aucun personnage",
+          description: "Vous n'avez pas encore de personnage sauvegardé",
+        });
+      }
+    } catch (error) {
+      console.error('Error loading characters:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les personnages",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const importCharacter = (selectedChar: SavedCharacter) => {
+    setCharacter({
+      hairColor: selectedChar.hairColor,
+      hairStyle: selectedChar.hairStyle,
+      bodyType: selectedChar.bodyType,
+      personality: selectedChar.personality,
+      outfit: selectedChar.outfit,
+      eyeColor: selectedChar.eyeColor,
+      age: selectedChar.age,
+      voice: selectedChar.voice || 'alloy',
+      avatarView: selectedChar.avatarView || 'bust',
+      clothing: selectedChar.clothing || 'clothed',
+      imageStyle: selectedChar.imageStyle || 'realistic',
+      interests: selectedChar.interests || '',
+      hobbies: selectedChar.hobbies || '',
+      characterTraits: selectedChar.characterTraits || '',
+      ethnicity: selectedChar.ethnicity || 'caucasian'
+    });
+
+    // Load existing images
+    if (selectedChar.images && selectedChar.images.length > 0) {
+      setGeneratedImages(selectedChar.images.map(url => ({
+        url,
+        style: selectedChar.imageStyle || 'realistic',
+        view: selectedChar.avatarView || 'bust',
+        clothing: selectedChar.clothing || 'clothed'
+      })));
+    }
+
+    setShowImportDialog(false);
+    
+    toast({
+      title: "✅ Personnage importé",
+      description: `${selectedChar.name} a été chargé avec succès`,
     });
   };
 
@@ -759,6 +908,14 @@ const Customize = () => {
             >
               <Images className="h-4 w-4" />
               Browse Profiles
+            </Button>
+            <Button
+              variant="outline"
+              onClick={loadSavedCharacters}
+              className="gap-2 bg-gradient-to-r from-blue-500/10 to-purple-500/10 hover:from-blue-500/20 hover:to-purple-500/20"
+            >
+              <Upload className="h-4 w-4" />
+              Importer un personnage
             </Button>
             <Button
               variant="outline"
@@ -1210,6 +1367,58 @@ const Customize = () => {
         currentSeed={currentBatchSeed}
         onGenerateVariations={generateAttitudeVariations}
       />
+
+      {/* Import Character Dialog */}
+      <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">Importer un personnage</DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+            {savedCharacters.map((char) => (
+              <Card 
+                key={char.id} 
+                className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer border-primary/10"
+                onClick={() => importCharacter(char)}
+              >
+                <div className="aspect-square relative overflow-hidden">
+                  <img
+                    src={char.image}
+                    alt={char.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <CardHeader className="pb-2">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10 border-2 border-primary/20">
+                      <AvatarImage src={char.image} alt={char.name} />
+                      <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                        {char.name.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <CardTitle className="text-base">{char.name}</CardTitle>
+                  </div>
+                  <div className="text-xs text-muted-foreground space-y-1 mt-2">
+                    <p className="capitalize">
+                      {char.personality} • {char.hairColor} {char.hairStyle}
+                    </p>
+                    <p className="capitalize">
+                      {char.eyeColor} eyes • {char.bodyType}
+                    </p>
+                    {char.images && char.images.length > 1 && (
+                      <Badge variant="secondary" className="text-xs">
+                        <Images className="h-3 w-3 mr-1" />
+                        {char.images.length} images
+                      </Badge>
+                    )}
+                  </div>
+                </CardHeader>
+              </Card>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
