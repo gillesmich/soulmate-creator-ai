@@ -122,6 +122,11 @@ const Customize = () => {
         ethnicity: savedCharacter.ethnicity || 'caucasian'
       });
       
+      // Sync multi-select arrays with character values
+      setSelectedStyles([savedCharacter.imageStyle || 'realistic']);
+      setSelectedViews([savedCharacter.avatarView || 'bust']);
+      setSelectedClothing([savedCharacter.clothing || 'clothed']);
+      
       // Set current character ID and name for updates
       setCurrentCharacterId(savedCharacter.id || null);
       setCurrentCharacterName(savedCharacter.name || null);
@@ -167,31 +172,46 @@ const Customize = () => {
 
   const toggleStyle = (style: string) => {
     setSelectedStyles(prev => {
-      if (prev.includes(style)) {
-        return prev.filter(s => s !== style);
-      } else {
-        return [...prev, style];
+      const newStyles = prev.includes(style) 
+        ? prev.filter(s => s !== style)
+        : [...prev, style];
+      
+      // Update character.imageStyle to first selected style
+      if (newStyles.length > 0) {
+        setCharacter(c => ({ ...c, imageStyle: newStyles[0] }));
       }
+      
+      return newStyles;
     });
   };
 
   const toggleView = (view: string) => {
     setSelectedViews(prev => {
-      if (prev.includes(view)) {
-        return prev.filter(v => v !== view);
-      } else {
-        return [...prev, view];
+      const newViews = prev.includes(view)
+        ? prev.filter(v => v !== view)
+        : [...prev, view];
+      
+      // Update character.avatarView to first selected view
+      if (newViews.length > 0) {
+        setCharacter(c => ({ ...c, avatarView: newViews[0] }));
       }
+      
+      return newViews;
     });
   };
 
   const toggleClothing = (clothing: string) => {
     setSelectedClothing(prev => {
-      if (prev.includes(clothing)) {
-        return prev.filter(c => c !== clothing);
-      } else {
-        return [...prev, clothing];
+      const newClothing = prev.includes(clothing)
+        ? prev.filter(c => c !== clothing)
+        : [...prev, clothing];
+      
+      // Update character.clothing to first selected clothing
+      if (newClothing.length > 0) {
+        setCharacter(c => ({ ...c, clothing: newClothing[0] }));
       }
+      
+      return newClothing;
     });
   };
 
@@ -929,6 +949,11 @@ const Customize = () => {
       characterTraits: selectedChar.characterTraits || '',
       ethnicity: selectedChar.ethnicity || 'caucasian'
     });
+    
+    // Sync multi-select arrays with imported character values
+    setSelectedStyles([selectedChar.imageStyle || 'realistic']);
+    setSelectedViews([selectedChar.avatarView || 'bust']);
+    setSelectedClothing([selectedChar.clothing || 'clothed']);
 
     // Set current character ID and name for future updates
     setCurrentCharacterId(selectedChar.id);
