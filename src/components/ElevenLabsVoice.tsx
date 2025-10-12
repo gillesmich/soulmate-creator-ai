@@ -552,6 +552,76 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
               </RadioGroup>
             )}
           </div>
+
+          {/* Voice override for agent */}
+          <div className="bg-muted/50 p-4 rounded-lg border">
+            <div className="flex items-start gap-2 mb-3">
+              <Mic className="w-4 h-4 mt-0.5 text-muted-foreground" />
+              <div className="flex-1">
+                <h4 className="font-semibold">Changer la voix de l'agent</h4>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Optionnel : Remplacez la voix par défaut de l'agent.
+                </p>
+              </div>
+            </div>
+            
+            {isLoadingVoices ? (
+              <div className="flex items-center justify-center p-8">
+                <Loader2 className="w-6 h-6 animate-spin mr-2" />
+                <span className="text-sm text-muted-foreground">Chargement des voix...</span>
+              </div>
+            ) : (
+              <RadioGroup 
+                value={selectedVoiceId} 
+                onValueChange={(value) => {
+                  setSelectedVoiceId(value);
+                  
+                  if (currentCharacter) {
+                    const updatedCharacter = {
+                      ...currentCharacter,
+                      voice: value
+                    };
+                    setCurrentCharacter(updatedCharacter);
+                  }
+                }}
+                className="space-y-2 max-h-64 overflow-y-auto"
+              >
+                {availableVoices.length > 0 ? (
+                  availableVoices.map((voice) => (
+                    <div 
+                      key={voice.voice_id} 
+                      className="flex items-start space-x-3 p-2 rounded-lg hover:bg-accent/5 border border-transparent hover:border-accent/20 transition-colors"
+                    >
+                      <RadioGroupItem 
+                        value={voice.voice_id} 
+                        id={`agent-voice-${voice.voice_id}`}
+                        disabled={isConnected}
+                      />
+                      <Label 
+                        htmlFor={`agent-voice-${voice.voice_id}`} 
+                        className={`flex flex-col cursor-pointer flex-1 ${
+                          isConnected ? 'opacity-50' : ''
+                        }`}
+                      >
+                        <span className="font-medium">{voice.name}</span>
+                        {voice.labels && Object.keys(voice.labels).length > 0 && (
+                          <span className="text-xs text-muted-foreground mt-0.5">
+                            {Object.entries(voice.labels)
+                              .map(([key, value]) => `${key}: ${value}`)
+                              .join(' • ')}
+                          </span>
+                        )}
+                      </Label>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center p-4 text-sm text-muted-foreground">
+                    Aucune voix disponible.
+                  </div>
+                )}
+              </RadioGroup>
+            )}
+          </div>
         </div>
         )}
 
@@ -593,38 +663,50 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
               >
                 {/* Toutes les voix disponibles */}
                 {availableVoices.length > 0 ? (
-                  availableVoices.map((voice) => (
-                    <div 
-                      key={voice.voice_id} 
-                      className="flex items-start space-x-3 p-2 rounded-lg hover:bg-accent/5 border border-transparent hover:border-accent/20 transition-colors"
-                    >
-                      <RadioGroupItem 
-                        value={voice.voice_id} 
-                        id={voice.voice_id}
-                        disabled={isConnected}
-                      />
-                      <Label 
-                        htmlFor={voice.voice_id} 
-                        className={`flex flex-col cursor-pointer flex-1 ${
-                          isConnected ? 'opacity-50' : ''
-                        }`}
+                  availableVoices.map((voice) => {
+                    // Trouver si cette voix est utilisée par un agent
+                    const agentUsingVoice = availableAgents.find(
+                      agent => agent.conversation_config?.tts?.voice_id === voice.voice_id
+                    );
+                    
+                    return (
+                      <div 
+                        key={voice.voice_id} 
+                        className="flex items-start space-x-3 p-2 rounded-lg hover:bg-accent/5 border border-transparent hover:border-accent/20 transition-colors"
                       >
-                        <span className="font-medium">{voice.name}</span>
-                        {voice.labels && Object.keys(voice.labels).length > 0 && (
-                          <span className="text-xs text-muted-foreground mt-0.5">
-                            {Object.entries(voice.labels)
-                              .map(([key, value]) => `${key}: ${value}`)
-                              .join(' • ')}
-                          </span>
-                        )}
-                        {voice.category && (
-                          <span className="text-xs text-primary mt-0.5">
-                            {voice.category}
-                          </span>
-                        )}
-                      </Label>
-                    </div>
-                  ))
+                        <RadioGroupItem 
+                          value={voice.voice_id} 
+                          id={voice.voice_id}
+                          disabled={isConnected}
+                        />
+                        <Label 
+                          htmlFor={voice.voice_id} 
+                          className={`flex flex-col cursor-pointer flex-1 ${
+                            isConnected ? 'opacity-50' : ''
+                          }`}
+                        >
+                          <span className="font-medium">{voice.name}</span>
+                          {agentUsingVoice && (
+                            <span className="text-xs text-primary mt-0.5">
+                              Agent: {agentUsingVoice.name}
+                            </span>
+                          )}
+                          {voice.labels && Object.keys(voice.labels).length > 0 && (
+                            <span className="text-xs text-muted-foreground mt-0.5">
+                              {Object.entries(voice.labels)
+                                .map(([key, value]) => `${key}: ${value}`)
+                                .join(' • ')}
+                            </span>
+                          )}
+                          {voice.category && (
+                            <span className="text-xs text-muted-foreground mt-0.5">
+                              {voice.category}
+                            </span>
+                          )}
+                        </Label>
+                      </div>
+                    );
+                  })
                 ) : (
                   <div className="text-center p-4 text-sm text-muted-foreground">
                     Aucune voix disponible. La voix de l'agent sera utilisée.

@@ -86,12 +86,15 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
         }
       }
 
-      // Prepare complete character data (without images for localStorage)
+      // Prepare complete character data with voice and agent info
       const completeCharacterData = {
         ...characterData,
         interests: characterData.interests || '',
         hobbies: characterData.hobbies || '',
-        characterTraits: characterData.characterTraits || ''
+        characterTraits: characterData.characterTraits || '',
+        voice: characterData.voice || '',
+        agentId: characterData.agentId || '',
+        agentName: characterData.agentName || ''
       };
 
       // Upload all images to Supabase storage
@@ -217,9 +220,22 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
           )}
           
           {existingCharacterId && (
-            <div className="p-3 bg-primary/10 rounded-md">
-              <p className="text-sm font-medium">Mise à jour du profil: <span className="text-primary">{existingCharacterName}</span></p>
-              <p className="text-xs text-muted-foreground mt-1">Les nouvelles images remplaceront les anciennes</p>
+            <div className="p-3 bg-primary/10 rounded-md space-y-2">
+              <p className="text-sm font-medium">Mise à jour: <span className="text-primary">{existingCharacterName}</span></p>
+              <div className="text-xs text-muted-foreground space-y-1">
+                {imageUrls.length > 0 && (
+                  <p>• Images ({imageUrls.length})</p>
+                )}
+                {characterData.personality && (
+                  <p>• Personnalité</p>
+                )}
+                {characterData.voice && (
+                  <p>• Voix</p>
+                )}
+                {characterData.agentId && (
+                  <p>• Agent: {characterData.agentName || 'Agent ElevenLabs'}</p>
+                )}
+              </div>
             </div>
           )}
           
