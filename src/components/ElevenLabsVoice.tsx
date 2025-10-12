@@ -32,7 +32,7 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
 }) => {
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [isLoadingUrl, setIsLoadingUrl] = useState(false);
-  const [selectedVoiceId, setSelectedVoiceId] = useState<string>('agent');
+  const [selectedVoiceId, setSelectedVoiceId] = useState<string>('');
   const [availableVoices, setAvailableVoices] = useState<Voice[]>([]);
   const [isLoadingVoices, setIsLoadingVoices] = useState(false);
   const { toast } = useToast();
@@ -41,9 +41,7 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
   const conversation = useConversation({
     onConnect: () => {
       console.log('[ELEVENLABS] Connected to ElevenLabs');
-      const voiceName = selectedVoiceId === 'agent' 
-        ? 'Agathe (voix de l\'agent)' 
-        : availableVoices.find(v => v.voice_id === selectedVoiceId)?.name || 'sélectionnée';
+      const voiceName = availableVoices.find(v => v.voice_id === selectedVoiceId)?.name || 'sélectionnée';
       toast({
         title: "Connecté",
         description: `Voix: ${voiceName}`,
@@ -99,20 +97,23 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
           console.log(`[ELEVENLABS] Successfully loaded ${data.voices.length} voices`);
           if (data.voices.length > 0) {
             console.log('[ELEVENLABS] First voice:', data.voices[0]);
+            // Sélectionner la première voix par défaut
+            setSelectedVoiceId(data.voices[0].voice_id);
           }
           setAvailableVoices(data.voices);
         } else {
           console.warn('[ELEVENLABS] No voices returned from API, data:', data);
           toast({
-            title: "Information",
-            description: "Aucune voix disponible pour le moment. Seule la voix de l'agent sera disponible.",
+            title: "Erreur",
+            description: "Aucune voix disponible.",
+            variant: "destructive"
           });
         }
       } catch (error) {
         console.error('[ELEVENLABS] Failed to load voices:', error);
         toast({
-          title: "Avertissement",
-          description: "Impossible de charger les voix. La voix de l'agent sera utilisée par défaut.",
+          title: "Erreur",
+          description: "Impossible de charger les voix.",
           variant: "destructive"
         });
       } finally {
@@ -173,35 +174,30 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
       
       const sessionConfig: any = { signedUrl: url };
       
-      // IMPORTANT: Les agents ElevenLabs ont leur propre voix configurée.
-      // Pour utiliser une voix différente, il faut l'override UNIQUEMENT si ce n'est pas "agent"
-      if (selectedVoiceId !== 'agent') {
-        console.log('[ELEVENLABS] Overriding agent voice with:', selectedVoiceId);
-        const selectedVoice = availableVoices.find(v => v.voice_id === selectedVoiceId);
-        console.log('[ELEVENLABS] Selected voice details:', selectedVoice?.name);
-        
-        // Les overrides doivent être appliqués selon la doc ElevenLabs
-        sessionConfig.overrides = {
-          agent: {
-            prompt: {
-              prompt: character?.personality || "Tu es une petite amie virtuelle charmante et attentionnée. Tu parles français naturellement."
-            },
-            firstMessage: "Salut ! Comment vas-tu aujourd'hui ?",
-            language: "fr"
+      // Toujours override la voix de l'agent avec la voix sélectionnée
+      console.log('[ELEVENLABS] Overriding agent voice with:', selectedVoiceId);
+      const selectedVoice = availableVoices.find(v => v.voice_id === selectedVoiceId);
+      console.log('[ELEVENLABS] Selected voice details:', selectedVoice?.name);
+      
+      // Les overrides doivent être appliqués selon la doc ElevenLabs
+      sessionConfig.overrides = {
+        agent: {
+          prompt: {
+            prompt: character?.personality || "Tu es une petite amie virtuelle charmante et attentionnée. Tu parles français naturellement."
           },
-          tts: {
-            voiceId: selectedVoiceId
-          }
-        };
-        
-        console.log('[ELEVENLABS] Config with overrides:', {
-          hasOverrides: !!sessionConfig.overrides,
-          voiceId: sessionConfig.overrides.tts.voiceId,
-          language: sessionConfig.overrides.agent.language
-        });
-      } else {
-        console.log('[ELEVENLABS] Using agent default voice (Agathe)');
-      }
+          firstMessage: "Salut ! Comment vas-tu aujourd'hui ?",
+          language: "fr"
+        },
+        tts: {
+          voiceId: selectedVoiceId
+        }
+      };
+      
+      console.log('[ELEVENLABS] Config with overrides:', {
+        hasOverrides: !!sessionConfig.overrides,
+        voiceId: sessionConfig.overrides.tts.voiceId,
+        language: sessionConfig.overrides.agent.language
+      });
       
       await conversation.startSession(sessionConfig);
       
@@ -247,8 +243,7 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
               <div className="flex-1">
                 <h4 className="font-semibold">Sélectionnez une voix</h4>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Note: Certaines voix peuvent ne pas fonctionner avec les agents configurés. 
-                  La voix de l'agent (Agathe) est recommandée.
+                  Choisissez une voix parmi celles disponibles.
                 </p>
               </div>
             </div>
@@ -264,31 +259,6 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
                 onValueChange={setSelectedVoiceId}
                 className="space-y-2 max-h-96 overflow-y-auto"
               >
-                {/* Option voix de l'agent (Agathe) */}
-                <div className="flex items-start space-x-3 p-3 rounded-lg bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20">
-                  <RadioGroupItem 
-                    value="agent" 
-                    id="agent"
-                    disabled={isConnected}
-                  />
-                  <Label 
-                    htmlFor="agent" 
-                    className={`flex flex-col cursor-pointer flex-1 ${
-                      isConnected ? 'opacity-50' : ''
-                    }`}
-                  >
-                    <span className="font-semibold text-purple-600 dark:text-purple-400">
-                      🎭 Voix de l'agent (Agathe)
-                    </span>
-                    <span className="text-sm text-muted-foreground">
-                      Utilise la voix configurée dans votre agent ElevenLabs
-                    </span>
-                    <span className="text-xs text-purple-600 dark:text-purple-400 font-semibold mt-1">
-                      ⭐ Recommandé
-                    </span>
-                  </Label>
-                </div>
-
                 {/* Toutes les voix disponibles */}
                 {availableVoices.length > 0 ? (
                   availableVoices.map((voice) => (
