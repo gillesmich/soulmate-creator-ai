@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,7 +9,6 @@ import { toast } from 'sonner';
 import { ArrowLeft, Loader2, Save } from 'lucide-react';
 import ElevenLabsVoiceSelector from '@/components/ElevenLabsVoiceSelector';
 import SaveImageDialog from '@/components/SaveImageDialog';
-import { supabase } from '@/integrations/supabase/client';
 import { useApiKey } from '@/hooks/useApiKey';
 import { invokeFunctionWithApiKey } from '@/utils/apiHelper';
 
@@ -21,9 +19,9 @@ const ImportMode = () => {
   const { apiKey } = useApiKey();
 
   const [age, setAge] = useState('25');
-  const [selectedStyles, setSelectedStyles] = useState<string[]>(['realistic']);
-  const [selectedViews, setSelectedViews] = useState<string[]>(['bust']);
-  const [selectedClothing, setSelectedClothing] = useState<string[]>(['clothed']);
+  const [imageStyle, setImageStyle] = useState('anime');
+  const [avatarView, setAvatarView] = useState('bust');
+  const [clothing, setClothing] = useState('clothed');
   const [interests, setInterests] = useState('');
   const [hobbies, setHobbies] = useState('');
   const [characterTraits, setCharacterTraits] = useState('');
@@ -36,14 +34,6 @@ const ImportMode = () => {
   const avatarViews = ['bust', 'full body'];
   const clothingOptions = ['clothed', 'nude', 'lingerie'];
 
-  const toggleSelection = (value: string, currentSelection: string[], setter: (val: string[]) => void) => {
-    if (currentSelection.includes(value)) {
-      setter(currentSelection.filter(v => v !== value));
-    } else {
-      setter([...currentSelection, value]);
-    }
-  };
-
   const generateAvatar = async () => {
     if (!uploadedImage) {
       toast.error('Aucune image de référence');
@@ -52,11 +42,6 @@ const ImportMode = () => {
 
     if (!apiKey) {
       toast.error('Clé API manquante. Veuillez en créer une dans les paramètres.');
-      return;
-    }
-
-    if (selectedStyles.length === 0 || selectedViews.length === 0 || selectedClothing.length === 0) {
-      toast.error('Veuillez sélectionner au moins un style, une vue et une tenue');
       return;
     }
 
@@ -77,9 +62,9 @@ const ImportMode = () => {
             interests,
             hobbies,
             characterTraits,
-            imageStyle: selectedStyles[0],
-            avatarView: selectedViews[0],
-            clothing: selectedClothing[0],
+            imageStyle,
+            avatarView,
+            clothing,
           },
           referenceImage: uploadedImage,
         }
@@ -97,9 +82,9 @@ const ImportMode = () => {
           interests,
           hobbies,
           characterTraits,
-          imageStyle: selectedStyles,
-          avatarView: selectedViews,
-          clothing: selectedClothing,
+          imageStyle,
+          avatarView,
+          clothing,
           voice,
         };
         
@@ -195,58 +180,52 @@ const ImportMode = () => {
             {/* Style d'image */}
             <div className="space-y-2">
               <Label>Style d'image</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {imageStyles.map(style => (
-                  <div key={style} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`style-${style}`}
-                      checked={selectedStyles.includes(style)}
-                      onCheckedChange={() => toggleSelection(style, selectedStyles, setSelectedStyles)}
-                    />
-                    <label htmlFor={`style-${style}`} className="text-sm capitalize cursor-pointer">
+              <Select value={imageStyle} onValueChange={setImageStyle}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {imageStyles.map(style => (
+                    <SelectItem key={style} value={style} className="capitalize">
                       {style}
-                    </label>
-                  </div>
-                ))}
-              </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Vues */}
             <div className="space-y-2">
-              <Label>Vues</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {avatarViews.map(view => (
-                  <div key={view} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`view-${view}`}
-                      checked={selectedViews.includes(view)}
-                      onCheckedChange={() => toggleSelection(view, selectedViews, setSelectedViews)}
-                    />
-                    <label htmlFor={`view-${view}`} className="text-sm capitalize cursor-pointer">
+              <Label>Vue</Label>
+              <Select value={avatarView} onValueChange={setAvatarView}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {avatarViews.map(view => (
+                    <SelectItem key={view} value={view} className="capitalize">
                       {view}
-                    </label>
-                  </div>
-                ))}
-              </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Tenues */}
             <div className="space-y-2">
-              <Label>Tenues</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {clothingOptions.map(clothing => (
-                  <div key={clothing} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`clothing-${clothing}`}
-                      checked={selectedClothing.includes(clothing)}
-                      onCheckedChange={() => toggleSelection(clothing, selectedClothing, setSelectedClothing)}
-                    />
-                    <label htmlFor={`clothing-${clothing}`} className="text-sm capitalize cursor-pointer">
-                      {clothing}
-                    </label>
-                  </div>
-                ))}
-              </div>
+              <Label>Tenue</Label>
+              <Select value={clothing} onValueChange={setClothing}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {clothingOptions.map(cloth => (
+                    <SelectItem key={cloth} value={cloth} className="capitalize">
+                      {cloth}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Traits de caractère */}
@@ -311,9 +290,9 @@ const ImportMode = () => {
                 onClick={() => {
                   setGeneratedImage(null);
                   setAge('25');
-                  setSelectedStyles(['realistic']);
-                  setSelectedViews(['bust']);
-                  setSelectedClothing(['clothed']);
+                  setImageStyle('anime');
+                  setAvatarView('bust');
+                  setClothing('clothed');
                   setInterests('');
                   setHobbies('');
                   setCharacterTraits('');
@@ -340,13 +319,13 @@ const ImportMode = () => {
           hairStyle: 'long',
           bodyType: 'athletic',
           personality: characterTraits,
-          outfit: selectedClothing[0],
+          outfit: clothing,
           eyeColor: 'brown',
           age,
           voice,
-          avatarView: selectedViews[0],
-          clothing: selectedClothing[0],
-          imageStyle: selectedStyles[0],
+          avatarView,
+          clothing,
+          imageStyle,
           interests,
           hobbies,
           characterTraits,
