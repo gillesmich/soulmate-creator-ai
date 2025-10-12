@@ -425,12 +425,20 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
                     setAgentId(value);
                     setAgentName(selectedAgent.name);
                     
+                    // IMPORTANT : Récupérer et pré-sélectionner la voix de l'agent
+                    const agentVoiceId = selectedAgent.conversation_config?.tts?.voice_id;
+                    if (agentVoiceId) {
+                      console.log('[ELEVENLABS] Agent voice detected:', agentVoiceId);
+                      setSelectedVoiceId(agentVoiceId);
+                    }
+                    
                     // Sauvegarder l'agent dans le personnage
                     if (currentCharacter) {
                       const updatedCharacter = {
                         ...currentCharacter,
                         agentId: value,
-                        agentName: selectedAgent.name
+                        agentName: selectedAgent.name,
+                        voice: agentVoiceId || currentCharacter.voice
                       };
                       setCurrentCharacter(updatedCharacter);
                     }
@@ -456,6 +464,11 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
                         }`}
                       >
                         <span className="font-medium">{agent.name}</span>
+                        {agent.conversation_config?.tts?.voice_id && (
+                          <span className="text-xs text-primary mt-0.5">
+                            Voix: {availableVoices.find(v => v.voice_id === agent.conversation_config?.tts?.voice_id)?.name || agent.conversation_config.tts.voice_id}
+                          </span>
+                        )}
                         {agent.conversation_config?.agent?.prompt?.prompt && (
                           <span className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
                             {agent.conversation_config.agent.prompt.prompt.slice(0, 100)}...
