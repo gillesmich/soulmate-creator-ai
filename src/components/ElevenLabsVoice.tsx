@@ -307,17 +307,26 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
         signedUrl: url
       };
 
-      // Override UNIQUEMENT la voix si elle est sélectionnée
-      if (selectedVoiceId) {
-        console.log('[ELEVENLABS] Applying voice override:', selectedVoiceId);
+      // Récupérer la voix par défaut de l'agent
+      const selectedAgent = availableAgents.find(a => a.agent_id === agentId);
+      const agentDefaultVoiceId = selectedAgent?.conversation_config?.tts?.voice_id;
+      
+      // Override UNIQUEMENT si l'utilisateur a sélectionné une voix différente de celle de l'agent
+      if (selectedVoiceId && selectedVoiceId !== agentDefaultVoiceId) {
+        console.log('[ELEVENLABS] Applying voice override:', {
+          agentDefaultVoice: agentDefaultVoiceId,
+          selectedVoice: selectedVoiceId
+        });
         sessionConfig.overrides = {
           tts: {
             voiceId: selectedVoiceId
           }
         };
+      } else {
+        console.log('[ELEVENLABS] Using agent default voice:', agentDefaultVoiceId);
       }
       
-      console.log('[ELEVENLABS] Session config with voice override:', sessionConfig);
+      console.log('[ELEVENLABS] Session config:', sessionConfig);
       
       await conversation.startSession(sessionConfig);
       
