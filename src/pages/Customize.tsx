@@ -855,52 +855,39 @@ const Customize = () => {
       
       toast({
         title: "🎨 Génération en cours",
-        description: `Création de ${selectedStyles.length * selectedViews.length * selectedClothing.length} avatar(s) basé(s) sur l'image de référence...`,
+        description: `Création d'un avatar basé sur l'image de référence avec le style "${character.imageStyle}"...`,
       });
 
-      // Generate images for each selected combination
-      const generationPromises = selectedStyles.flatMap(style => 
-        selectedViews.flatMap(view =>
-          selectedClothing.map(async (clothing) => {
-            try {
-              const { data, error } = await invokeFunctionWithApiKey({
-                functionName: 'generate-girlfriend-photo-ai',
-                apiKey,
-                body: { 
-                  character: {
-                    ...character,
-                    imageStyle: style,
-                    avatarView: view,
-                    clothing: clothing
-                  },
-                  seed: characterSeed,
-                  referenceImage: uploadedImage,
-                  retryAttempt: 0
-                }
-              });
+      // Generate with current character settings only (not multi-select)
+      try {
+        const { data, error } = await invokeFunctionWithApiKey({
+          functionName: 'generate-girlfriend-photo-ai',
+          apiKey,
+          body: { 
+            character: {
+              ...character,
+              imageStyle: character.imageStyle,
+              avatarView: character.avatarView,
+              clothing: character.clothing
+            },
+            seed: characterSeed,
+            referenceImage: uploadedImage,
+            retryAttempt: 0
+          }
+        });
 
-              if (error) throw error;
-              if (!data?.image) throw new Error('Aucune image générée');
+        if (error) throw error;
+        if (!data?.image) throw new Error('Aucune image générée');
 
-              return { url: data.image, style, view, clothing };
-            } catch (error) {
-              console.error(`Erreur pour ${style} ${view} ${clothing}:`, error);
-              return null;
-            }
-          })
-        )
-      );
+        const validImages = [{ url: data.image, style: character.imageStyle, view: character.avatarView, clothing: character.clothing }];
 
-      const results = await Promise.all(generationPromises);
-      const validImages = results.filter((img): img is {url: string, style: string, view: string, clothing: string} => img !== null);
-
-      if (validImages.length > 0) {
         setGeneratedImages(validImages);
         toast({
-          title: "✅ Avatars générés !",
-          description: `${validImages.length} avatar(s) créé(s) avec succès à partir de l'image de référence`,
+          title: "✅ Avatar généré !",
+          description: `Avatar créé avec succès à partir de l'image de référence`,
         });
-      } else {
+      } catch (error) {
+        console.error(`Erreur lors de la génération:`, error);
         throw new Error('Aucune image générée avec succès');
       }
 
