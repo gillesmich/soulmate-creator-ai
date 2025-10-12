@@ -1369,26 +1369,30 @@ const Customize = () => {
                           <RefreshCw className="h-4 w-4 mr-2" />
                           Générer de nouvelles photos
                         </Button>
-                        <Button 
-                          onClick={generateMorePhotos} 
-                          variant="outline" 
-                          size="sm"
-                          className="hover:bg-primary/10 w-full border-primary/50"
-                          disabled={isGenerating || generatedImages.length === 0}
-                        >
-                          <Sparkles className="h-4 w-4 mr-2" />
-                          Ajouter plus de photos
-                        </Button>
-                        <Button 
-                          onClick={() => setShowAttitudeDialog(true)} 
-                          variant="outline" 
-                          size="sm"
-                          className="hover:bg-accent w-full border-primary/50"
-                          disabled={isGenerating || !currentBatchSeed}
-                        >
-                          <Wand2 className="h-4 w-4 mr-2" />
-                          Generate More Attitudes
-                        </Button>
+                        {savedCharacters.length > 0 && (
+                          <>
+                            <Button 
+                              onClick={generateMorePhotos} 
+                              variant="outline" 
+                              size="sm"
+                              className="hover:bg-primary/10 w-full border-primary/50"
+                              disabled={isGenerating || generatedImages.length === 0}
+                            >
+                              <Sparkles className="h-4 w-4 mr-2" />
+                              Ajouter plus de photos
+                            </Button>
+                            <Button 
+                              onClick={() => setShowAttitudeDialog(true)} 
+                              variant="outline" 
+                              size="sm"
+                              className="hover:bg-accent w-full border-primary/50"
+                              disabled={isGenerating || !currentBatchSeed}
+                            >
+                              <Wand2 className="h-4 w-4 mr-2" />
+                              Generate More Attitudes
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
                   ) : (
