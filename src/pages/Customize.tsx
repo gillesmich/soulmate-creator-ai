@@ -74,7 +74,7 @@ const Customize = () => {
     outfit: 'casual',
     eyeColor: 'blue',
     age: 'medium age',
-    voice: 'alloy',
+    voice: '9BWtsMINqrJLrRacOk9x', // Aria
     avatarView: 'bust',
     clothing: 'clothed',
     imageStyle: 'realistic',
@@ -109,7 +109,7 @@ const Customize = () => {
         outfit: savedCharacter.outfit,
         eyeColor: savedCharacter.eyeColor,
         age: savedCharacter.age,
-        voice: savedCharacter.voice || 'alloy',
+        voice: savedCharacter.voice || '9BWtsMINqrJLrRacOk9x', // Aria by default
         avatarView: savedCharacter.avatarView || 'bust',
         clothing: savedCharacter.clothing || 'clothed',
         imageStyle: savedCharacter.imageStyle || 'realistic',
@@ -893,7 +893,7 @@ const Customize = () => {
       outfit: selectedChar.outfit,
       eyeColor: selectedChar.eyeColor,
       age: selectedChar.age,
-      voice: selectedChar.voice || 'alloy',
+      voice: selectedChar.voice || '9BWtsMINqrJLrRacOk9x', // Aria by default
       avatarView: selectedChar.avatarView || 'bust',
       clothing: selectedChar.clothing || 'clothed',
       imageStyle: selectedChar.imageStyle || 'realistic',
