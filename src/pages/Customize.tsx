@@ -801,8 +801,7 @@ const Customize = () => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const result = e.target?.result as string;
-      setUploadedImage(result);
-      setShowImportDialog(true);
+      navigate('/import', { state: { uploadedImage: result } });
     };
     reader.readAsDataURL(file);
   };

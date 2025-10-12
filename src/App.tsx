@@ -7,6 +7,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Customize from "./pages/Customize";
+import ImportMode from "./pages/ImportMode";
 import Chat from "./pages/Chat";
 import CharacterGallery from "./pages/CharacterGallery";
 import VoiceChat from "./pages/VoiceChat";
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
           <Route path="/customize" element={<ProtectedRoute><Customize /></ProtectedRoute>} />
+          <Route path="/import" element={<ProtectedRoute><ImportMode /></ProtectedRoute>} />
           <Route path="/gallery" element={<ProtectedRoute><CharacterGallery /></ProtectedRoute>} />
           <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
           <Route path="/voice-chat" element={<ProtectedRoute><VoiceChat /></ProtectedRoute>} />
