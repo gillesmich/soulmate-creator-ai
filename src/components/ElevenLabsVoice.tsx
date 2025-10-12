@@ -221,49 +221,13 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
       const audioContext = new AudioContext();
       await audioContext.resume();
       
-      const sessionConfig: any = { signedUrl: url };
+      // Configuration simplifiée - juste l'URL signée
+      // Les overrides de voix et personnalité doivent être configurés côté ElevenLabs
+      const sessionConfig = { 
+        signedUrl: url
+      };
       
-      // Configuration avec overrides pour personnaliser l'agent
-      const overrides: any = {};
-      
-      // Override de la voix si une voix est sélectionnée
-      if (selectedVoiceId) {
-        const selectedVoice = availableVoices.find(v => v.voice_id === selectedVoiceId);
-        console.log('[ELEVENLABS] Overriding voice:', {
-          voiceId: selectedVoiceId,
-          voiceName: selectedVoice?.name
-        });
-        
-        overrides.tts = {
-          voiceId: selectedVoiceId
-        };
-      }
-      
-      // Override du prompt de l'agent avec les infos du personnage
-      if (currentCharacter) {
-        const personalityPrompt = `Tu es ${currentCharacter.name || agentName}, une personne ${currentCharacter.personality || 'chaleureuse'}. ${
-          currentCharacter.characterTraits ? `Tu as les traits suivants: ${currentCharacter.characterTraits}.` : ''
-        } ${
-          currentCharacter.interests ? `Tu t'intéresses à: ${currentCharacter.interests}.` : ''
-        } ${
-          currentCharacter.hobbies ? `Tes hobbies sont: ${currentCharacter.hobbies}.` : ''
-        } Parle en français de manière naturelle et engageante.`;
-        
-        overrides.agent = {
-          prompt: {
-            prompt: personalityPrompt
-          },
-          firstMessage: `Salut ! Je suis ${currentCharacter.name || agentName}. Comment vas-tu ?`
-        };
-        
-        console.log('[ELEVENLABS] Overriding agent personality:', personalityPrompt);
-      }
-      
-      if (Object.keys(overrides).length > 0) {
-        sessionConfig.overrides = overrides;
-      }
-      
-      console.log('[ELEVENLABS] Final session config:', JSON.stringify(sessionConfig, null, 2));
+      console.log('[ELEVENLABS] Starting session with config:', sessionConfig);
       
       await conversation.startSession(sessionConfig);
       
@@ -311,7 +275,7 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
           <div className="flex items-center gap-2 text-sm">
             <Info className="w-4 h-4 text-muted-foreground" />
             <span className="font-medium">ID:</span>
-            <span className="text-xs text-muted-foreground font-mono">{agentId || 'Chargement...'}</span>
+            <span className="text-xs text-muted-foreground font-mono break-all">{agentId || 'Chargement...'}</span>
           </div>
           {currentCharacter && (
             <>
@@ -331,17 +295,12 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
                   </span>
                 </div>
               </div>
-              {selectedVoiceId && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Mic className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-medium">Voix:</span>
-                  <span className="text-muted-foreground">
-                    {availableVoices.find(v => v.voice_id === selectedVoiceId)?.name || selectedVoiceId}
-                  </span>
-                </div>
-              )}
             </>
           )}
+          <div className="text-xs text-muted-foreground mt-2 p-2 bg-amber-500/10 border border-amber-500/20 rounded">
+            <Info className="w-3 h-3 inline mr-1" />
+            Les paramètres de voix et personnalité doivent être configurés directement dans l'agent ElevenLabs
+          </div>
         </div>
 
         {/* Voice Selection */}
