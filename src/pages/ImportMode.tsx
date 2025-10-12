@@ -6,15 +6,17 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import ElevenLabsVoiceSelector from '@/components/ElevenLabsVoiceSelector';
+import { useApiKey } from '@/hooks/useApiKey';
+import { invokeFunctionWithApiKey } from '@/utils/apiHelper';
 
 const ImportMode = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const uploadedImage = location.state?.uploadedImage;
+  const { apiKey } = useApiKey();
 
   const [age, setAge] = useState('25');
   const [selectedStyles, setSelectedStyles] = useState<string[]>(['realistic']);
@@ -44,6 +46,11 @@ const ImportMode = () => {
       return;
     }
 
+    if (!apiKey) {
+      toast.error('Clé API manquante. Veuillez en créer une dans les paramètres.');
+      return;
+    }
+
     if (selectedStyles.length === 0 || selectedViews.length === 0 || selectedClothing.length === 0) {
       toast.error('Veuillez sélectionner au moins un style, une vue et une tenue');
       return;
@@ -52,7 +59,9 @@ const ImportMode = () => {
     setIsGenerating(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('generate-girlfriend-photo-ai', {
+      const { data, error } = await invokeFunctionWithApiKey({
+        functionName: 'generate-girlfriend-photo-ai',
+        apiKey,
         body: {
           character: {
             age,
@@ -69,7 +78,7 @@ const ImportMode = () => {
 
       if (error) throw error;
 
-      if (data?.imageUrl) {
+      if (data?.image) {
         toast.success('Avatar généré avec succès!');
         
         // Store in session for use in other pages
@@ -85,7 +94,7 @@ const ImportMode = () => {
         };
         
         sessionStorage.setItem('generatedCharacter', JSON.stringify(characterData));
-        sessionStorage.setItem('generatedImage', data.imageUrl);
+        sessionStorage.setItem('generatedImage', data.image);
         
         navigate('/voice-chat');
       }
