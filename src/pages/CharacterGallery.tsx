@@ -77,7 +77,10 @@ const CharacterGallery = () => {
               imageStyle: characterData.imageStyle,
               interests: characterData.interests || '',
               hobbies: characterData.hobbies || '',
-              characterTraits: characterData.characterTraits || ''
+              characterTraits: characterData.characterTraits || '',
+              agentId: characterData.agentId,
+              agentName: characterData.agentName,
+              ethnicity: characterData.ethnicity
             };
           });
           

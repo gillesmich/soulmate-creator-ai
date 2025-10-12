@@ -42,6 +42,8 @@ interface SavedCharacter {
   hobbies?: string;
   characterTraits?: string;
   ethnicity?: string;
+  agentId?: string;
+  agentName?: string;
 }
 
 interface CharacterOptions {
@@ -60,6 +62,8 @@ interface CharacterOptions {
   hobbies: string;
   characterTraits: string;
   ethnicity: string;
+  agentId?: string;
+  agentName?: string;
 }
 
 const Customize = () => {
@@ -119,7 +123,9 @@ const Customize = () => {
         interests: savedCharacter.interests || '',
         hobbies: savedCharacter.hobbies || '',
         characterTraits: savedCharacter.characterTraits || '',
-        ethnicity: savedCharacter.ethnicity || 'caucasian'
+        ethnicity: savedCharacter.ethnicity || 'caucasian',
+        agentId: savedCharacter.agentId,
+        agentName: savedCharacter.agentName
       });
       
       // Sync multi-select arrays with character values
