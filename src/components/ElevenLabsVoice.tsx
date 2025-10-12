@@ -340,25 +340,8 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
         signedUrl: url
       };
 
-      // En mode agent, appliquer l'override de voix si nécessaire
-      if (conversationMode === 'agent') {
-        const selectedAgent = availableAgents.find(a => a.agent_id === agentId);
-        const agentDefaultVoiceId = selectedAgent?.conversation_config?.tts?.voice_id;
-        
-        if (selectedVoiceId && selectedVoiceId !== agentDefaultVoiceId) {
-          console.log('[ELEVENLABS] Applying voice override:', {
-            agentDefaultVoice: agentDefaultVoiceId,
-            selectedVoice: selectedVoiceId
-          });
-          sessionConfig.overrides = {
-            tts: {
-              voiceId: selectedVoiceId
-            }
-          };
-        } else {
-          console.log('[ELEVENLABS] Using agent default voice:', agentDefaultVoiceId);
-        }
-      }
+      // En mode agent : utiliser UNIQUEMENT la voix de l'agent (pas d'override)
+      console.log('[ELEVENLABS] Using agent native voice (no override)');
       
       console.log('[ELEVENLABS] Session config:', sessionConfig);
       
@@ -492,20 +475,19 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
                     setAgentId(value);
                     setAgentName(selectedAgent.name);
                     
-                    // IMPORTANT : Récupérer et pré-sélectionner la voix de l'agent
-                    const agentVoiceId = selectedAgent.conversation_config?.tts?.voice_id;
-                    if (agentVoiceId) {
-                      console.log('[ELEVENLABS] Agent voice detected:', agentVoiceId);
-                      setSelectedVoiceId(agentVoiceId);
-                    }
+                    // NE PAS modifier la voix - elle reste celle choisie par l'utilisateur
+                    console.log('[ELEVENLABS] Agent selected (voice unchanged):', {
+                      agentId: value,
+                      agentName: selectedAgent.name,
+                      userSelectedVoice: selectedVoiceId
+                    });
                     
-                    // Sauvegarder l'agent dans le personnage
+                    // Sauvegarder l'agent dans le personnage SANS changer la voix
                     if (currentCharacter) {
                       const updatedCharacter = {
                         ...currentCharacter,
                         agentId: value,
-                        agentName: selectedAgent.name,
-                        voice: agentVoiceId || currentCharacter.voice
+                        agentName: selectedAgent.name
                       };
                       setCurrentCharacter(updatedCharacter);
                     }

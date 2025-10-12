@@ -108,7 +108,7 @@ const Customize = () => {
   useEffect(() => {
     const savedCharacter = getCurrentCharacter();
     if (savedCharacter) {
-      setCharacter({
+      const loadedCharacter = {
         hairColor: savedCharacter.hairColor,
         hairStyle: savedCharacter.hairStyle,
         bodyType: savedCharacter.bodyType,
@@ -116,7 +116,7 @@ const Customize = () => {
         outfit: savedCharacter.outfit,
         eyeColor: savedCharacter.eyeColor,
         age: savedCharacter.age,
-        voice: savedCharacter.voice || '9BWtsMINqrJLrRacOk9x', // Aria by default
+        voice: savedCharacter.voice || '9BWtsMINqrJLrRacOk9x',
         avatarView: savedCharacter.avatarView || 'bust',
         clothing: savedCharacter.clothing || 'clothed',
         imageStyle: savedCharacter.imageStyle || 'realistic',
@@ -126,12 +126,13 @@ const Customize = () => {
         ethnicity: savedCharacter.ethnicity || 'caucasian',
         agentId: savedCharacter.agentId,
         agentName: savedCharacter.agentName
-      });
+      };
+      setCharacter(loadedCharacter);
       
-      // Sync multi-select arrays with character values
-      setSelectedStyles([savedCharacter.imageStyle || 'realistic']);
-      setSelectedViews([savedCharacter.avatarView || 'bust']);
-      setSelectedClothing([savedCharacter.clothing || 'clothed']);
+      // IMPORTANT: Restaurer les sélections multiples
+      setSelectedStyles([loadedCharacter.imageStyle]);
+      setSelectedViews([loadedCharacter.avatarView]);
+      setSelectedClothing([loadedCharacter.clothing]);
       
       // Set current character ID and name for updates
       setCurrentCharacterId(savedCharacter.id || null);
@@ -946,17 +947,19 @@ const Customize = () => {
       outfit: selectedChar.outfit,
       eyeColor: selectedChar.eyeColor,
       age: selectedChar.age,
-      voice: selectedChar.voice || '9BWtsMINqrJLrRacOk9x', // Aria by default
+      voice: selectedChar.voice || '9BWtsMINqrJLrRacOk9x',
       avatarView: selectedChar.avatarView || 'bust',
       clothing: selectedChar.clothing || 'clothed',
       imageStyle: selectedChar.imageStyle || 'realistic',
       interests: selectedChar.interests || '',
       hobbies: selectedChar.hobbies || '',
       characterTraits: selectedChar.characterTraits || '',
-      ethnicity: selectedChar.ethnicity || 'caucasian'
+      ethnicity: selectedChar.ethnicity || 'caucasian',
+      agentId: selectedChar.agentId,
+      agentName: selectedChar.agentName
     });
     
-    // Sync multi-select arrays with imported character values
+    // IMPORTANT: Restaurer les sélections multiples
     setSelectedStyles([selectedChar.imageStyle || 'realistic']);
     setSelectedViews([selectedChar.avatarView || 'bust']);
     setSelectedClothing([selectedChar.clothing || 'clothed']);
