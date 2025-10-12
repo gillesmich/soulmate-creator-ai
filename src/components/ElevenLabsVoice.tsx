@@ -36,10 +36,11 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
       console.log('[ELEVENLABS] Current character loaded:', character);
       setCurrentCharacter(character);
       
-      // IMPORTANT: Si l'agent n'est pas défini, utiliser l'agent par défaut mais afficher le nom du personnage
-      const characterAgentId = character.agentId || 'agent_5501k79dakb3eay91b90g55520cr';
+      // IMPORTANT: Vérifier si l'agent est vraiment défini (pas vide)
+      const hasAgent = character.agentId && character.agentId.trim() !== '';
+      const characterAgentId = hasAgent ? character.agentId : 'agent_5501k79dakb3eay91b90g55520cr';
       // Utiliser le nom de l'agent si défini, sinon le nom du personnage
-      const characterAgentName = character.agentId && character.agentName 
+      const characterAgentName = hasAgent && character.agentName 
         ? character.agentName 
         : (character.name || 'Personnage');
       
@@ -49,7 +50,7 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
       console.log('[ELEVENLABS] Agent configured:', {
         agentId: characterAgentId,
         agentName: characterAgentName,
-        hasAgentDefined: !!character.agentId,
+        hasAgentDefined: hasAgent,
         characterName: character.name,
         fullCharacter: character
       });
@@ -235,7 +236,7 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
                   </span>
                 </div>
               </div>
-              {currentCharacter.agentId && currentCharacter.agentName && (
+              {currentCharacter.agentId && currentCharacter.agentId.trim() !== '' && currentCharacter.agentName && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Mic className="w-4 h-4" />
                   <span className="text-xs">Agent vocal: {currentCharacter.agentName}</span>
