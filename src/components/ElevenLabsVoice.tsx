@@ -190,7 +190,7 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
         <div className="bg-muted/30 p-4 rounded-lg border space-y-2">
           <div className="flex items-center gap-2 text-sm">
             <User className="w-4 h-4 text-muted-foreground" />
-            <span className="font-medium">Agent:</span>
+            <span className="font-medium">Voix:</span>
             <span className="text-muted-foreground">{agentName || 'Chargement...'}</span>
           </div>
           {currentCharacter && (
