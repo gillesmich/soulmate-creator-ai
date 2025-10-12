@@ -18,6 +18,8 @@ export interface CharacterData {
   interests?: string;
   hobbies?: string;
   characterTraits?: string;
+  agentId?: string; // ElevenLabs agent ID
+  agentName?: string; // ElevenLabs agent name
 }
 
 export interface SavedCharacter extends CharacterData {

@@ -37,20 +37,44 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
   const [availableVoices, setAvailableVoices] = useState<Voice[]>([]);
   const [isLoadingVoices, setIsLoadingVoices] = useState(false);
   const [currentCharacter, setCurrentCharacter] = useState<any>(null);
+  const [agentId, setAgentId] = useState<string>('');
+  const [agentName, setAgentName] = useState<string>('');
   const { toast } = useToast();
   const { subscription } = useSubscription();
 
-  // Agent ID pour Maya
-  const AGENT_ID = 'agent_5501k79dakb3eay91b90g55520cr';
-  const AGENT_NAME = 'Agathe';
-
-  // Charger le personnage actuel
+  // Charger le personnage actuel et les infos d'agent
   useEffect(() => {
-    const character = getCurrentCharacter();
-    if (character) {
-      console.log('[ELEVENLABS] Current character loaded:', character);
-      setCurrentCharacter(character);
-    }
+    const loadCharacterAndAgent = async () => {
+      const character = getCurrentCharacter();
+      if (character) {
+        console.log('[ELEVENLABS] Current character loaded:', character);
+        setCurrentCharacter(character);
+        
+        // Récupérer l'agent ID depuis le character_data ou utiliser l'agent par défaut
+        const characterAgentId = character.agentId || 'agent_5501k79dakb3eay91b90g55520cr';
+        const characterAgentName = character.agentName || character.name || 'Agathe';
+        
+        setAgentId(characterAgentId);
+        setAgentName(characterAgentName);
+        
+        console.log('[ELEVENLABS] Agent configured:', {
+          agentId: characterAgentId,
+          agentName: characterAgentName,
+          characterVoice: character.voice
+        });
+        
+        // Pré-sélectionner la voix du personnage si elle existe
+        if (character.voice) {
+          setSelectedVoiceId(character.voice);
+        }
+      } else {
+        // Valeurs par défaut si aucun personnage
+        setAgentId('agent_5501k79dakb3eay91b90g55520cr');
+        setAgentName('Agathe');
+      }
+    };
+    
+    loadCharacterAndAgent();
   }, []);
 
   const conversation = useConversation({
@@ -164,11 +188,23 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
 
   const startConversation = async () => {
     try {
-      console.log('[ELEVENLABS] Getting signed URL for agent:', AGENT_ID);
-      console.log('[ELEVENLABS] Selected voice ID:', selectedVoiceId);
-      console.log('[ELEVENLABS] Character data:', currentCharacter);
+      if (!agentId) {
+        toast({
+          title: "Erreur",
+          description: "Aucun agent configuré. Veuillez recharger la page.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('[ELEVENLABS] Starting conversation with agent:', {
+        agentId,
+        agentName,
+        selectedVoiceId,
+        characterData: currentCharacter
+      });
       
-      const url = await getSignedUrl(AGENT_ID);
+      const url = await getSignedUrl(agentId);
       if (!url) {
         console.error('[ELEVENLABS] No signed URL received');
         return;
@@ -187,20 +223,47 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
       
       const sessionConfig: any = { signedUrl: url };
       
-      // Configuration selon la documentation ElevenLabs
+      // Configuration avec overrides pour personnaliser l'agent
+      const overrides: any = {};
+      
+      // Override de la voix si une voix est sélectionnée
       if (selectedVoiceId) {
-        console.log('[ELEVENLABS] Using selected voice:', selectedVoiceId);
         const selectedVoice = availableVoices.find(v => v.voice_id === selectedVoiceId);
-        console.log('[ELEVENLABS] Selected voice details:', selectedVoice?.name);
+        console.log('[ELEVENLABS] Overriding voice:', {
+          voiceId: selectedVoiceId,
+          voiceName: selectedVoice?.name
+        });
         
-        sessionConfig.overrides = {
-          tts: {
-            voiceId: selectedVoiceId
-          }
+        overrides.tts = {
+          voiceId: selectedVoiceId
+        };
+      }
+      
+      // Override du prompt de l'agent avec les infos du personnage
+      if (currentCharacter) {
+        const personalityPrompt = `Tu es ${currentCharacter.name || agentName}, une personne ${currentCharacter.personality || 'chaleureuse'}. ${
+          currentCharacter.characterTraits ? `Tu as les traits suivants: ${currentCharacter.characterTraits}.` : ''
+        } ${
+          currentCharacter.interests ? `Tu t'intéresses à: ${currentCharacter.interests}.` : ''
+        } ${
+          currentCharacter.hobbies ? `Tes hobbies sont: ${currentCharacter.hobbies}.` : ''
+        } Parle en français de manière naturelle et engageante.`;
+        
+        overrides.agent = {
+          prompt: {
+            prompt: personalityPrompt
+          },
+          firstMessage: `Salut ! Je suis ${currentCharacter.name || agentName}. Comment vas-tu ?`
         };
         
-        console.log('[ELEVENLABS] Session config:', JSON.stringify(sessionConfig, null, 2));
+        console.log('[ELEVENLABS] Overriding agent personality:', personalityPrompt);
       }
+      
+      if (Object.keys(overrides).length > 0) {
+        sessionConfig.overrides = overrides;
+      }
+      
+      console.log('[ELEVENLABS] Final session config:', JSON.stringify(sessionConfig, null, 2));
       
       await conversation.startSession(sessionConfig);
       
@@ -243,21 +306,41 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
           <div className="flex items-center gap-2 text-sm">
             <User className="w-4 h-4 text-muted-foreground" />
             <span className="font-medium">Agent:</span>
-            <span className="text-muted-foreground">{AGENT_NAME}</span>
+            <span className="text-muted-foreground">{agentName || 'Chargement...'}</span>
           </div>
           <div className="flex items-center gap-2 text-sm">
             <Info className="w-4 h-4 text-muted-foreground" />
             <span className="font-medium">ID:</span>
-            <span className="text-xs text-muted-foreground font-mono">{AGENT_ID}</span>
+            <span className="text-xs text-muted-foreground font-mono">{agentId || 'Chargement...'}</span>
           </div>
           {currentCharacter && (
-            <div className="flex items-center gap-2 text-sm">
-              <User className="w-4 h-4 text-muted-foreground" />
-              <span className="font-medium">Personnage:</span>
-              <span className="text-muted-foreground">
-                {currentCharacter.name || 'Maya'} - {currentCharacter.personality || 'Non défini'}
-              </span>
-            </div>
+            <>
+              <div className="flex items-center gap-2 text-sm">
+                <User className="w-4 h-4 text-muted-foreground" />
+                <span className="font-medium">Personnage:</span>
+                <span className="text-muted-foreground">
+                  {currentCharacter.name || 'Maya'}
+                </span>
+              </div>
+              <div className="flex items-start gap-2 text-sm">
+                <Info className="w-4 h-4 text-muted-foreground mt-0.5" />
+                <div className="flex-1">
+                  <span className="font-medium">Personnalité:</span>
+                  <span className="text-muted-foreground ml-1">
+                    {currentCharacter.personality || 'Non défini'}
+                  </span>
+                </div>
+              </div>
+              {selectedVoiceId && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Mic className="w-4 h-4 text-muted-foreground" />
+                  <span className="font-medium">Voix:</span>
+                  <span className="text-muted-foreground">
+                    {availableVoices.find(v => v.voice_id === selectedVoiceId)?.name || selectedVoiceId}
+                  </span>
+                </div>
+              )}
+            </>
           )}
         </div>
 
