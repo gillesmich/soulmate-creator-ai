@@ -5,19 +5,23 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Play, Trash2, Images } from 'lucide-react';
+import { ArrowLeft, Play, Trash2, Images, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { getSavedCharacters, deleteCharacter, setCurrentCharacter, type SavedCharacter } from '@/utils/characterStorage';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { useApiKey } from '@/hooks/useApiKey';
+import { invokeFunctionWithApiKey } from '@/utils/apiHelper';
 
 const CharacterGallery = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { apiKey } = useApiKey();
   const [characters, setCharacters] = useState<SavedCharacter[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCharacter, setSelectedCharacter] = useState<SavedCharacter | null>(null);
   const [showImagesDialog, setShowImagesDialog] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     loadCharacters();
@@ -128,6 +132,105 @@ const CharacterGallery = () => {
       images: character.images || [character.image]
     });
     navigate('/customize');
+  };
+
+  const generateNewAvatar = async (character: SavedCharacter) => {
+    if (!apiKey) {
+      toast({
+        title: "Clé API requise",
+        description: "Veuillez configurer votre clé API dans les paramètres",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    
+    try {
+      const characterSeed = Date.now();
+      
+      // Generate with the character's existing style or default to realistic
+      const style = character.imageStyle || 'realistic';
+      const view = character.avatarView || 'bust';
+      const clothing = character.clothing || 'clothed';
+      
+      const { data, error } = await invokeFunctionWithApiKey({
+        functionName: 'generate-girlfriend-photo-ai',
+        apiKey,
+        body: { 
+          character: { 
+            hairColor: character.hairColor,
+            hairStyle: character.hairStyle,
+            bodyType: character.bodyType,
+            personality: character.personality,
+            outfit: character.outfit,
+            eyeColor: character.eyeColor,
+            age: character.age,
+            ethnicity: character.ethnicity,
+            imageStyle: style,
+            avatarView: view,
+            clothing: clothing,
+            interests: character.interests,
+            hobbies: character.hobbies,
+            characterTraits: character.characterTraits
+          },
+          seed: characterSeed,
+          retryAttempt: 0
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data?.image) {
+        throw new Error('Aucune image générée');
+      }
+
+      // Update character in Supabase with new image
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        const updatedImages = [...(character.images || [character.image]), data.image];
+        
+        const { error: updateError } = await supabase
+          .from('saved_girlfriend_images')
+          .update({
+            image_urls: updatedImages,
+            image_url: data.image // Update the main image to the latest
+          })
+          .eq('id', character.id)
+          .eq('user_id', user.id);
+
+        if (updateError) {
+          console.error('Error updating character:', updateError);
+          throw updateError;
+        }
+
+        toast({
+          title: "Avatar généré !",
+          description: "Un nouvel avatar a été ajouté à ce personnage",
+        });
+
+        // Reload characters to show the new image
+        await loadCharacters();
+        
+        // Update selected character if it's the one being viewed
+        if (selectedCharacter?.id === character.id) {
+          const updatedChar = { ...character, images: updatedImages, image: data.image };
+          setSelectedCharacter(updatedChar);
+        }
+      }
+    } catch (error) {
+      console.error('Error generating avatar:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de générer l'avatar. Veuillez réessayer.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   if (loading) {
@@ -356,27 +459,39 @@ const CharacterGallery = () => {
             </div>
           )}
 
-          <div className="flex gap-2 mt-4">
+          <div className="space-y-2 mt-4">
             <Button
-              className="flex-1 bg-primary hover:bg-primary/90"
+              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
               onClick={() => {
-                if (selectedCharacter) selectCharacter(selectedCharacter);
-                setShowImagesDialog(false);
+                if (selectedCharacter) generateNewAvatar(selectedCharacter);
               }}
+              disabled={isGenerating}
             >
-              <Play className="h-4 w-4 mr-2" />
-              Start Chat
+              <Sparkles className="h-4 w-4 mr-2" />
+              {isGenerating ? 'Génération en cours...' : 'Générer un nouvel avatar'}
             </Button>
-            <Button
-              variant="outline"
-              className="flex-1"
-              onClick={() => {
-                if (selectedCharacter) editCharacter(selectedCharacter);
-                setShowImagesDialog(false);
-              }}
-            >
-              Edit Character
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                className="flex-1 bg-primary hover:bg-primary/90"
+                onClick={() => {
+                  if (selectedCharacter) selectCharacter(selectedCharacter);
+                  setShowImagesDialog(false);
+                }}
+              >
+                <Play className="h-4 w-4 mr-2" />
+                Start Chat
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  if (selectedCharacter) editCharacter(selectedCharacter);
+                  setShowImagesDialog(false);
+                }}
+              >
+                Edit Character
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
