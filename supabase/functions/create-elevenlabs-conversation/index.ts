@@ -40,16 +40,19 @@ serve(async (req) => {
 
     console.log('[CREATE-CONVERSATION] Creating conversation with config:', conversationConfig);
 
-    // Générer une signed URL pour la conversation
+    // Créer une conversation avec configuration custom
     const response = await fetch(
-      'https://api.elevenlabs.io/v1/convai/conversation/get_signed_url',
+      'https://api.elevenlabs.io/v1/convai/conversations',
       {
         method: 'POST',
         headers: {
           'xi-api-key': ELEVENLABS_API_KEY,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(conversationConfig)
+        body: JSON.stringify({
+          agent_id: null,
+          ...conversationConfig
+        })
       }
     );
 
