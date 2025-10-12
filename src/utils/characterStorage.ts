@@ -127,4 +127,7 @@ export const setCurrentCharacter = (character: CharacterData): void => {
       console.warn('Could not store image in sessionStorage:', e);
     }
   }
+  
+  // Déclencher un événement pour notifier les autres composants du changement
+  window.dispatchEvent(new Event('characterChanged'));
 };

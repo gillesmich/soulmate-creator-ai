@@ -30,32 +30,56 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
   const { subscription } = useSubscription();
 
   // Charger le personnage actuel et les infos d'agent
+  const loadCharacterAndAgent = () => {
+    const character = getCurrentCharacter();
+    if (character) {
+      console.log('[ELEVENLABS] Current character loaded:', character);
+      setCurrentCharacter(character);
+      
+      // Récupérer l'agent ID depuis le character_data ou utiliser l'agent par défaut
+      const characterAgentId = character.agentId || 'agent_5501k79dakb3eay91b90g55520cr';
+      const characterAgentName = character.agentName || character.name || 'Agathe';
+      
+      setAgentId(characterAgentId);
+      setAgentName(characterAgentName);
+      
+      console.log('[ELEVENLABS] Agent configured:', {
+        agentId: characterAgentId,
+        agentName: characterAgentName,
+        fullCharacter: character
+      });
+    } else {
+      // Valeurs par défaut si aucun personnage
+      setAgentId('agent_5501k79dakb3eay91b90g55520cr');
+      setAgentName('Agathe');
+    }
+  };
+  
   useEffect(() => {
-    const loadCharacterAndAgent = async () => {
-      const character = getCurrentCharacter();
-      if (character) {
-        console.log('[ELEVENLABS] Current character loaded:', character);
-        setCurrentCharacter(character);
-        
-        // Récupérer l'agent ID depuis le character_data ou utiliser l'agent par défaut
-        const characterAgentId = character.agentId || 'agent_5501k79dakb3eay91b90g55520cr';
-        const characterAgentName = character.agentName || character.name || 'Agathe';
-        
-        setAgentId(characterAgentId);
-        setAgentName(characterAgentName);
-        
-        console.log('[ELEVENLABS] Agent configured:', {
-          agentId: characterAgentId,
-          agentName: characterAgentName
-        });
-      } else {
-        // Valeurs par défaut si aucun personnage
-        setAgentId('agent_5501k79dakb3eay91b90g55520cr');
-        setAgentName('Agathe');
+    loadCharacterAndAgent();
+    
+    // Écouter les changements du localStorage pour recharger le personnage
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'girlfriendCharacter') {
+        console.log('[ELEVENLABS] Character changed in storage, reloading...');
+        loadCharacterAndAgent();
       }
     };
     
-    loadCharacterAndAgent();
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Également écouter un événement personnalisé pour les changements dans la même fenêtre
+    const handleCharacterChange = () => {
+      console.log('[ELEVENLABS] Character change event received, reloading...');
+      loadCharacterAndAgent();
+    };
+    
+    window.addEventListener('characterChanged', handleCharacterChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('characterChanged', handleCharacterChange);
+    };
   }, []);
 
   const conversation = useConversation({
@@ -188,18 +212,20 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
 
         {/* Character Info */}
         <div className="bg-muted/30 p-4 rounded-lg border space-y-2">
-          <div className="flex items-center gap-2 text-sm">
-            <User className="w-4 h-4 text-muted-foreground" />
-            <span className="font-medium">Voix:</span>
-            <span className="text-muted-foreground">{agentName || 'Chargement...'}</span>
-          </div>
           {currentCharacter && (
             <>
               <div className="flex items-center gap-2 text-sm">
                 <User className="w-4 h-4 text-muted-foreground" />
                 <span className="font-medium">Personnage:</span>
-                <span className="text-muted-foreground">
+                <span className="text-muted-foreground font-semibold">
                   {currentCharacter.name || 'Maya'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <User className="w-4 h-4 text-muted-foreground" />
+                <span className="font-medium">Voix:</span>
+                <span className="text-muted-foreground">
+                  {agentName || 'Chargement...'}
                 </span>
               </div>
               <div className="flex items-start gap-2 text-sm">
@@ -212,6 +238,11 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
                 </div>
               </div>
             </>
+          )}
+          {!currentCharacter && (
+            <div className="text-sm text-muted-foreground">
+              Aucun personnage sélectionné
+            </div>
           )}
         </div>
 
