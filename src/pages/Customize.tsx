@@ -19,6 +19,7 @@ import AttitudeVariationsDialog from '@/components/AttitudeVariationsDialog';
 import VideoGenerator from '@/components/VideoGenerator';
 import VoiceSelector from '@/components/VoiceSelector';
 import ElevenLabsVoiceSelector from '@/components/ElevenLabsVoiceSelector';
+import ElevenLabsAgentSelector from '@/components/ElevenLabsAgentSelector';
 import { setCurrentCharacter, getCurrentCharacter } from '@/utils/characterStorage';
 
 interface SavedCharacter {
@@ -1298,22 +1299,30 @@ const Customize = () => {
                 </CardContent>
               </Card>
 
-              {/* Voice Selection Card */}
+              {/* Agent Selection Card */}
               <Card className="border-primary/10">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Mic className="h-4 w-4 text-primary" />
-                    Voix ElevenLabs
+                    Agent vocal ElevenLabs
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ElevenLabsVoiceSelector 
-                    value={character.voice}
-                    onChange={(value) => updateCharacter('voice', value)}
-                    label="Sélectionnez la voix de conversation"
+                  <ElevenLabsAgentSelector 
+                    agentId={character.agentId || ''}
+                    agentName={character.agentName || ''}
+                    onAgentChange={(agentId, agentName) => {
+                      console.log('[CUSTOMIZE] Agent changed:', { agentId, agentName });
+                      setCharacter(prev => ({ 
+                        ...prev, 
+                        agentId, 
+                        agentName 
+                      }));
+                    }}
+                    label="Sélectionnez l'agent vocal pour la conversation"
                   />
                   <p className="text-sm text-muted-foreground mt-2">
-                    Inclut toutes les voix et agents ElevenLabs
+                    L'agent vocal sera utilisé pour les conversations en temps réel
                   </p>
                 </CardContent>
               </Card>
