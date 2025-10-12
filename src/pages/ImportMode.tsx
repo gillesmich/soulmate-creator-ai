@@ -7,8 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Save } from 'lucide-react';
 import ElevenLabsVoiceSelector from '@/components/ElevenLabsVoiceSelector';
+import SaveImageDialog from '@/components/SaveImageDialog';
+import { supabase } from '@/integrations/supabase/client';
 import { useApiKey } from '@/hooks/useApiKey';
 import { invokeFunctionWithApiKey } from '@/utils/apiHelper';
 
@@ -27,6 +29,8 @@ const ImportMode = () => {
   const [characterTraits, setCharacterTraits] = useState('');
   const [voice, setVoice] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
 
   const imageStyles = ['realistic', 'anime', 'cartoon', 'digital art'];
   const avatarViews = ['bust', 'full body'];
@@ -84,6 +88,7 @@ const ImportMode = () => {
       if (error) throw error;
 
       if (data?.image) {
+        setGeneratedImage(data.image);
         toast.success('Avatar généré avec succès!');
         
         // Store in session for use in other pages
@@ -100,8 +105,6 @@ const ImportMode = () => {
         
         sessionStorage.setItem('generatedCharacter', JSON.stringify(characterData));
         sessionStorage.setItem('generatedImage', data.image);
-        
-        navigate('/customize');
       }
     } catch (error) {
       console.error('Error generating avatar:', error);
@@ -152,14 +155,35 @@ const ImportMode = () => {
         <h1 className="text-3xl font-bold mb-8">Générer un avatar depuis une photo</h1>
 
         <div className="grid md:grid-cols-2 gap-8">
-          {/* Image de référence */}
+          {/* Image de référence ou générée */}
           <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Image de référence</h2>
+            <h2 className="text-xl font-semibold mb-4">
+              {generatedImage ? 'Avatar généré' : 'Image de référence'}
+            </h2>
             <img
-              src={uploadedImage}
-              alt="Reference"
+              src={generatedImage || uploadedImage}
+              alt={generatedImage ? 'Generated avatar' : 'Reference'}
               className="w-full rounded-lg object-cover"
             />
+            {generatedImage && (
+              <div className="mt-4 flex gap-2">
+                <Button
+                  onClick={() => setShowSaveDialog(true)}
+                  className="flex-1"
+                  variant="default"
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  Sauvegarder
+                </Button>
+                <Button
+                  onClick={() => navigate('/customize')}
+                  className="flex-1"
+                  variant="outline"
+                >
+                  Continuer
+                </Button>
+              </div>
+            )}
           </Card>
 
           {/* Paramètres */}
@@ -277,7 +301,7 @@ const ImportMode = () => {
             {/* Bouton Générer */}
             <Button
               onClick={generateAvatar}
-              disabled={isGenerating}
+              disabled={isGenerating || !!generatedImage}
               className="w-full"
               size="lg"
             >
@@ -286,13 +310,60 @@ const ImportMode = () => {
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Génération en cours...
                 </>
+              ) : generatedImage ? (
+                'Avatar généré'
               ) : (
                 'Générer l\'avatar'
               )}
             </Button>
+
+            {generatedImage && (
+              <Button
+                onClick={() => {
+                  setGeneratedImage(null);
+                  setAge('25');
+                  setSelectedStyles(['realistic']);
+                  setSelectedViews(['bust']);
+                  setSelectedClothing(['clothed']);
+                  setInterests('');
+                  setHobbies('');
+                  setCharacterTraits('');
+                  setVoice('');
+                }}
+                variant="outline"
+                className="w-full"
+                size="lg"
+              >
+                Générer un nouvel avatar
+              </Button>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Save Dialog */}
+      <SaveImageDialog
+        isOpen={showSaveDialog}
+        onClose={() => setShowSaveDialog(false)}
+        imageUrls={generatedImage ? [generatedImage] : []}
+        characterData={{
+          hairColor: 'brown',
+          hairStyle: 'long',
+          bodyType: 'athletic',
+          personality: characterTraits,
+          outfit: selectedClothing[0],
+          eyeColor: 'brown',
+          age,
+          voice,
+          avatarView: selectedViews[0],
+          clothing: selectedClothing[0],
+          imageStyle: selectedStyles[0],
+          interests,
+          hobbies,
+          characterTraits,
+          ethnicity: 'mixed'
+        }}
+      />
     </div>
   );
 };
