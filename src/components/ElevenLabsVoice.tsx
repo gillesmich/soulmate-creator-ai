@@ -293,7 +293,7 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
         
         url = await getSignedUrl(agentId);
       } else {
-        // Mode Voix directe : créer une conversation avec juste une voix
+        // Mode Voix directe : utiliser l'agent par défaut avec override de voix
         if (!selectedVoiceId) {
           toast({
             title: "Erreur",
@@ -303,17 +303,11 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
           return;
         }
 
-        console.log('[ELEVENLABS] Starting conversation with voice:', selectedVoiceId);
+        console.log('[ELEVENLABS] Starting conversation with voice override:', selectedVoiceId);
 
-        const systemPrompt = currentCharacter?.personality 
-          ? `Tu es ${currentCharacter.name}. ${currentCharacter.personality}` 
-          : "Tu es une assistante vocale amicale et serviable.";
-
-        const { data, error } = await supabase.functions.invoke('create-elevenlabs-conversation', {
-          body: { 
-            voiceId: selectedVoiceId,
-            systemPrompt 
-          },
+        // Utiliser l'agent par défaut mais avec la voix sélectionnée
+        const { data, error } = await supabase.functions.invoke('get-elevenlabs-agent', {
+          body: { agentId }
         });
 
         if (error) throw error;
@@ -340,8 +334,26 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
         signedUrl: url
       };
 
-      // En mode agent : utiliser UNIQUEMENT la voix de l'agent (pas d'override)
-      console.log('[ELEVENLABS] Using agent native voice (no override)');
+      // En mode voix directe : override la voix
+      if (conversationMode === 'voice' && selectedVoiceId) {
+        sessionConfig.overrides = {
+          tts: {
+            voiceId: selectedVoiceId
+          },
+          agent: {
+            prompt: {
+              prompt: currentCharacter?.personality 
+                ? `Tu es ${currentCharacter.name}. ${currentCharacter.personality}` 
+                : "Tu es une assistante vocale amicale et serviable."
+            },
+            firstMessage: `Salut ! Je suis ${currentCharacter?.name || 'ton assistante'}. Comment puis-je t'aider ?`
+          }
+        };
+        console.log('[ELEVENLABS] Using voice override:', selectedVoiceId);
+      } else {
+        // En mode agent : utiliser UNIQUEMENT la voix de l'agent (pas d'override)
+        console.log('[ELEVENLABS] Using agent native voice (no override)');
+      }
       
       console.log('[ELEVENLABS] Session config:', sessionConfig);
       
@@ -406,16 +418,20 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
 
         {/* Agent and Character Info */}
         <div className="bg-muted/30 p-4 rounded-lg border space-y-2">
-          <div className="flex items-center gap-2 text-sm">
-            <User className="w-4 h-4 text-muted-foreground" />
-            <span className="font-medium">Agent:</span>
-            <span className="text-muted-foreground">{agentName || 'Chargement...'}</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm">
-            <Info className="w-4 h-4 text-muted-foreground" />
-            <span className="font-medium">ID:</span>
-            <span className="text-xs text-muted-foreground font-mono break-all">{agentId || 'Chargement...'}</span>
-          </div>
+          {conversationMode === 'agent' && (
+            <>
+              <div className="flex items-center gap-2 text-sm">
+                <User className="w-4 h-4 text-muted-foreground" />
+                <span className="font-medium">Agent:</span>
+                <span className="text-muted-foreground">{agentName || 'Chargement...'}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Info className="w-4 h-4 text-muted-foreground" />
+                <span className="font-medium">ID:</span>
+                <span className="text-xs text-muted-foreground font-mono break-all">{agentId || 'Chargement...'}</span>
+              </div>
+            </>
+          )}
           {currentCharacter && (
             <>
               <div className="flex items-center gap-2 text-sm">
@@ -436,10 +452,10 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
               </div>
             </>
           )}
-          {selectedVoiceId && (
+          {selectedVoiceId && conversationMode === 'voice' && (
             <div className="flex items-center gap-2 text-sm">
               <Mic className="w-4 h-4 text-muted-foreground" />
-              <span className="font-medium">Voix active:</span>
+              <span className="font-medium">Voix sélectionnée:</span>
               <span className="text-muted-foreground">
                 {availableVoices.find(v => v.voice_id === selectedVoiceId)?.name || selectedVoiceId}
               </span>
@@ -456,7 +472,7 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
               <div className="flex-1">
                 <h4 className="font-semibold">Sélectionnez un agent</h4>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Choisissez un agent ElevenLabs. La voix de l'agent sera utilisée automatiquement.
+                  L'agent utilise sa propre voix configurée (non modifiable).
                 </p>
               </div>
             </div>
