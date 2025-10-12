@@ -855,44 +855,36 @@ const Customize = () => {
       
       toast({
         title: "🎨 Génération en cours",
-        description: `Création de ${selectedStyles.length * selectedViews.length * selectedClothing.length} avatar(s) basé(s) sur l'image de référence...`,
+        description: `Création avec le style "${character.imageStyle}"...`,
       });
 
-      // Generate images for each selected combination
-      const generationPromises = selectedStyles.flatMap(style => 
-        selectedViews.flatMap(view =>
-          selectedClothing.map(async (clothing) => {
-            try {
-              const { data, error } = await invokeFunctionWithApiKey({
-                functionName: 'generate-girlfriend-photo-ai',
-                apiKey,
-                body: { 
-                  character: {
-                    ...character,
-                    imageStyle: style,
-                    avatarView: view,
-                    clothing: clothing
-                  },
-                  seed: characterSeed,
-                  referenceImage: uploadedImage,
-                  retryAttempt: 0
-                }
-              });
+      // Use ONLY the character settings, not multi-select arrays
+      const { data, error } = await invokeFunctionWithApiKey({
+        functionName: 'generate-girlfriend-photo-ai',
+        apiKey,
+        body: { 
+          character: {
+            ...character,
+            // Force use of character settings, not arrays
+            imageStyle: character.imageStyle,
+            avatarView: character.avatarView,
+            clothing: character.clothing
+          },
+          seed: characterSeed,
+          referenceImage: uploadedImage,
+          retryAttempt: 0
+        }
+      });
 
-              if (error) throw error;
-              if (!data?.image) throw new Error('Aucune image générée');
+      if (error) throw error;
+      if (!data?.image) throw new Error('Aucune image générée');
 
-              return { url: data.image, style, view, clothing };
-            } catch (error) {
-              console.error(`Erreur pour ${style} ${view} ${clothing}:`, error);
-              return null;
-            }
-          })
-        )
-      );
-
-      const results = await Promise.all(generationPromises);
-      const validImages = results.filter((img): img is {url: string, style: string, view: string, clothing: string} => img !== null);
+      const validImages = [{ 
+        url: data.image, 
+        style: character.imageStyle, 
+        view: character.avatarView, 
+        clothing: character.clothing 
+      }];
 
       if (validImages.length > 0) {
         setGeneratedImages(validImages);
