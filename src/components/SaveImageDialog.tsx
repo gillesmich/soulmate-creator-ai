@@ -248,7 +248,7 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
           </Button>
           <Button 
             onClick={handleSave}
-            disabled={isSaving || !name.trim()}
+            disabled={isSaving || (!existingCharacterId && !name.trim())}
           >
             {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Enregistrer
