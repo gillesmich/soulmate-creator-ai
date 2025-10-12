@@ -36,9 +36,12 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
       console.log('[ELEVENLABS] Current character loaded:', character);
       setCurrentCharacter(character);
       
-      // Récupérer l'agent ID depuis le character_data ou utiliser l'agent par défaut
+      // IMPORTANT: Si l'agent n'est pas défini, utiliser l'agent par défaut mais afficher le nom du personnage
       const characterAgentId = character.agentId || 'agent_5501k79dakb3eay91b90g55520cr';
-      const characterAgentName = character.agentName || character.name || 'Agathe';
+      // Utiliser le nom de l'agent si défini, sinon le nom du personnage
+      const characterAgentName = character.agentId && character.agentName 
+        ? character.agentName 
+        : (character.name || 'Personnage');
       
       setAgentId(characterAgentId);
       setAgentName(characterAgentName);
@@ -46,12 +49,14 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
       console.log('[ELEVENLABS] Agent configured:', {
         agentId: characterAgentId,
         agentName: characterAgentName,
+        hasAgentDefined: !!character.agentId,
+        characterName: character.name,
         fullCharacter: character
       });
     } else {
       // Valeurs par défaut si aucun personnage
       setAgentId('agent_5501k79dakb3eay91b90g55520cr');
-      setAgentName('Agathe');
+      setAgentName('Personnage par défaut');
     }
   };
   
@@ -217,15 +222,8 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
               <div className="flex items-center gap-2 text-sm">
                 <User className="w-4 h-4 text-muted-foreground" />
                 <span className="font-medium">Personnage:</span>
-                <span className="text-muted-foreground font-semibold">
-                  {currentCharacter.name || 'Maya'}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <User className="w-4 h-4 text-muted-foreground" />
-                <span className="font-medium">Voix:</span>
-                <span className="text-muted-foreground">
-                  {agentName || 'Chargement...'}
+                <span className="text-primary font-semibold">
+                  {currentCharacter.name || 'Sans nom'}
                 </span>
               </div>
               <div className="flex items-start gap-2 text-sm">
@@ -233,10 +231,16 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
                 <div className="flex-1">
                   <span className="font-medium">Personnalité:</span>
                   <span className="text-muted-foreground ml-1">
-                    {currentCharacter.personality || 'Non défini'}
+                    {currentCharacter.personality || 'Non définie'}
                   </span>
                 </div>
               </div>
+              {currentCharacter.agentId && currentCharacter.agentName && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Mic className="w-4 h-4" />
+                  <span className="text-xs">Agent vocal: {currentCharacter.agentName}</span>
+                </div>
+              )}
             </>
           )}
           {!currentCharacter && (
