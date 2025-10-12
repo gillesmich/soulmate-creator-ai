@@ -168,12 +168,9 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
         
         if (data?.voices && Array.isArray(data.voices)) {
           console.log(`[ELEVENLABS] Successfully loaded ${data.voices.length} voices`);
-          if (data.voices.length > 0) {
-            console.log('[ELEVENLABS] First voice:', data.voices[0]);
-            // Sélectionner la première voix par défaut
-            setSelectedVoiceId(data.voices[0].voice_id);
-          }
           setAvailableVoices(data.voices);
+          // NE PAS sélectionner de voix par défaut ici
+          // La voix sera définie par l'agent ou le personnage
         } else {
           console.warn('[ELEVENLABS] No voices returned from API, data:', data);
           toast({
@@ -219,15 +216,18 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
         
         if (data?.agents && Array.isArray(data.agents)) {
           console.log(`[ELEVENLABS] Successfully loaded ${data.agents.length} agents`);
+          setAvailableAgents(data.agents);
           if (data.agents.length > 0) {
             console.log('[ELEVENLABS] First agent:', data.agents[0]);
-            // Sélectionner le premier agent par défaut si aucun n'est défini
-            if (!agentId) {
-              setAgentId(data.agents[0].agent_id);
-              setAgentName(data.agents[0].name);
+            // Si on a un agentId configuré, récupérer sa voix
+            if (agentId) {
+              const configuredAgent = data.agents.find(a => a.agent_id === agentId);
+              if (configuredAgent?.conversation_config?.tts?.voice_id) {
+                setSelectedVoiceId(configuredAgent.conversation_config.tts.voice_id);
+                console.log('[ELEVENLABS] Set agent voice:', configuredAgent.conversation_config.tts.voice_id);
+              }
             }
           }
-          setAvailableAgents(data.agents);
         } else {
           console.warn('[ELEVENLABS] No agents returned from API, data:', data);
         }
@@ -244,7 +244,7 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
     };
 
     fetchAgents();
-  }, [toast]);
+  }, [agentId, toast]);
 
   const getSignedUrl = async (agentId: string) => {
     try {
@@ -456,7 +456,7 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
               <div className="flex-1">
                 <h4 className="font-semibold">Sélectionnez un agent</h4>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Choisissez un agent ElevenLabs pour personnaliser la conversation.
+                  Choisissez un agent ElevenLabs. La voix de l'agent sera utilisée automatiquement.
                 </p>
               </div>
             </div>
@@ -529,76 +529,6 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
                 ) : (
                   <div className="text-center p-4 text-sm text-muted-foreground">
                     Aucun agent disponible. L'agent par défaut sera utilisé.
-                  </div>
-                )}
-              </RadioGroup>
-            )}
-          </div>
-
-          {/* Voice override for agent */}
-          <div className="bg-muted/50 p-4 rounded-lg border">
-            <div className="flex items-start gap-2 mb-3">
-              <Mic className="w-4 h-4 mt-0.5 text-muted-foreground" />
-              <div className="flex-1">
-                <h4 className="font-semibold">Changer la voix de l'agent</h4>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Optionnel : Remplacez la voix par défaut de l'agent.
-                </p>
-              </div>
-            </div>
-            
-            {isLoadingVoices ? (
-              <div className="flex items-center justify-center p-8">
-                <Loader2 className="w-6 h-6 animate-spin mr-2" />
-                <span className="text-sm text-muted-foreground">Chargement des voix...</span>
-              </div>
-            ) : (
-              <RadioGroup 
-                value={selectedVoiceId} 
-                onValueChange={(value) => {
-                  setSelectedVoiceId(value);
-                  
-                  if (currentCharacter) {
-                    const updatedCharacter = {
-                      ...currentCharacter,
-                      voice: value
-                    };
-                    setCurrentCharacter(updatedCharacter);
-                  }
-                }}
-                className="space-y-2 max-h-64 overflow-y-auto"
-              >
-                {availableVoices.length > 0 ? (
-                  availableVoices.map((voice) => (
-                    <div 
-                      key={voice.voice_id} 
-                      className="flex items-start space-x-3 p-2 rounded-lg hover:bg-accent/5 border border-transparent hover:border-accent/20 transition-colors"
-                    >
-                      <RadioGroupItem 
-                        value={voice.voice_id} 
-                        id={`agent-voice-${voice.voice_id}`}
-                        disabled={isConnected}
-                      />
-                      <Label 
-                        htmlFor={`agent-voice-${voice.voice_id}`} 
-                        className={`flex flex-col cursor-pointer flex-1 ${
-                          isConnected ? 'opacity-50' : ''
-                        }`}
-                      >
-                        <span className="font-medium">{voice.name}</span>
-                        {voice.labels && Object.keys(voice.labels).length > 0 && (
-                          <span className="text-xs text-muted-foreground mt-0.5">
-                            {Object.entries(voice.labels)
-                              .map(([key, value]) => `${key}: ${value}`)
-                              .join(' • ')}
-                          </span>
-                        )}
-                      </Label>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center p-4 text-sm text-muted-foreground">
-                    Aucune voix disponible.
                   </div>
                 )}
               </RadioGroup>
