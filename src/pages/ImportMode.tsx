@@ -16,7 +16,7 @@ const ImportMode = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const uploadedImage = location.state?.uploadedImage;
-  const { apiKey } = useApiKey();
+  const { apiKey, loading: apiKeyLoading } = useApiKey();
 
   const [age, setAge] = useState('25');
   const [selectedStyles, setSelectedStyles] = useState<string[]>(['realistic']);
@@ -110,6 +110,18 @@ const ImportMode = () => {
       setIsGenerating(false);
     }
   };
+
+  // Show loading state while API key is being fetched
+  if (apiKeyLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="p-6 max-w-md w-full text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Chargement...</p>
+        </Card>
+      </div>
+    );
+  }
 
   if (!uploadedImage) {
     return (
