@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useConversation } from '@11labs/react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Mic, MicOff, Loader2, Info } from 'lucide-react';
+import { Mic, MicOff, Loader2, Info, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSubscription } from '@/hooks/useSubscription';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { getCurrentCharacter } from '@/utils/characterStorage';
 
 interface ElevenLabsVoiceProps {
   character?: {
@@ -35,8 +36,22 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
   const [selectedVoiceId, setSelectedVoiceId] = useState<string>('');
   const [availableVoices, setAvailableVoices] = useState<Voice[]>([]);
   const [isLoadingVoices, setIsLoadingVoices] = useState(false);
+  const [currentCharacter, setCurrentCharacter] = useState<any>(null);
   const { toast } = useToast();
   const { subscription } = useSubscription();
+
+  // Agent ID pour Maya
+  const AGENT_ID = 'agent_5501k79dakb3eay91b90g55520cr';
+  const AGENT_NAME = 'Agathe';
+
+  // Charger le personnage actuel
+  useEffect(() => {
+    const character = getCurrentCharacter();
+    if (character) {
+      console.log('[ELEVENLABS] Current character loaded:', character);
+      setCurrentCharacter(character);
+    }
+  }, []);
 
   const conversation = useConversation({
     onConnect: () => {
@@ -149,13 +164,11 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
 
   const startConversation = async () => {
     try {
-      // Agent Agathe configuré
-      const agentId = 'agent_5501k79dakb3eay91b90g55520cr';
-
-      console.log('[ELEVENLABS] Getting signed URL for agent:', agentId);
+      console.log('[ELEVENLABS] Getting signed URL for agent:', AGENT_ID);
       console.log('[ELEVENLABS] Selected voice ID:', selectedVoiceId);
+      console.log('[ELEVENLABS] Character data:', currentCharacter);
       
-      const url = await getSignedUrl(agentId);
+      const url = await getSignedUrl(AGENT_ID);
       if (!url) {
         console.error('[ELEVENLABS] No signed URL received');
         return;
@@ -223,6 +236,29 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
           <p className="text-sm text-muted-foreground">
             {isConnected ? 'Connecté - Parlez librement' : 'Voix françaises premium et voice clones'}
           </p>
+        </div>
+
+        {/* Agent and Character Info */}
+        <div className="bg-muted/30 p-4 rounded-lg border space-y-2">
+          <div className="flex items-center gap-2 text-sm">
+            <User className="w-4 h-4 text-muted-foreground" />
+            <span className="font-medium">Agent:</span>
+            <span className="text-muted-foreground">{AGENT_NAME}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <Info className="w-4 h-4 text-muted-foreground" />
+            <span className="font-medium">ID:</span>
+            <span className="text-xs text-muted-foreground font-mono">{AGENT_ID}</span>
+          </div>
+          {currentCharacter && (
+            <div className="flex items-center gap-2 text-sm">
+              <User className="w-4 h-4 text-muted-foreground" />
+              <span className="font-medium">Personnage:</span>
+              <span className="text-muted-foreground">
+                {currentCharacter.name || 'Maya'} - {currentCharacter.personality || 'Non défini'}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Voice Selection */}
