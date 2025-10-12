@@ -64,13 +64,18 @@ const ImportMode = () => {
         apiKey,
         body: {
           character: {
+            hairColor: 'brown',
+            hairStyle: 'long',
+            bodyType: 'athletic',
+            eyeColor: 'brown',
+            ethnicity: 'mixed',
             age,
             interests,
             hobbies,
             characterTraits,
-            imageStyle: selectedStyles,
-            avatarView: selectedViews,
-            clothing: selectedClothing,
+            imageStyle: selectedStyles[0],
+            avatarView: selectedViews[0],
+            clothing: selectedClothing[0],
           },
           referenceImage: uploadedImage,
         }
