@@ -101,7 +101,7 @@ const ImportMode = () => {
         sessionStorage.setItem('generatedCharacter', JSON.stringify(characterData));
         sessionStorage.setItem('generatedImage', data.image);
         
-        navigate('/voice-chat');
+        navigate('/customize');
       }
     } catch (error) {
       console.error('Error generating avatar:', error);
