@@ -37,6 +37,7 @@ const ImageGenerationSchema = z.object({
   attitude: z.string().trim().max(100).transform(sanitizeText).optional(),
   scenery: z.string().trim().max(200).transform(sanitizeText).optional(),
   retryAttempt: z.number().int().min(0).max(5).optional(),
+  referenceImage: z.string().optional(), // Base64 encoded reference image
 });
 
 serve(async (req) => {
@@ -82,7 +83,7 @@ serve(async (req) => {
       });
     }
 
-    const { character, seed, attitude, scenery, retryAttempt = 0 } = validationResult.data;
+    const { character, seed, attitude, scenery, retryAttempt = 0, referenceImage } = validationResult.data;
 
     if (!character) {
       return new Response(
@@ -193,6 +194,28 @@ serve(async (req) => {
     const sceneryDescription = scenery ? ` Set in ${scenery}.` : '';
     const prompt = `${stylePrefix}${characterDescription} ${clothingDescription}. ${viewType}${sceneryDescription}${styleSuffix}. Character seed: ${seedNum}`;
 
+    // Prepare the message content
+    let messageContent: any;
+    
+    if (referenceImage) {
+      // If reference image is provided, use it for guided generation
+      messageContent = [
+        {
+          type: 'text',
+          text: `Create a realistic portrait inspired by the reference image. Generate: ${characterDescription} ${clothingDescription}. ${viewType}${sceneryDescription}${styleSuffix}. Keep similar facial features and overall appearance from the reference but adapt to the specified characteristics. Character seed: ${seedNum}`
+        },
+        {
+          type: 'image_url',
+          image_url: {
+            url: referenceImage
+          }
+        }
+      ];
+    } else {
+      // Standard text-only generation
+      messageContent = prompt;
+    }
+
     // Call Lovable AI (Gemini Nano banana model for image generation)
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -205,7 +228,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'user',
-            content: prompt
+            content: messageContent
           }
         ],
         modalities: ['image', 'text']

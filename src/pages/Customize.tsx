@@ -94,6 +94,8 @@ const Customize = () => {
   const [sceneryTheme, setSceneryTheme] = useState<string>('');
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [savedCharacters, setSavedCharacters] = useState<SavedCharacter[]>([]);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Load character from localStorage on mount if exists
   useEffect(() => {
@@ -772,82 +774,104 @@ const Customize = () => {
     });
   };
 
-  const loadSavedCharacters = async () => {
-    if (!user) {
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
       toast({
-        title: "Connexion requise",
-        description: "Veuillez vous connecter pour importer un personnage",
+        title: "Fichier trop volumineux",
+        description: "L'image ne doit pas dépasser 5MB",
         variant: "destructive",
       });
       return;
     }
 
-    try {
-      const { data: supabaseCharacters, error } = await supabase
-        .from('saved_girlfriend_images')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error('Error loading from Supabase:', error);
-        toast({
-          title: "Erreur",
-          description: "Impossible de charger les personnages",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      if (supabaseCharacters && supabaseCharacters.length > 0) {
-        const loadedCharacters = supabaseCharacters.map(sc => {
-          const characterData = typeof sc.character_data === 'object' && sc.character_data !== null 
-            ? sc.character_data as Record<string, any>
-            : {};
-          
-          const imageUrls = Array.isArray(sc.image_urls) 
-            ? sc.image_urls.filter((url): url is string => typeof url === 'string')
-            : [sc.image_url];
-          
-          return {
-            id: sc.id,
-            name: sc.name,
-            image: sc.image_url,
-            images: imageUrls,
-            createdAt: sc.created_at,
-            hairColor: characterData.hairColor || 'blonde',
-            hairStyle: characterData.hairStyle || 'long',
-            bodyType: characterData.bodyType || 'slim',
-            personality: characterData.personality || 'sweet',
-            outfit: characterData.outfit || 'casual',
-            eyeColor: characterData.eyeColor || 'blue',
-            age: characterData.age || 'medium age',
-            voice: characterData.voice,
-            avatarView: characterData.avatarView,
-            clothing: characterData.clothing,
-            imageStyle: characterData.imageStyle,
-            interests: characterData.interests || '',
-            hobbies: characterData.hobbies || '',
-            characterTraits: characterData.characterTraits || '',
-            ethnicity: characterData.ethnicity || 'caucasian'
-          };
-        });
-        
-        setSavedCharacters(loadedCharacters);
-        setShowImportDialog(true);
-      } else {
-        toast({
-          title: "Aucun personnage",
-          description: "Vous n'avez pas encore de personnage sauvegardé",
-        });
-      }
-    } catch (error) {
-      console.error('Error loading characters:', error);
+    // Check file type
+    if (!file.type.startsWith('image/')) {
       toast({
-        title: "Erreur",
-        description: "Impossible de charger les personnages",
+        title: "Format invalide",
+        description: "Veuillez sélectionner une image",
         variant: "destructive",
       });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      setUploadedImage(result);
+      setShowImportDialog(true);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const generateFromReference = async () => {
+    if (!uploadedImage || !apiKey) {
+      toast({
+        title: "Erreur",
+        description: "Image ou clé API manquante",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setShowImportDialog(false);
+
+    try {
+      toast({
+        title: "🎨 Génération en cours",
+        description: "Création d'un avatar basé sur l'image de référence...",
+      });
+
+      const characterSeed = Date.now();
+      
+      const { data, error } = await invokeFunctionWithApiKey({
+        functionName: 'generate-girlfriend-photo-ai',
+        apiKey,
+        body: { 
+          character: character,
+          seed: characterSeed,
+          referenceImage: uploadedImage,
+          retryAttempt: 0
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data?.image) {
+        throw new Error('Aucune image générée');
+      }
+
+      setGeneratedImages([{
+        url: data.image,
+        style: character.imageStyle || 'realistic',
+        view: character.avatarView || 'bust',
+        clothing: character.clothing || 'clothed'
+      }]);
+      
+      setCurrentBatchSeed(characterSeed);
+
+      toast({
+        title: "✅ Avatar généré !",
+        description: "Avatar créé avec succès à partir de l'image de référence",
+      });
+
+      // Reset uploaded image
+      setUploadedImage(null);
+    } catch (error) {
+      console.error('Error generating from reference:', error);
+      toast({
+        title: "❌ Échec de la génération",
+        description: "Impossible de générer l'avatar. Veuillez réessayer.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -911,12 +935,20 @@ const Customize = () => {
             </Button>
             <Button
               variant="outline"
-              onClick={loadSavedCharacters}
+              onClick={() => document.getElementById('reference-image-upload')?.click()}
               className="gap-2 bg-gradient-to-r from-blue-500/10 to-purple-500/10 hover:from-blue-500/20 hover:to-purple-500/20"
+              disabled={isAnalyzing}
             >
               <Upload className="h-4 w-4" />
-              Importer un personnage
+              {isAnalyzing ? 'Analyse en cours...' : 'Importer une photo'}
             </Button>
+            <input
+              id="reference-image-upload"
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageUpload}
+            />
             <Button
               variant="outline"
               onClick={resetCustomize}
@@ -1368,55 +1400,51 @@ const Customize = () => {
         onGenerateVariations={generateAttitudeVariations}
       />
 
-      {/* Import Character Dialog */}
+      {/* Import Reference Image Dialog */}
       <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-2xl">Importer un personnage</DialogTitle>
+            <DialogTitle className="text-2xl">Importer une image de référence</DialogTitle>
+            <p className="text-sm text-muted-foreground mt-2">
+              Uploadez une photo d'une personnalité pour générer un avatar similaire
+            </p>
           </DialogHeader>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-            {savedCharacters.map((char) => (
-              <Card 
-                key={char.id} 
-                className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer border-primary/10"
-                onClick={() => importCharacter(char)}
-              >
-                <div className="aspect-square relative overflow-hidden">
-                  <img
-                    src={char.image}
-                    alt={char.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <CardHeader className="pb-2">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10 border-2 border-primary/20">
-                      <AvatarImage src={char.image} alt={char.name} />
-                      <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                        {char.name.substring(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <CardTitle className="text-base">{char.name}</CardTitle>
-                  </div>
-                  <div className="text-xs text-muted-foreground space-y-1 mt-2">
-                    <p className="capitalize">
-                      {char.personality} • {char.hairColor} {char.hairStyle}
-                    </p>
-                    <p className="capitalize">
-                      {char.eyeColor} eyes • {char.bodyType}
-                    </p>
-                    {char.images && char.images.length > 1 && (
-                      <Badge variant="secondary" className="text-xs">
-                        <Images className="h-3 w-3 mr-1" />
-                        {char.images.length} images
-                      </Badge>
-                    )}
-                  </div>
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
+          {uploadedImage && (
+            <div className="mt-4 space-y-4">
+              <div className="aspect-square max-w-md mx-auto rounded-lg overflow-hidden border border-border">
+                <img
+                  src={uploadedImage}
+                  alt="Image de référence"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                  onClick={generateFromReference}
+                  disabled={isAnalyzing}
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  {isAnalyzing ? 'Génération...' : 'Générer un avatar'}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setUploadedImage(null);
+                    setShowImportDialog(false);
+                  }}
+                >
+                  Annuler
+                </Button>
+              </div>
+              
+              <p className="text-xs text-muted-foreground text-center">
+                L'avatar généré sera inspiré de l'image de référence tout en utilisant les paramètres de customisation actuels
+              </p>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
