@@ -2,14 +2,14 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Check, ArrowLeft } from 'lucide-react';
+import { Check, ArrowLeft, LogOut } from 'lucide-react';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/contexts/AuthContext';
 
 const Pricing = () => {
   const navigate = useNavigate();
   const { subscription, createCheckout, openCustomerPortal } = useSubscription();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   const plans = [
     {
@@ -77,14 +77,24 @@ const Pricing = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       <div className="container mx-auto px-4 py-8">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/')}
-          className="mb-8"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Retour
-        </Button>
+        <div className="flex justify-between items-center mb-8">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/')}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Retour
+          </Button>
+          
+          <Button
+            variant="outline"
+            onClick={signOut}
+            className="border-primary/20"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Déconnexion
+          </Button>
+        </div>
 
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">
