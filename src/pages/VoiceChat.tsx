@@ -43,44 +43,66 @@ const VoiceChat = () => {
         
         // Set images if available - convert storage paths to signed URLs
         if (savedCharacter?.images && savedCharacter.images.length > 0) {
-          // Check if images are storage paths (not full URLs or base64)
-          const areStoragePaths = savedCharacter.images.some(img => 
-            !img.startsWith('http') && !img.startsWith('data:')
+          console.log('[VOICE CHAT] Processing images...');
+          
+          // Always generate signed URLs for storage paths
+          // Check each image individually - some might be base64, some might be storage paths
+          const processedUrls = await Promise.all(
+            savedCharacter.images.map(async (img) => {
+              // If it's base64, keep it as is
+              if (img.startsWith('data:')) {
+                console.log('[VOICE CHAT] Keeping base64 image');
+                return img;
+              }
+              
+              // If it's a signed URL that's still valid (contains supabase and token)
+              if (img.includes('supabase.co') && img.includes('token=')) {
+                console.log('[VOICE CHAT] Checking if signed URL is still valid...');
+                // Test if the URL is still valid
+                try {
+                  const testResponse = await fetch(img, { method: 'HEAD' });
+                  if (testResponse.ok) {
+                    console.log('[VOICE CHAT] Signed URL still valid, reusing');
+                    return img;
+                  }
+                } catch (e) {
+                  console.log('[VOICE CHAT] Signed URL expired or invalid, regenerating');
+                }
+                // If we get here, the URL is expired, extract the path
+                const urlObj = new URL(img);
+                const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/sign\/girlfriend-images\/(.+)/);
+                if (pathMatch) {
+                  const path = pathMatch[1];
+                  const { data, error } = await supabase.storage
+                    .from('girlfriend-images')
+                    .createSignedUrl(path, 3600);
+                  
+                  if (!error && data) {
+                    console.log('[VOICE CHAT] Regenerated signed URL from expired URL');
+                    return data.signedUrl;
+                  }
+                }
+              }
+              
+              // Otherwise, treat it as a storage path and generate signed URL
+              const { data, error } = await supabase.storage
+                .from('girlfriend-images')
+                .createSignedUrl(img, 3600);
+              
+              if (error) {
+                console.error('[VOICE CHAT] Error creating signed URL for:', img, error);
+                return null;
+              }
+              
+              console.log('[VOICE CHAT] Created new signed URL for storage path');
+              return data.signedUrl;
+            })
           );
           
-          if (areStoragePaths) {
-            console.log('[VOICE CHAT] Generating signed URLs for storage paths...');
-            // Generate signed URLs for storage paths
-            const signedUrls = await Promise.all(
-              savedCharacter.images.map(async (path) => {
-                if (path.startsWith('http') || path.startsWith('data:')) {
-                  return path; // Already a full URL
-                }
-                
-                const { data, error } = await supabase.storage
-                  .from('girlfriend-images')
-                  .createSignedUrl(path, 3600); // 1 hour expiration
-                
-                if (error) {
-                  console.error('[VOICE CHAT] Error creating signed URL for path:', path, error);
-                  return null;
-                }
-                
-                console.log('[VOICE CHAT] Created signed URL for:', path);
-                return data.signedUrl;
-              })
-            );
-            
-            const validUrls = signedUrls.filter(url => url !== null) as string[];
-            console.log('[VOICE CHAT] Generated', validUrls.length, 'signed URLs');
-            setCharacterImages(validUrls);
-            return;
-          } else {
-            // Already full URLs or base64
-            console.log('[VOICE CHAT] Setting character images (already full URLs):', savedCharacter.images);
-            setCharacterImages(savedCharacter.images);
-            return;
-          }
+          const validUrls = processedUrls.filter(url => url !== null) as string[];
+          console.log('[VOICE CHAT] Processed', validUrls.length, 'valid image URLs');
+          setCharacterImages(validUrls);
+          return;
         }
         
         // Fallback to single image
