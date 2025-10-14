@@ -126,28 +126,51 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
         }
         
         // New image - upload it
-        const response = await fetch(imageUrl);
-        const blob = await response.blob();
-        
-        const filename = `${user.id}/${name.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}_${i}.png`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('girlfriend-images')
-          .upload(filename, blob, {
-            contentType: 'image/png',
-            upsert: false
+        try {
+          const response = await fetch(imageUrl);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch image: ${response.statusText}`);
+          }
+          const blob = await response.blob();
+          
+          const filename = `${user.id}/${name.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}_${i}.png`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('girlfriend-images')
+            .upload(filename, blob, {
+              contentType: 'image/png',
+              upsert: false
+            });
+
+          if (uploadError) {
+            console.error('Error uploading image to storage:', uploadError);
+            throw uploadError;
+          }
+
+          const { data: urlData } = supabase.storage
+            .from('girlfriend-images')
+            .getPublicUrl(filename);
+          
+          uploadedUrls.push(urlData.publicUrl);
+        } catch (error) {
+          console.error('Error processing image upload:', error);
+          toast({
+            title: "Erreur d'upload",
+            description: `Impossible d'uploader l'image ${i + 1}. ${error instanceof Error ? error.message : 'Erreur inconnue'}`,
+            variant: "destructive",
           });
-
-        if (uploadError) {
-          console.error('Error uploading image:', uploadError);
-          continue;
         }
-
-        const { data: urlData } = supabase.storage
-          .from('girlfriend-images')
-          .getPublicUrl(filename);
-        
-        uploadedUrls.push(urlData.publicUrl);
+      }
+      
+      // Check if at least one image was uploaded successfully
+      if (uploadedUrls.length === 0) {
+        toast({
+          title: "Erreur",
+          description: "Aucune image n'a pu être uploadée. Veuillez réessayer.",
+          variant: "destructive",
+        });
+        setIsSaving(false);
+        return;
       }
 
       // Update or Insert depending on whether we have an existing ID
