@@ -885,6 +885,7 @@ const Customize = () => {
     }
 
     const reader = new FileReader();
+    
     reader.onload = (e) => {
       const result = e.target?.result as string;
       setUploadedImage(result);
@@ -893,7 +894,26 @@ const Customize = () => {
         description: "L'image sera utilisée comme référence pour générer l'avatar",
       });
     };
-    reader.readAsDataURL(file);
+    
+    reader.onerror = () => {
+      console.error('Erreur lors de la lecture du fichier:', reader.error);
+      toast({
+        title: "Erreur d'import",
+        description: "Impossible de lire le fichier image. Vérifiez que le fichier n'est pas corrompu.",
+        variant: "destructive",
+      });
+    };
+    
+    try {
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Erreur lors de l\'import de l\'image:', error);
+      toast({
+        title: "Erreur d'import",
+        description: error instanceof Error ? error.message : "Erreur lors de l'import de l'image",
+        variant: "destructive",
+      });
+    }
   };
 
   const generateFromReference = async () => {
