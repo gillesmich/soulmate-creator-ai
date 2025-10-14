@@ -111,21 +111,20 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
         }
       }
 
-      // Upload only NEW images (those not already in Supabase storage)
+      // Upload ALL images - replace old ones completely
       const uploadedUrls: string[] = [];
       const timestamp = Date.now();
       
       for (let i = 0; i < imageUrls.length; i++) {
         const imageUrl = imageUrls[i];
         
-        // Check if this image is already in Supabase storage (URL contains supabase)
-        if (imageUrl.includes('supabase.co') && existingImageUrls.includes(imageUrl)) {
-          // Image already uploaded, keep the existing URL
+        // If it's already a storage path (not a full URL), keep it
+        if (!imageUrl.includes('http') && !imageUrl.startsWith('data:')) {
           uploadedUrls.push(imageUrl);
           continue;
         }
         
-        // New image - upload it
+        // Upload the image (whether it's base64 or URL)
         try {
           const response = await fetch(imageUrl);
           if (!response.ok) {
