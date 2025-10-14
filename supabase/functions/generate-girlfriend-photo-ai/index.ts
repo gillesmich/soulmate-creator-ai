@@ -201,10 +201,9 @@ serve(async (req) => {
     const sceneryDescription = scenery ? ` Set in ${scenery}.` : '';
     const prompt = `${stylePrefix}${characterDescription} ${clothingDescription}. ${viewType}${sceneryDescription}${styleSuffix}. Character seed: ${seedNum}`;
 
-    console.log('Making API call to OpenAI gpt-image-1...');
-    console.log('Using reference image:', !!referenceImage);
+    console.log('Making API call to OpenAI DALL-E 3...');
     
-    // Call OpenAI gpt-image-1 for image generation
+    // Call OpenAI DALL-E 3 for image generation
     const response = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: {
@@ -212,12 +211,12 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-image-1',
-        prompt: prompt,
+        model: 'dall-e-3',
+        prompt: prompt.substring(0, 4000), // DALL-E 3 max prompt length
         n: 1,
-        size: viewType.includes('full body') ? '1024x1536' : '1024x1024',
-        quality: 'high',
-        output_format: 'png'
+        size: viewType.includes('full body') ? '1024x1792' : '1024x1024',
+        quality: 'hd',
+        style: imageStyle === 'realistic' ? 'natural' : 'vivid'
       }),
     });
 
@@ -252,11 +251,11 @@ serve(async (req) => {
     const data = await response.json();
     console.log('API response received');
     
-    // Extract the base64 image from OpenAI gpt-image-1 response
-    const imageB64 = data.data?.[0]?.b64_json;
+    // Extract the URL from DALL-E 3 response
+    const imageUrl = data.data?.[0]?.url;
     
-    if (!imageB64) {
-      console.error('No image in response:', JSON.stringify(data));
+    if (!imageUrl) {
+      console.error('No image URL in response:', JSON.stringify(data));
       return new Response(
         JSON.stringify({ error: 'No image was generated. Please try again.' }), 
         { 
@@ -266,11 +265,15 @@ serve(async (req) => {
       );
     }
     
-    const imageUrl = `data:image/png;base64,${imageB64}`;
+    // Download the image and convert to base64 for consistent storage
+    const imageResponse = await fetch(imageUrl);
+    const imageBlob = await imageResponse.arrayBuffer();
+    const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBlob)));
+    const finalImageUrl = `data:image/png;base64,${base64Image}`;
 
     console.log('Image generated successfully');
     return new Response(JSON.stringify({ 
-      image: imageUrl,
+      image: finalImageUrl,
       prompt: prompt,
       seed: seedNum
     }), {
