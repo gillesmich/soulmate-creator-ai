@@ -13,13 +13,13 @@ const Pricing = () => {
 
   const plans = [
     {
-      name: 'Free',
+      name: 'Gratuit',
       price: '0€',
       period: '',
       priceId: null,
       features: [
         '5 conversations par jour',
-        'Max 2 minutes par conversation',
+        'Max 10 minutes par jour',
         '1 voix féminine par défaut',
         'Accès aux fonctionnalités de base',
       ],
@@ -47,7 +47,9 @@ const Pricing = () => {
       period: '/an',
       priceId: 'price_1SGzBZAv1E9PU67TXSMq7RSB',
       savings: 'Économisez 19,88€',
+      trial: '3 jours d\'essai gratuit',
       features: [
+        '3 jours d\'essai gratuit',
         'Conversations illimitées',
         'Durée illimitée',
         '20+ voix féminines premium',
@@ -106,7 +108,7 @@ const Pricing = () => {
                   : ''
               }`}
             >
-              {plan.popular && (
+              {plan.popular && !plan.current && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-semibold">
                   Plus populaire
                 </div>
@@ -115,6 +117,12 @@ const Pricing = () => {
               {plan.current && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-green-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
                   Votre plan actuel
+                </div>
+              )}
+              
+              {plan.trial && !plan.current && (
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
+                  {plan.trial}
                 </div>
               )}
 

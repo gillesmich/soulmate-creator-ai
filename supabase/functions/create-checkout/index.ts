@@ -44,6 +44,14 @@ serve(async (req) => {
       customerId = customers.data[0].id;
     }
 
+    // Annual plan (100€) gets 3-day trial
+    const isAnnualPlan = priceId === 'price_1SGzBZAv1E9PU67TXSMq7RSB';
+    const subscriptionData: any = {};
+    
+    if (isAnnualPlan) {
+      subscriptionData.trial_period_days = 3;
+    }
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
@@ -54,6 +62,7 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
+      subscription_data: Object.keys(subscriptionData).length > 0 ? subscriptionData : undefined,
       success_url: `${req.headers.get("origin")}/`,
       cancel_url: `${req.headers.get("origin")}/`,
     });

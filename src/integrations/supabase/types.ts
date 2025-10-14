@@ -77,6 +77,36 @@ export type Database = {
         }
         Relationships: []
       }
+      usage_tracking: {
+        Row: {
+          chat_count: number
+          chat_minutes_used: number
+          created_at: string | null
+          date: string
+          id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          chat_count?: number
+          chat_minutes_used?: number
+          created_at?: string | null
+          date?: string
+          id?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          chat_count?: number
+          chat_minutes_used?: number
+          created_at?: string | null
+          date?: string
+          id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -145,12 +175,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_usage_limit: {
+        Args: { _operation_type: string; _user_id: string }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_usage: {
+        Args: {
+          _increment_value?: number
+          _operation_type: string
+          _user_id: string
+        }
+        Returns: undefined
       }
       validate_api_key: {
         Args: { key: string }
