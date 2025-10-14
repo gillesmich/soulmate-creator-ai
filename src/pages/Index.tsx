@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,13 +7,54 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { ApiKeyInfo } from '@/components/ApiKeyInfo';
+import { useTrialStatus } from '@/hooks/useTrialStatus';
+import { PremiumModal } from '@/components/PremiumModal';
+import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
   const navigate = useNavigate();
-  const { signOut, subscription } = useAuth();
+  const { signOut, subscription, user } = useAuth();
   const { t } = useLanguage();
+  const { trialStatus } = useTrialStatus();
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const isPremium = subscription.subscribed && subscription.plan_type !== 'free';
+
+  useEffect(() => {
+    checkAdminStatus();
+  }, [user]);
+
+  useEffect(() => {
+    // Show premium modal for non-admin, non-premium users
+    if (!isAdmin && !isPremium && trialStatus && !trialStatus.allowed) {
+      setShowPremiumModal(true);
+    } else if (!isAdmin && !isPremium && trialStatus?.trial) {
+      // Show modal once on first load for trial users
+      const hasSeenModal = sessionStorage.getItem('hasSeenPremiumModal');
+      if (!hasSeenModal) {
+        setShowPremiumModal(true);
+        sessionStorage.setItem('hasSeenPremiumModal', 'true');
+      }
+    }
+  }, [trialStatus, isPremium, isAdmin]);
+
+  const checkAdminStatus = async () => {
+    if (!user) return;
+    
+    try {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+
+      setIsAdmin(!!data);
+    } catch (error) {
+      setIsAdmin(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-romantic via-background to-accent/20">
@@ -113,6 +154,12 @@ const Index = () => {
           </Card>
         </div>
       </div>
+      
+      <PremiumModal 
+        open={showPremiumModal} 
+        onClose={() => setShowPremiumModal(false)}
+        remainingMinutes={trialStatus?.remaining_minutes}
+      />
     </div>
   );
 };

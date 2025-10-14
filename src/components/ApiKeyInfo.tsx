@@ -1,16 +1,37 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { AlertCircle, Key } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 
 export const ApiKeyInfo = () => {
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
+    checkAdminStatus();
     checkApiKey();
-  }, []);
+  }, [user]);
+
+  const checkAdminStatus = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .single();
+
+      setIsAdmin(!!data);
+    } catch (error) {
+      setIsAdmin(false);
+    }
+  };
 
   const checkApiKey = async () => {
     try {
@@ -28,6 +49,8 @@ export const ApiKeyInfo = () => {
     }
   };
 
+  // Only show API key warning for admins
+  if (!isAdmin) return null;
   if (hasApiKey === null) return null;
 
   if (!hasApiKey) {

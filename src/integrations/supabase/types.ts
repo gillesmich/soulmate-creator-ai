@@ -179,6 +179,14 @@ export type Database = {
         Args: { _operation_type: string; _user_id: string }
         Returns: Json
       }
+      get_shared_api_keys: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          elevenlabs_key: string
+          lovable_key: string
+          openai_key: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
