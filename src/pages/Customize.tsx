@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Heart, MessageCircle, Sparkles, RefreshCw, Save, Mic, Wand2, LogIn, LogOut, Images, Upload, Palette, Scissors, User, Smile, Shirt, Eye, Calendar, Globe, Camera, Zap, Paintbrush, Image as ImageIcon, UserCircle2, Users2 } from 'lucide-react';
+import { Heart, MessageCircle, Sparkles, RefreshCw, Save, Mic, Wand2, LogIn, LogOut, Images, Upload, Palette, Scissors, User, Smile, Shirt, Eye, Calendar, Globe, Camera, Zap, Paintbrush, Image as ImageIcon, UserCircle2, Users2, ArrowLeft } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -12,6 +12,8 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { LanguageSelector } from '@/components/LanguageSelector';
 import { useApiKey } from '@/hooks/useApiKey';
 import { invokeFunctionWithApiKey } from '@/utils/apiHelper';
 import SaveImageDialog from '@/components/SaveImageDialog';
@@ -72,6 +74,7 @@ const Customize = () => {
   const { toast } = useToast();
   const { user, signOut } = useAuth();
   const { apiKey, loading: apiKeyLoading } = useApiKey();
+  const { t } = useLanguage();
   const [character, setCharacter] = useState<CharacterOptions>({
     hairColor: 'blonde',
     hairStyle: 'long',
@@ -1066,11 +1069,19 @@ const Customize = () => {
           <div className="flex gap-2">
             <Button
               variant="outline"
+              onClick={() => navigate('/')}
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {t('customize.back')}
+            </Button>
+            <Button
+              variant="outline"
               onClick={() => navigate('/gallery')}
               className="gap-2"
             >
               <Images className="h-4 w-4" />
-              Browse Profiles
+              {t('customize.gallery')}
             </Button>
             <Button
               variant="outline"
@@ -1078,7 +1089,7 @@ const Customize = () => {
               className="gap-2 bg-gradient-to-r from-blue-500/10 to-purple-500/10 hover:from-blue-500/20 hover:to-purple-500/20"
             >
               <Upload className="h-4 w-4" />
-              {uploadedImage ? 'Changer la photo' : 'Importer une photo'}
+              {uploadedImage ? t('customize.uploadImage') : t('customize.uploadImage')}
             </Button>
             <input
               id="reference-image-upload"
@@ -1093,11 +1104,12 @@ const Customize = () => {
               className="gap-2"
             >
               <Sparkles className="h-4 w-4" />
-              Créer nouveau
+              {t('customize.createNew') || 'Créer nouveau'}
             </Button>
           </div>
           
-          <div className="flex gap-2">
+          <div className="flex gap-3 items-center">
+            <LanguageSelector />
             {user ? (
               <Button
                 variant="outline"
@@ -1105,7 +1117,7 @@ const Customize = () => {
                 className="gap-2"
               >
                 <LogOut className="h-4 w-4" />
-                Déconnexion
+                {t('customize.signOut')}
               </Button>
             ) : (
               <Button
@@ -1114,7 +1126,7 @@ const Customize = () => {
                 className="gap-2"
               >
                 <LogIn className="h-4 w-4" />
-                Connexion
+                {t('customize.signIn')}
               </Button>
             )}
           </div>

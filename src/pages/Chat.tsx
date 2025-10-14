@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ArrowLeft, Phone, PhoneOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { LanguageSelector } from '@/components/LanguageSelector';
 import LipSyncAvatar from '@/components/LipSyncAvatar';
 import { getCurrentCharacter } from '@/utils/characterStorage';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from '@/components/ui/carousel';
@@ -32,6 +34,7 @@ interface CharacterOptions {
 const Chat = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [messages, setMessages] = useState<Message[]>([]);
   const [character, setCharacter] = useState<CharacterOptions | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -201,7 +204,7 @@ const Chat = () => {
                 className="hover:bg-accent"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Retour
+                {t('chat.back')}
               </Button>
               
               <div className="flex items-center gap-3">
@@ -214,7 +217,7 @@ const Chat = () => {
                 />
                 <div>
                   <h1 className="font-semibold text-romantic-foreground">
-                    {character.name || 'Votre Petite Amie IA'}
+                    {character.name || t('chat.title')}
                   </h1>
                   <p className="text-sm text-muted-foreground capitalize">
                     {character.personality} • {character.hairColor} {character.hairStyle}
@@ -223,7 +226,8 @@ const Chat = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              <LanguageSelector />
               {!isConnected ? (
                 <Button 
                   onClick={connect} 

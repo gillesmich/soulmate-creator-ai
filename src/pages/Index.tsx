@@ -4,11 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Heart, Sparkles, MessageCircle, Palette, Users, LogOut, CreditCard } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { LanguageSelector } from '@/components/LanguageSelector';
 import { ApiKeyInfo } from '@/components/ApiKeyInfo';
 
 const Index = () => {
   const navigate = useNavigate();
   const { signOut, subscription } = useAuth();
+  const { t } = useLanguage();
 
   const isPremium = subscription.subscribed && subscription.plan_type !== 'free';
 
@@ -16,6 +19,7 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-romantic via-background to-accent/20">
       <div className="container mx-auto px-4 py-16">
         <div className="flex justify-end mb-4 gap-2">
+          <LanguageSelector />
           {isPremium && (
             <div className="bg-gradient-to-r from-amber-500 to-amber-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2">
               <Sparkles className="h-4 w-4" />
@@ -28,7 +32,7 @@ const Index = () => {
             className="border-primary/20"
           >
             <CreditCard className="h-4 w-4 mr-2" />
-            {isPremium ? 'Gérer' : 'Premium'}
+            {isPremium ? t('home.pricing') : 'Premium'}
           </Button>
           <Button 
             onClick={signOut}
@@ -36,7 +40,7 @@ const Index = () => {
             className="border-primary/20"
           >
             <LogOut className="h-4 w-4 mr-2" />
-            Déconnexion
+            {t('customize.signOut')}
           </Button>
         </div>
         
@@ -44,10 +48,10 @@ const Index = () => {
         
         <div className="text-center mb-16">
           <h1 className="text-6xl font-bold bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent mb-6">
-            AI Girlfriend
+            {t('home.title')}
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-            Create your perfect AI companion. Customize her appearance, personality, and enjoy meaningful conversations.
+            {t('home.subtitle')}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Button 
@@ -56,7 +60,7 @@ const Index = () => {
               className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-lg px-8 py-6"
             >
               <Heart className="h-6 w-6 mr-3" />
-              Create Your Girlfriend
+              {t('home.customize')}
             </Button>
             
             <Button 
@@ -66,7 +70,7 @@ const Index = () => {
               className="text-lg px-8 py-6 border-primary/20 hover:bg-primary/10"
             >
               <Users className="h-6 w-6 mr-3" />
-              Browse Characters
+              {t('home.gallery')}
             </Button>
           </div>
         </div>
