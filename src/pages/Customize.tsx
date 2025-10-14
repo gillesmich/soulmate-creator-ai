@@ -1567,30 +1567,14 @@ const Customize = () => {
                   </Button>
                 )}
                 
-                <div className="space-y-2">
-                  <Button 
-                    onClick={startChat} 
-                    className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
-                    size="lg"
-                  >
-                    <MessageCircle className="h-4 w-4 mr-2" />
-                    Start Chatting
-                  </Button>
-                  
-                  <Button 
-                    onClick={() => {
-                      const mainImage = generatedImages.length > 0 ? generatedImages[0].url : '';
-                      const allImages = generatedImages.map(img => img.url);
-                      setCurrentCharacter({ ...character, image: mainImage, images: allImages });
-                      navigate('/voice-chat');
-                    }} 
-                    className="w-full bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent/70"
-                    size="lg"
-                  >
-                    <Mic className="h-4 w-4 mr-2" />
-                    Voice Chat
-                  </Button>
-                </div>
+                <Button 
+                  onClick={startChat} 
+                  className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+                  size="lg"
+                >
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  Start Chatting
+                </Button>
               </CardContent>
             </Card>
 
