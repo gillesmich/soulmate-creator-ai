@@ -26,6 +26,7 @@ interface CharacterOptions {
   eyeColor: string;
   image?: string;
   images?: string[];
+  name?: string;
 }
 
 const Chat = () => {
@@ -212,7 +213,9 @@ const Chat = () => {
                   onClick={() => setShowLargeAvatar(true)}
                 />
                 <div>
-                  <h1 className="font-semibold text-romantic-foreground">Votre Petite Amie IA</h1>
+                  <h1 className="font-semibold text-romantic-foreground">
+                    {character.name || 'Votre Petite Amie IA'}
+                  </h1>
                   <p className="text-sm text-muted-foreground capitalize">
                     {character.personality} • {character.hairColor} {character.hairStyle}
                   </p>
