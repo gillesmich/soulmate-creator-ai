@@ -272,10 +272,19 @@ serve(async (req) => {
       );
     }
     
-    // Download the image and convert to base64 for consistent storage
+    // Download the image and convert to base64 using chunk method to avoid stack overflow
     const imageResponse = await fetch(imageUrl);
     const imageBlob = await imageResponse.arrayBuffer();
-    const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBlob)));
+    
+    // Convert to base64 in chunks to avoid stack overflow
+    const uint8Array = new Uint8Array(imageBlob);
+    let binary = '';
+    const chunkSize = 8192;
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+      binary += String.fromCharCode.apply(null, Array.from(chunk));
+    }
+    const base64Image = btoa(binary);
     const finalImageUrl = `data:image/png;base64,${base64Image}`;
 
     console.log('Image generated successfully');
