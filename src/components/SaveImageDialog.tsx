@@ -97,12 +97,38 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
         agentName: characterData.agentName || ''
       };
 
-      // Upload all images to Supabase storage
+      // Check if updating existing character and get current images
+      let existingImageUrls: string[] = [];
+      if (profileIdToUpdate) {
+        const { data: existingProfile } = await supabase
+          .from('saved_girlfriend_images')
+          .select('image_url, image_urls')
+          .eq('id', profileIdToUpdate)
+          .single();
+        
+        if (existingProfile) {
+          existingImageUrls = Array.isArray(existingProfile.image_urls) 
+            ? (existingProfile.image_urls as string[])
+            : [existingProfile.image_url].filter(Boolean) as string[];
+        }
+      }
+
+      // Upload only NEW images (those not already in Supabase storage)
       const uploadedUrls: string[] = [];
       const timestamp = Date.now();
       
       for (let i = 0; i < imageUrls.length; i++) {
-        const response = await fetch(imageUrls[i]);
+        const imageUrl = imageUrls[i];
+        
+        // Check if this image is already in Supabase storage (URL contains supabase)
+        if (imageUrl.includes('supabase.co') && existingImageUrls.includes(imageUrl)) {
+          // Image already uploaded, keep the existing URL
+          uploadedUrls.push(imageUrl);
+          continue;
+        }
+        
+        // New image - upload it
+        const response = await fetch(imageUrl);
         const blob = await response.blob();
         
         const filename = `${user.id}/${name.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}_${i}.png`;
