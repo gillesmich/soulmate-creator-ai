@@ -46,10 +46,11 @@ serve(async (req) => {
   }
 
   try {
-    // Validate API key
-    const apiKey = req.headers.get('x-api-key');
-    if (!apiKey) {
-      return new Response(JSON.stringify({ error: 'API key required' }), {
+    // Authenticate user via JWT
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('Missing Authorization header');
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -60,20 +61,25 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { data: userId, error: validateError } = await supabase.rpc('validate_api_key', { key: apiKey });
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     
-    if (validateError || !userId) {
-      return new Response(JSON.stringify({ error: 'Invalid API key' }), {
+    if (userError || !user) {
+      console.error('Authentication error:', userError);
+      return new Response(JSON.stringify({ error: 'Invalid authentication token' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    console.log('Authenticated user:', user.id);
 
     const body = await req.json();
     
     // Validate input
     const validationResult = ImageGenerationSchema.safeParse(body);
     if (!validationResult.success) {
+      console.error('Validation error:', validationResult.error.issues);
       return new Response(JSON.stringify({ 
         error: 'Invalid input', 
         details: validationResult.error.issues 
@@ -86,6 +92,7 @@ serve(async (req) => {
     const { character, seed, attitude, scenery, retryAttempt = 0, referenceImage } = validationResult.data;
 
     if (!character) {
+      console.error('Missing character description');
       return new Response(
         JSON.stringify({ error: 'Character description is required' }), 
         { 
@@ -235,7 +242,13 @@ serve(async (req) => {
       }),
     });
 
+    console.log('Making API call to Lovable AI...');
+    console.log('Using reference image:', !!referenceImage);
+    
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Lovable AI error:', response.status, errorText);
+      
       let errorMessage = '';
       
       if (response.status === 429) {
@@ -247,11 +260,11 @@ serve(async (req) => {
       } else if (response.status === 400) {
         errorMessage = 'Invalid request. Please check your character settings.';
       } else {
-        errorMessage = 'Image generation failed. Please try again.';
+        errorMessage = `Image generation failed (${response.status}). Please try again.`;
       }
       
       return new Response(
-        JSON.stringify({ error: errorMessage, status: response.status }), 
+        JSON.stringify({ error: errorMessage, status: response.status, details: errorText }), 
         { 
           status: response.status,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -260,11 +273,13 @@ serve(async (req) => {
     }
 
     const data = await response.json();
+    console.log('API response received');
     
     // Extract the image from Gemini response
     const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
     
     if (!imageUrl) {
+      console.error('No image URL in response:', JSON.stringify(data));
       return new Response(
         JSON.stringify({ error: 'No image was generated. Please try again.' }), 
         { 
@@ -274,6 +289,7 @@ serve(async (req) => {
       );
     }
 
+    console.log('Image generated successfully');
     return new Response(JSON.stringify({ 
       image: imageUrl,
       prompt: prompt,
@@ -282,9 +298,10 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
+    console.error('Error in generate-girlfriend-photo-ai:', error);
     return new Response(JSON.stringify({ 
       error: 'An error occurred during image generation',
-      details: 'Please try again or contact support if the problem persists.'
+      details: error instanceof Error ? error.message : 'Unknown error'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
