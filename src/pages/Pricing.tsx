@@ -13,7 +13,7 @@ const Pricing = () => {
 
   const plans = [
     {
-      name: 'Gratuit',
+      name: 'Free',
       price: '0€',
       period: '',
       priceId: null,
@@ -31,6 +31,7 @@ const Pricing = () => {
       period: '/mois',
       priceId: 'price_1SGzBJAv1E9PU67T6b17aCHX',
       features: [
+        '🚀 Commencez immédiatement',
         'Conversations illimitées',
         'Durée illimitée',
         '20+ voix féminines premium',
@@ -49,7 +50,7 @@ const Pricing = () => {
       savings: 'Économisez 19,88€',
       trial: '3 jours d\'essai gratuit',
       features: [
-        '3 jours d\'essai gratuit',
+        '✨ 3 jours d\'essai gratuit',
         'Conversations illimitées',
         'Durée illimitée',
         '20+ voix féminines premium',
@@ -114,15 +115,15 @@ const Pricing = () => {
                 </div>
               )}
               
-              {plan.current && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-green-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
-                  Votre plan actuel
+              {plan.trial && !plan.current && (
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-purple-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
+                  {plan.trial}
                 </div>
               )}
               
-              {plan.trial && !plan.current && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
-                  {plan.trial}
+              {plan.current && (
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-green-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
+                  Votre plan actuel
                 </div>
               )}
 

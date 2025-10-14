@@ -70,9 +70,9 @@ serve(async (req) => {
     }
 
     // Check usage limits
-    const { data: usageCheck, error: usageError } = await supabase.rpc('check_usage_limit', { 
-      _user_id: userId, 
-      _operation_type: 'chat' 
+    const { data: usageCheck, error: usageError } = await supabase.rpc('check_usage_limit', {
+      _user_id: userId,
+      _operation_type: 'chat'
     });
 
     if (usageError) {
@@ -81,9 +81,8 @@ serve(async (req) => {
 
     if (usageCheck && !usageCheck.allowed) {
       return new Response(JSON.stringify({ 
-        error: usageCheck.message,
-        limit_reached: true,
-        plan: usageCheck.plan
+        error: usageCheck.message || 'Usage limit exceeded',
+        limit_info: usageCheck
       }), {
         status: 429,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -156,7 +155,7 @@ Tu dois incarner ces caractéristiques dans tes réponses. Sois enjouée, attent
     const data = await response.json();
     const generatedResponse = data.choices[0].message.content;
 
-    // Increment usage count for free users
+    // Increment usage counter for free users
     if (usageCheck && usageCheck.plan === 'free') {
       await supabase.rpc('increment_usage', {
         _user_id: userId,
