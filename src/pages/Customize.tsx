@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Heart, MessageCircle, Sparkles, RefreshCw, Save, Mic, Wand2, LogIn, LogOut, Images, Upload } from 'lucide-react';
+import { Heart, MessageCircle, Sparkles, RefreshCw, Save, Mic, Wand2, LogIn, LogOut, Images, Upload, Palette, Scissors, User, Smile, Shirt, Eye, Calendar, Globe, Camera, Zap, Paintbrush, Image as ImageIcon, UserCircle2, Users2 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -172,6 +172,67 @@ const Customize = () => {
     avatarView: ['bust', 'full body'],
     clothing: ['clothed', 'nude', 'lingerie'],
     imageStyle: ['realistic', 'anime', 'cartoon', 'digital art']
+  };
+
+  // Icon mapping for each category and option
+  const getOptionIcon = (category: string, choice: string) => {
+    const iconMap: Record<string, Record<string, React.ReactNode>> = {
+      hairColor: {
+        blonde: <Palette className="h-4 w-4" style={{color: '#f4e4c1'}} />,
+        brunette: <Palette className="h-4 w-4" style={{color: '#8B4513'}} />,
+        black: <Palette className="h-4 w-4" style={{color: '#1a1a1a'}} />,
+        red: <Palette className="h-4 w-4" style={{color: '#DC143C'}} />,
+        pink: <Palette className="h-4 w-4" style={{color: '#FF69B4'}} />,
+      },
+      hairStyle: {
+        long: <Scissors className="h-4 w-4" />,
+        short: <Scissors className="h-4 w-4" />,
+        curly: <Scissors className="h-4 w-4" />,
+        straight: <Scissors className="h-4 w-4" />,
+        ponytail: <Scissors className="h-4 w-4" />,
+      },
+      bodyType: {
+        slim: <User className="h-4 w-4" />,
+        curvy: <User className="h-4 w-4" />,
+        athletic: <User className="h-4 w-4" />,
+        petite: <User className="h-4 w-4" />,
+      },
+      personality: {
+        sweet: <Smile className="h-4 w-4" />,
+        playful: <Smile className="h-4 w-4" />,
+        mysterious: <Smile className="h-4 w-4" />,
+        caring: <Smile className="h-4 w-4" />,
+        flirty: <Smile className="h-4 w-4" />,
+      },
+      outfit: {
+        casual: <Shirt className="h-4 w-4" />,
+        elegant: <Shirt className="h-4 w-4" />,
+        sporty: <Shirt className="h-4 w-4" />,
+        cute: <Shirt className="h-4 w-4" />,
+        sexy: <Shirt className="h-4 w-4" />,
+      },
+      eyeColor: {
+        blue: <Eye className="h-4 w-4" style={{color: '#4169E1'}} />,
+        brown: <Eye className="h-4 w-4" style={{color: '#8B4513'}} />,
+        green: <Eye className="h-4 w-4" style={{color: '#228B22'}} />,
+        hazel: <Eye className="h-4 w-4" style={{color: '#8E7618'}} />,
+        gray: <Eye className="h-4 w-4" style={{color: '#808080'}} />,
+      },
+      age: {
+        teen: <Calendar className="h-4 w-4" />,
+        'medium age': <Calendar className="h-4 w-4" />,
+      },
+      ethnicity: {
+        caucasian: <Globe className="h-4 w-4" />,
+        asian: <Globe className="h-4 w-4" />,
+        african: <Globe className="h-4 w-4" />,
+        latina: <Globe className="h-4 w-4" />,
+        'middle eastern': <Globe className="h-4 w-4" />,
+        mixed: <Globe className="h-4 w-4" />,
+      },
+    };
+
+    return iconMap[category]?.[choice] || <Sparkles className="h-4 w-4" />;
   };
 
   const updateCharacter = (key: keyof CharacterOptions, value: string) => {
@@ -1149,12 +1210,13 @@ const Customize = () => {
                             key={choice}
                             variant={character[category as keyof CharacterOptions] === choice ? "default" : "outline"}
                             onClick={() => updateCharacter(category as keyof CharacterOptions, choice)}
-                            className={`capitalize ${
+                            className={`capitalize flex items-center gap-2 ${
                               character[category as keyof CharacterOptions] === choice 
                                 ? "bg-primary text-primary-foreground" 
                                 : "hover:bg-accent"
                             }`}
                           >
+                            {getOptionIcon(category, choice)}
                             {choice}
                           </Button>
                         ))}
@@ -1174,20 +1236,29 @@ const Customize = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {options.imageStyle.map((style) => (
-                      <Button
-                        key={style}
-                        variant={selectedStyles.includes(style) ? "default" : "outline"}
-                        onClick={() => toggleStyle(style)}
-                        className={`capitalize ${
-                          selectedStyles.includes(style)
-                            ? "bg-primary text-primary-foreground" 
-                            : "hover:bg-accent"
-                        }`}
-                      >
-                        {style}
-                      </Button>
-                    ))}
+                    {options.imageStyle.map((style) => {
+                      const styleIcons: Record<string, React.ReactNode> = {
+                        realistic: <Camera className="h-4 w-4" />,
+                        anime: <Zap className="h-4 w-4" />,
+                        cartoon: <Paintbrush className="h-4 w-4" />,
+                        'digital art': <ImageIcon className="h-4 w-4" />,
+                      };
+                      return (
+                        <Button
+                          key={style}
+                          variant={selectedStyles.includes(style) ? "default" : "outline"}
+                          onClick={() => toggleStyle(style)}
+                          className={`capitalize flex items-center gap-2 ${
+                            selectedStyles.includes(style)
+                              ? "bg-primary text-primary-foreground" 
+                              : "hover:bg-accent"
+                          }`}
+                        >
+                          {styleIcons[style]}
+                          {style}
+                        </Button>
+                      );
+                    })}
                   </div>
                   <p className="text-sm text-muted-foreground mt-2">
                     Sélectionnez un ou plusieurs styles pour générer plusieurs images
@@ -1205,20 +1276,27 @@ const Customize = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 gap-3">
-                    {options.avatarView.map((view) => (
-                      <Button
-                        key={view}
-                        variant={selectedViews.includes(view) ? "default" : "outline"}
-                        onClick={() => toggleView(view)}
-                        className={`capitalize ${
-                          selectedViews.includes(view)
-                            ? "bg-primary text-primary-foreground" 
-                            : "hover:bg-accent"
-                        }`}
-                      >
-                        {view}
-                      </Button>
-                    ))}
+                    {options.avatarView.map((view) => {
+                      const viewIcons: Record<string, React.ReactNode> = {
+                        bust: <UserCircle2 className="h-4 w-4" />,
+                        'full body': <Users2 className="h-4 w-4" />,
+                      };
+                      return (
+                        <Button
+                          key={view}
+                          variant={selectedViews.includes(view) ? "default" : "outline"}
+                          onClick={() => toggleView(view)}
+                          className={`capitalize flex items-center gap-2 ${
+                            selectedViews.includes(view)
+                              ? "bg-primary text-primary-foreground" 
+                              : "hover:bg-accent"
+                          }`}
+                        >
+                          {viewIcons[view]}
+                          {view}
+                        </Button>
+                      );
+                    })}
                   </div>
                   <p className="text-sm text-muted-foreground mt-2">
                     Sélectionnez buste et/ou corps entier. Le même personnage sera généré pour toutes les vues.
@@ -1236,20 +1314,28 @@ const Customize = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-3 gap-3">
-                    {options.clothing.map((clothing) => (
-                      <Button
-                        key={clothing}
-                        variant={selectedClothing.includes(clothing) ? "default" : "outline"}
-                        onClick={() => toggleClothing(clothing)}
-                        className={`capitalize ${
-                          selectedClothing.includes(clothing)
-                            ? "bg-primary text-primary-foreground" 
-                            : "hover:bg-accent"
-                        }`}
-                      >
-                        {clothing}
-                      </Button>
-                    ))}
+                    {options.clothing.map((clothing) => {
+                      const clothingIcons: Record<string, React.ReactNode> = {
+                        clothed: <Shirt className="h-4 w-4" />,
+                        nude: <User className="h-4 w-4" />,
+                        lingerie: <Heart className="h-4 w-4" />,
+                      };
+                      return (
+                        <Button
+                          key={clothing}
+                          variant={selectedClothing.includes(clothing) ? "default" : "outline"}
+                          onClick={() => toggleClothing(clothing)}
+                          className={`capitalize flex items-center gap-2 ${
+                            selectedClothing.includes(clothing)
+                              ? "bg-primary text-primary-foreground" 
+                              : "hover:bg-accent"
+                          }`}
+                        >
+                          {clothingIcons[clothing]}
+                          {clothing}
+                        </Button>
+                      );
+                    })}
                   </div>
                   <p className="text-sm text-muted-foreground mt-2">
                     Sélectionnez une ou plusieurs tenues. Le même personnage sera généré pour toutes les tenues.
