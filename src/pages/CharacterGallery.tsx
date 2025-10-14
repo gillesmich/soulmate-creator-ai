@@ -12,11 +12,14 @@ import { getSavedCharacters, deleteCharacter, setCurrentCharacter, type SavedCha
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { useApiKey } from '@/hooks/useApiKey';
 import { invokeFunctionWithApiKey } from '@/utils/apiHelper';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { LanguageSelector } from '@/components/LanguageSelector';
 
 const CharacterGallery = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { apiKey } = useApiKey();
+  const { t } = useLanguage();
   const [characters, setCharacters] = useState<SavedCharacter[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCharacter, setSelectedCharacter] = useState<SavedCharacter | null>(null);
@@ -39,7 +42,8 @@ const CharacterGallery = () => {
           .from('saved_girlfriend_images')
           .select('*')
           .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(100);
         
         if (error) {
           console.error('Error loading from Supabase:', error);
@@ -277,7 +281,7 @@ const CharacterGallery = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-romantic via-background to-accent/20 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-muted-foreground">Loading your characters...</p>
+          <p className="text-muted-foreground">{t('gallery.loading')}</p>
         </div>
       </div>
     );
@@ -297,13 +301,16 @@ const CharacterGallery = () => {
                 className="hover:bg-accent"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
+                {t('gallery.back')}
               </Button>
-              <h1 className="text-2xl font-bold text-romantic-foreground">Character Gallery</h1>
+              <h1 className="text-2xl font-bold text-romantic-foreground">{t('gallery.title')}</h1>
             </div>
-            <Button onClick={() => navigate('/customize')} className="bg-primary hover:bg-primary/90">
-              Create New Character
-            </Button>
+            <div className="flex items-center gap-3">
+              <LanguageSelector />
+              <Button onClick={() => navigate('/customize')} className="bg-primary hover:bg-primary/90">
+                {t('gallery.createNew')}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
