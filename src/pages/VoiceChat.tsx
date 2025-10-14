@@ -25,52 +25,39 @@ const VoiceChat = () => {
   useEffect(() => {
     const loadImages = async () => {
       try {
-        // Try to get images from sessionStorage first
-        const imagesJson = sessionStorage.getItem('currentCharacterImages');
-        console.log('[VOICE CHAT] sessionStorage currentCharacterImages:', imagesJson);
-        
-        if (imagesJson) {
-          const images = JSON.parse(imagesJson);
-          if (Array.isArray(images) && images.length > 0) {
-            console.log('[VOICE CHAT] Loaded images from sessionStorage:', images.length);
-            setCharacterImages(images);
-          }
-        }
-        
-        // Try from character data
+        // First priority: Get from getCurrentCharacter which checks both localStorage and sessionStorage
         const savedCharacter = getCurrentCharacter();
-        console.log('[VOICE CHAT] Loaded character:', savedCharacter);
+        console.log('[VOICE CHAT] Loaded character from storage:', {
+          name: savedCharacter?.name,
+          id: savedCharacter?.id,
+          hasImages: !!savedCharacter?.images,
+          imageCount: savedCharacter?.images?.length || 0
+        });
         
         // Set character name if available
         if (savedCharacter?.name) {
           setCharacterName(savedCharacter.name);
-          console.log('[VOICE CHAT] Character name:', savedCharacter.name);
+          console.log('[VOICE CHAT] Character name set:', savedCharacter.name);
         }
         
-        if (savedCharacter && savedCharacter.images && savedCharacter.images.length > 0) {
-          console.log('[VOICE CHAT] Character images from storage:', savedCharacter.images.length);
+        // Set images if available
+        if (savedCharacter?.images && savedCharacter.images.length > 0) {
+          console.log('[VOICE CHAT] Setting character images:', savedCharacter.images.length);
           setCharacterImages(savedCharacter.images);
           return;
         }
         
-        if (savedCharacter && savedCharacter.image) {
-          console.log('[VOICE CHAT] Single character image from storage');
+        // Fallback to single image
+        if (savedCharacter?.image) {
+          console.log('[VOICE CHAT] Setting single character image');
           setCharacterImages([savedCharacter.image]);
           return;
         }
         
-        // Fallback to single image from sessionStorage
-        const singleImage = sessionStorage.getItem('currentCharacterImage');
-        if (singleImage) {
-          console.log('[VOICE CHAT] Loaded single image from sessionStorage');
-          setCharacterImages([singleImage]);
-          return;
-        }
-        
-        // Last fallback: Load from Supabase
+        // Last fallback: Load from Supabase if no character in storage
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          console.log('[VOICE CHAT] Loading from Supabase for user:', user.id);
+          console.log('[VOICE CHAT] No character in storage, loading from Supabase for user:', user.id);
           const { data: characters } = await supabase
             .from('saved_girlfriend_images')
             .select('*')
@@ -86,18 +73,33 @@ const VoiceChat = () => {
             
             setCharacterName(character.name);
             setCharacterImages(images);
-            console.log('[VOICE CHAT] Loaded from Supabase:', character.name, images.length, 'images');
+            console.log('[VOICE CHAT] Loaded from Supabase:', {
+              name: character.name,
+              imageCount: images.length
+            });
             return;
           }
         }
         
-        console.log('[VOICE CHAT] No character images found');
+        console.log('[VOICE CHAT] No character images found anywhere');
       } catch (error) {
         console.error('[VOICE CHAT] Error loading images:', error);
       }
     };
     
     loadImages();
+    
+    // Listen for character changes
+    const handleCharacterChange = () => {
+      console.log('[VOICE CHAT] Character changed event received, reloading...');
+      loadImages();
+    };
+    
+    window.addEventListener('characterChanged', handleCharacterChange);
+    
+    return () => {
+      window.removeEventListener('characterChanged', handleCharacterChange);
+    };
   }, []);
 
   return (
@@ -117,8 +119,16 @@ const VoiceChat = () => {
             {characterName ? `Chat avec ${characterName}` : 'Chat Vocal'}
           </h1>
           <p className="text-muted-foreground">
-            Choisissez votre mode de conversation vocale avec voix française féminine
+            {characterName 
+              ? `Conversation vocale avec ${characterName}` 
+              : 'Choisissez votre mode de conversation vocale avec voix française féminine'
+            }
           </p>
+          {characterImages.length > 0 && (
+            <p className="text-sm text-muted-foreground mt-1">
+              {characterImages.length} {characterImages.length > 1 ? 'photos disponibles' : 'photo disponible'}
+            </p>
+          )}
         </div>
 
         {/* Avatar Carousel with Lip Sync - Always visible */}

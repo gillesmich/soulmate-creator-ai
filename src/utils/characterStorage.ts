@@ -71,6 +71,11 @@ export const getCurrentCharacter = (): CharacterData | null => {
   try {
     const character = JSON.parse(stored);
     
+    console.log('[CHARACTER STORAGE] Loading character from localStorage:', {
+      name: character.name,
+      id: character.id
+    });
+    
     // Try to retrieve images array from sessionStorage first
     const imagesJson = sessionStorage.getItem('currentCharacterImages');
     if (imagesJson) {
@@ -79,6 +84,7 @@ export const getCurrentCharacter = (): CharacterData | null => {
         if (Array.isArray(images) && images.length > 0) {
           character.images = images;
           character.image = images[0];
+          console.log('[CHARACTER STORAGE] Loaded images from sessionStorage:', images.length);
           return character;
         }
       } catch (e) {
@@ -91,6 +97,7 @@ export const getCurrentCharacter = (): CharacterData | null => {
     if (image) {
       character.image = image;
       character.images = [image];
+      console.log('[CHARACTER STORAGE] Loaded single image from sessionStorage');
     }
     
     return character;
@@ -102,12 +109,21 @@ export const getCurrentCharacter = (): CharacterData | null => {
 export const setCurrentCharacter = (character: CharacterData): void => {
   // Remove images to avoid localStorage quota exceeded error
   const { image, images, ...characterWithoutImages } = character;
+  
+  console.log('[CHARACTER STORAGE] Saving character:', {
+    name: character.name,
+    id: character.id,
+    hasImages: !!images,
+    imageCount: images?.length || 0
+  });
+  
   localStorage.setItem(CURRENT_CHARACTER_KEY, JSON.stringify(characterWithoutImages));
   
   // Store images array in sessionStorage if it exists
   if (images && images.length > 0) {
     try {
       sessionStorage.setItem('currentCharacterImages', JSON.stringify(images));
+      console.log('[CHARACTER STORAGE] Stored images in sessionStorage:', images.length);
     } catch (e) {
       console.warn('Could not store images in sessionStorage:', e);
       // Fallback to just storing the first image
@@ -123,6 +139,7 @@ export const setCurrentCharacter = (character: CharacterData): void => {
     // Store single image if no images array
     try {
       sessionStorage.setItem('currentCharacterImage', image);
+      console.log('[CHARACTER STORAGE] Stored single image in sessionStorage');
     } catch (e) {
       console.warn('Could not store image in sessionStorage:', e);
     }

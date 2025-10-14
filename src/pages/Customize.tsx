@@ -1093,7 +1093,23 @@ const Customize = () => {
   const startChat = () => {
     const mainImage = generatedImages.length > 0 ? generatedImages[0].url : '';
     const allImages = generatedImages.map(img => img.url);
-    setCurrentCharacter({ ...character, image: mainImage, images: allImages });
+    
+    // Include character name and ID if available
+    const characterToSave = { 
+      ...character, 
+      image: mainImage, 
+      images: allImages,
+      name: currentCharacterName || undefined,
+      id: currentCharacterId || undefined
+    };
+    
+    console.log('[CUSTOMIZE] Saving character for voice chat:', {
+      name: characterToSave.name,
+      id: characterToSave.id,
+      imageCount: allImages.length
+    });
+    
+    setCurrentCharacter(characterToSave);
     navigate('/voice-chat');
   };
 
