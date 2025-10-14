@@ -14,35 +14,29 @@ export type Database = {
   }
   public: {
     Tables: {
-      api_keys: {
+      role_changes_audit: {
         Row: {
-          created_at: string | null
+          changed_at: string | null
+          changed_by: string
           id: string
-          is_active: boolean | null
-          key_value: string
-          last_used_at: string | null
-          name: string
-          usage_count: number | null
+          new_role: Database["public"]["Enums"]["app_role"]
+          old_role: Database["public"]["Enums"]["app_role"] | null
           user_id: string
         }
         Insert: {
-          created_at?: string | null
+          changed_at?: string | null
+          changed_by: string
           id?: string
-          is_active?: boolean | null
-          key_value: string
-          last_used_at?: string | null
-          name: string
-          usage_count?: number | null
+          new_role: Database["public"]["Enums"]["app_role"]
+          old_role?: Database["public"]["Enums"]["app_role"] | null
           user_id: string
         }
         Update: {
-          created_at?: string | null
+          changed_at?: string | null
+          changed_by?: string
           id?: string
-          is_active?: boolean | null
-          key_value?: string
-          last_used_at?: string | null
-          name?: string
-          usage_count?: number | null
+          new_role?: Database["public"]["Enums"]["app_role"]
+          old_role?: Database["public"]["Enums"]["app_role"] | null
           user_id?: string
         }
         Relationships: []
@@ -175,17 +169,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      change_user_role: {
+        Args: {
+          _new_role: Database["public"]["Enums"]["app_role"]
+          _target_user_id: string
+        }
+        Returns: undefined
+      }
       check_usage_limit: {
         Args: { _operation_type: string; _user_id: string }
         Returns: Json
-      }
-      get_shared_api_keys: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          elevenlabs_key: string
-          lovable_key: string
-          openai_key: string
-        }[]
       }
       has_role: {
         Args: {
@@ -201,10 +194,6 @@ export type Database = {
           _user_id: string
         }
         Returns: undefined
-      }
-      validate_api_key: {
-        Args: { key: string }
-        Returns: string
       }
     }
     Enums: {

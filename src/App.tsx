@@ -10,7 +10,7 @@ import Customize from "./pages/Customize";
 import Chat from "./pages/Chat";
 import CharacterGallery from "./pages/CharacterGallery";
 import VoiceChat from "./pages/VoiceChat";
-import ApiKeys from "./pages/ApiKeys";
+
 import Pricing from "./pages/Pricing";
 import NotFound from "./pages/NotFound";
 
@@ -29,7 +29,7 @@ const App = () => (
           <Route path="/gallery" element={<ProtectedRoute><CharacterGallery /></ProtectedRoute>} />
           <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
           <Route path="/voice-chat" element={<ProtectedRoute><VoiceChat /></ProtectedRoute>} />
-          <Route path="/api-keys" element={<ProtectedRoute><ApiKeys /></ProtectedRoute>} />
+          
           <Route path="/pricing" element={<ProtectedRoute><Pricing /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

@@ -4,8 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Video, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useApiKey } from '@/hooks/useApiKey';
-import { invokeFunctionWithApiKey } from '@/utils/apiHelper';
+import { supabase } from '@/integrations/supabase/client';
 
 interface VideoGeneratorProps {
   imageUrl?: string;
@@ -14,7 +13,6 @@ interface VideoGeneratorProps {
 
 const VideoGenerator: React.FC<VideoGeneratorProps> = ({ imageUrl, onVideoGenerated }) => {
   const { toast } = useToast();
-  const { apiKey } = useApiKey();
   const [text, setText] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
@@ -42,9 +40,7 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ imageUrl, onVideoGenera
     setVideoUrl(null);
 
     try {
-      const { data, error } = await invokeFunctionWithApiKey({
-        functionName: 'generate-video',
-        apiKey,
+      const { data, error } = await supabase.functions.invoke('generate-video', {
         body: { 
           imageUrl,
           text: text.trim()

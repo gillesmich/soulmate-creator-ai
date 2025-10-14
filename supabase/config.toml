@@ -43,18 +43,6 @@ additional_redirect_urls = ["https://localhost:3000"]
 jwt_expiry = 3600
 enable_signup = true
 
-[functions.realtime-voice-chat]
-verify_jwt = false
-
-[functions.generate-video]
-verify_jwt = false
-
-[functions.realtime-token]
-verify_jwt = false
-
-[functions.generate-girlfriend-photo-ai]
-verify_jwt = false
-
 [functions.create-checkout]
 verify_jwt = false
 
@@ -62,16 +50,4 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.customer-portal]
-verify_jwt = false
-
-[functions.get-elevenlabs-agent]
-verify_jwt = false
-
-[functions.get-elevenlabs-voices]
-verify_jwt = false
-
-[functions.get-elevenlabs-agents]
-verify_jwt = false
-
-[functions.create-elevenlabs-conversation]
 verify_jwt = false

@@ -14,8 +14,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LanguageSelector } from '@/components/LanguageSelector';
-import { useApiKey } from '@/hooks/useApiKey';
-import { invokeFunctionWithApiKey } from '@/utils/apiHelper';
 import SaveImageDialog from '@/components/SaveImageDialog';
 import AttitudeVariationsDialog from '@/components/AttitudeVariationsDialog';
 import VideoGenerator from '@/components/VideoGenerator';
@@ -73,7 +71,7 @@ const Customize = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, signOut } = useAuth();
-  const { apiKey, loading: apiKeyLoading } = useApiKey();
+  
   const { t } = useLanguage();
   const [character, setCharacter] = useState<CharacterOptions>({
     hairColor: 'blonde',
@@ -323,10 +321,8 @@ const Customize = () => {
             
             for (let attempt = 0; attempt <= maxRetries; attempt++) {
               try {
-                const { data, error } = await invokeFunctionWithApiKey({
-                  functionName: 'generate-girlfriend-photo-ai',
-                  apiKey,
-                  body: { 
+                const { data, error } = await supabase.functions.invoke('generate-girlfriend-photo-ai', {
+                  body: {
                     character: { 
                       ...character, 
                       imageStyle: style,
@@ -470,10 +466,8 @@ const Customize = () => {
             
             for (let attempt = 0; attempt <= maxRetries; attempt++) {
               try {
-                const { data, error } = await invokeFunctionWithApiKey({
-                  functionName: 'generate-girlfriend-photo-ai',
-                  apiKey,
-                  body: { 
+                const { data, error } = await supabase.functions.invoke('generate-girlfriend-photo-ai', {
+                  body: {
                     character: { 
                       ...character, 
                       imageStyle: style,
@@ -577,10 +571,8 @@ const Customize = () => {
       // Réutiliser le seed du batch actuel pour garder le même personnage
       const characterSeed = currentBatchSeed || Date.now();
       
-      const { data, error } = await invokeFunctionWithApiKey({
-        functionName: 'generate-girlfriend-photo-ai',
-        apiKey,
-        body: { 
+      const { data, error } = await supabase.functions.invoke('generate-girlfriend-photo-ai', {
+        body: {
           character: { 
             ...character, 
             imageStyle: style,
@@ -647,10 +639,8 @@ const Customize = () => {
       
       const generationPromises = attitudes.map(async (attitude) => {
         try {
-          const { data, error } = await invokeFunctionWithApiKey({
-            functionName: 'generate-girlfriend-photo-ai',
-            apiKey,
-            body: { 
+          const { data, error } = await supabase.functions.invoke('generate-girlfriend-photo-ai', {
+            body: {
               character: { 
                 ...character, 
                 imageStyle: style,
@@ -743,10 +733,8 @@ const Customize = () => {
         
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
           try {
-            const { data, error } = await invokeFunctionWithApiKey({
-              functionName: 'generate-girlfriend-photo-ai',
-              apiKey,
-              body: { 
+            const { data, error } = await supabase.functions.invoke('generate-girlfriend-photo-ai', {
+              body: {
                 character: { 
                   ...character, 
                   imageStyle: selectedStyles[0] || 'realistic',
@@ -920,10 +908,10 @@ const Customize = () => {
   };
 
   const generateFromReference = async () => {
-    if (!uploadedImage || !apiKey) {
+    if (!uploadedImage) {
       toast({
         title: "Erreur",
-        description: "Image ou clé API manquante",
+        description: "Image manquante",
         variant: "destructive",
       });
       return;
@@ -952,10 +940,8 @@ const Customize = () => {
       });
 
       // Use ONLY the character settings, not multi-select arrays
-      const { data, error } = await invokeFunctionWithApiKey({
-        functionName: 'generate-girlfriend-photo-ai',
-        apiKey,
-        body: { 
+      const { data, error } = await supabase.functions.invoke('generate-girlfriend-photo-ai', {
+        body: {
           character: {
             ...character,
             // Force use of character settings, not arrays

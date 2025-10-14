@@ -7,7 +7,7 @@ const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 // Sanitize function to prevent prompt injection
@@ -46,10 +46,10 @@ serve(async (req) => {
   }
 
   try {
-    // Validate API key
-    const apiKey = req.headers.get('x-api-key');
-    if (!apiKey) {
-      return new Response(JSON.stringify({ error: 'API key required' }), {
+    // Authenticate user via JWT
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -60,14 +60,17 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { data: userId, error: validateError } = await supabase.rpc('validate_api_key', { key: apiKey });
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     
-    if (validateError || !userId) {
-      return new Response(JSON.stringify({ error: 'Invalid API key' }), {
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: 'Invalid authentication token' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    const userId = user.id;
 
     // Check usage limits
     const { data: usageCheck, error: usageError } = await supabase.rpc('check_usage_limit', {

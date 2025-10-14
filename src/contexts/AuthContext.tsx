@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { authRateLimit } from '@/utils/authRateLimit';
 
 interface AuthContextType {
   user: User | null;
@@ -101,15 +102,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signIn = async (email: string, password: string) => {
+    // Check rate limiting
+    if (!authRateLimit.canAttempt(email)) {
+      const timeUntilUnlock = Math.ceil(authRateLimit.getTimeUntilUnlock(email) / 1000 / 60);
+      toast({
+        title: "Trop de tentatives",
+        description: `Compte temporairement verrouillé. Réessayez dans ${timeUntilUnlock} minute${timeUntilUnlock > 1 ? 's' : ''}.`,
+        variant: "destructive",
+      });
+      return { error: { message: "Too many attempts" } };
+    }
+
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
+    // Record attempt
+    authRateLimit.recordAttempt(email, !error);
+
     if (error) {
+      const remaining = authRateLimit.getRemainingAttempts(email);
       toast({
         title: "Erreur de connexion",
-        description: error.message,
+        description: remaining > 0 
+          ? `${error.message} (${remaining} tentative${remaining > 1 ? 's' : ''} restante${remaining > 1 ? 's' : ''})` 
+          : error.message,
         variant: "destructive",
       });
     } else {

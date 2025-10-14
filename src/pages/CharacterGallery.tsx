@@ -10,15 +10,12 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { getSavedCharacters, deleteCharacter, setCurrentCharacter, type SavedCharacter } from '@/utils/characterStorage';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-import { useApiKey } from '@/hooks/useApiKey';
-import { invokeFunctionWithApiKey } from '@/utils/apiHelper';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LanguageSelector } from '@/components/LanguageSelector';
 
 const CharacterGallery = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { apiKey } = useApiKey();
   const { t } = useLanguage();
   const [characters, setCharacters] = useState<SavedCharacter[]>([]);
   const [loading, setLoading] = useState(true);
@@ -179,14 +176,6 @@ const CharacterGallery = () => {
   };
 
   const generateNewAvatar = async (character: SavedCharacter) => {
-    if (!apiKey) {
-      toast({
-        title: "Clé API requise",
-        description: "Veuillez configurer votre clé API dans les paramètres",
-        variant: "destructive",
-      });
-      return;
-    }
 
     setIsGenerating(true);
     
@@ -198,10 +187,8 @@ const CharacterGallery = () => {
       const view = character.avatarView || 'bust';
       const clothing = character.clothing || 'clothed';
       
-      const { data, error } = await invokeFunctionWithApiKey({
-        functionName: 'generate-girlfriend-photo-ai',
-        apiKey,
-        body: { 
+      const { data, error } = await supabase.functions.invoke('generate-girlfriend-photo-ai', {
+        body: {
           character: { 
             hairColor: character.hairColor,
             hairStyle: character.hairStyle,

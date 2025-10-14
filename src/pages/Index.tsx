@@ -6,7 +6,7 @@ import { Heart, Sparkles, MessageCircle, Palette, Users, LogOut, CreditCard } fr
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LanguageSelector } from '@/components/LanguageSelector';
-import { ApiKeyInfo } from '@/components/ApiKeyInfo';
+
 import { useTrialStatus } from '@/hooks/useTrialStatus';
 import { PremiumModal } from '@/components/PremiumModal';
 import { supabase } from '@/integrations/supabase/client';
@@ -84,8 +84,6 @@ const Index = () => {
             {t('customize.signOut')}
           </Button>
         </div>
-        
-        <ApiKeyInfo />
         
         <div className="text-center mb-16">
           <h1 className="text-6xl font-bold bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent mb-6">
