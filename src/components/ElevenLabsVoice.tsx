@@ -26,6 +26,7 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
   const [currentCharacter, setCurrentCharacter] = useState<any>(null);
   const [agentId, setAgentId] = useState<string>('');
   const [agentName, setAgentName] = useState<string>('');
+  const [transcript, setTranscript] = useState<Array<{ role: 'user' | 'agent', text: string }>>([]);
   const { toast } = useToast();
   const { subscription } = useSubscription();
 
@@ -110,6 +111,12 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
     },
     onMessage: (message) => {
       console.log('[ELEVENLABS] Message received:', message);
+      
+      // Ajouter le message au transcript selon le rôle
+      if (message.message && message.source) {
+        const role = message.source === 'user' ? 'user' : 'agent';
+        setTranscript(prev => [...prev, { role, text: message.message }]);
+      }
     },
   });
 
@@ -196,6 +203,7 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
   const endConversation = async () => {
     await conversation.endSession();
     setSignedUrl(null);
+    setTranscript([]); // Réinitialiser le transcript
   };
 
   const isConnected = status === 'connected';
@@ -291,6 +299,36 @@ const ElevenLabsVoice: React.FC<ElevenLabsVoiceProps> = ({
             <div className="inline-flex items-center gap-2 text-sm font-medium text-purple-600 dark:text-purple-400">
               <div className="h-2 w-2 rounded-full bg-purple-500 animate-pulse" />
               En train de parler...
+            </div>
+          </div>
+        )}
+
+        {/* Conversation Transcript */}
+        {transcript.length > 0 && (
+          <div className="bg-muted/50 rounded-lg p-4 max-h-96 overflow-y-auto space-y-3">
+            <h3 className="font-semibold mb-3 text-sm text-muted-foreground sticky top-0 bg-muted/50 pb-2">
+              💬 Fil de conversation
+            </h3>
+            <div className="space-y-3">
+              {transcript.map((entry, i) => (
+                <div 
+                  key={i} 
+                  className={`flex ${entry.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div 
+                    className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                      entry.role === 'user' 
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'bg-muted text-foreground border'
+                    }`}
+                  >
+                    <div className="text-xs font-medium mb-1 opacity-70">
+                      {entry.role === 'user' ? 'Vous' : agentName || 'Agent'}
+                    </div>
+                    <p className="text-sm">{entry.text}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
