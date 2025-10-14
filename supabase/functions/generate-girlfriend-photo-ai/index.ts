@@ -132,11 +132,13 @@ serve(async (req) => {
     // Handle clothing option with safe filtering
     let clothingDescription = '';
     if (character.clothing === 'nude') {
-      // Replace with safe alternative
-      clothingDescription = 'wearing elegant flowing white fabric, artistic fashion photography';
+      // Replace with OpenAI-safe alternative
+      clothingDescription = 'wearing elegant white silk draped fabric in artistic pose, professional art photography, tasteful composition';
     } else if (character.clothing === 'lingerie') {
-      // Replace with safe alternative
-      clothingDescription = 'wearing elegant silk dress, glamour photography';
+      // Replace with OpenAI-safe alternative  
+      clothingDescription = 'wearing elegant satin evening dress with elegant draping, sophisticated glamour photography';
+    } else if (character.clothing === 'clothed') {
+      clothingDescription = `wearing ${safeOutfit} outfit`;
     } else {
       clothingDescription = `wearing ${safeOutfit} clothing`;
     }
@@ -234,7 +236,12 @@ serve(async (req) => {
       } else if (response.status === 500) {
         errorMessage = 'OpenAI service temporarily unavailable. Please try again in a few moments.';
       } else if (response.status === 400) {
-        errorMessage = 'Invalid request. Please check your character settings.';
+        // Check if it's a content policy violation
+        if (errorText.includes('content_policy_violation') || errorText.includes('content filters')) {
+          errorMessage = 'Image request blocked by content filters. Try adjusting character settings or style.';
+        } else {
+          errorMessage = 'Invalid request. Please check your character settings.';
+        }
       } else {
         errorMessage = `Image generation failed (${response.status}). Please try again.`;
       }
@@ -255,7 +262,7 @@ serve(async (req) => {
     const imageUrl = data.data?.[0]?.url;
     
     if (!imageUrl) {
-      console.error('No image URL in response:', JSON.stringify(data));
+      console.error('No image URL in response:', data ? JSON.stringify(data).substring(0, 500) : 'No data');
       return new Response(
         JSON.stringify({ error: 'No image was generated. Please try again.' }), 
         { 
