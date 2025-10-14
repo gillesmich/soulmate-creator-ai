@@ -1001,14 +1001,20 @@ const Customize = () => {
 
               if (error) {
                 console.error('Edge function error:', error);
+                // Check if it's a network/invocation error with details
+                if (error.message?.includes('LOVABLE_API_KEY')) {
+                  throw new Error('API_KEY_MISSING');
+                }
                 throw error;
               }
               
               if (data?.error) {
-                // Handle specific error from the edge function
-                if (data.status === 402) {
+                // Handle specific errors from the edge function
+                if (data.error.includes('LOVABLE_API_KEY')) {
+                  throw new Error('API_KEY_MISSING');
+                } else if (data.status === 402 || data.error.includes('Credits exhausted')) {
                   throw new Error('CREDITS_EXHAUSTED');
-                } else if (data.status === 429) {
+                } else if (data.status === 429 || data.error.includes('Rate limit')) {
                   throw new Error('RATE_LIMIT');
                 }
                 throw new Error(data.error);
@@ -1048,7 +1054,10 @@ const Customize = () => {
       let errorDescription = "Impossible de générer les avatars. Veuillez réessayer.";
       
       if (error instanceof Error) {
-        if (error.message === 'CREDITS_EXHAUSTED') {
+        if (error.message === 'API_KEY_MISSING') {
+          errorTitle = "🔑 Clé API manquante";
+          errorDescription = "La clé API Lovable AI n'est pas configurée. Contactez le support.";
+        } else if (error.message === 'CREDITS_EXHAUSTED') {
           errorTitle = "💳 Crédits épuisés";
           errorDescription = "Vos crédits Lovable AI sont épuisés. Ajoutez des crédits dans Settings → Workspace → Usage.";
         } else if (error.message === 'RATE_LIMIT') {
