@@ -63,27 +63,25 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
         return;
       }
 
-      // Check if we're updating an existing character or need to check for duplicate name
+      // Check for duplicate name (excluding current profile if updating)
       let profileIdToUpdate = existingCharacterId;
       
-      if (!profileIdToUpdate) {
-        // Only check for duplicate name if creating new character
-        const { data: duplicateProfile } = await supabase
-          .from('saved_girlfriend_images')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('name', name.trim())
-          .single();
-        
-        if (duplicateProfile) {
-          toast({
-            title: "Nom déjà utilisé",
-            description: "Un profil avec ce nom existe déjà. Choisissez un autre nom.",
-            variant: "destructive",
-          });
-          setIsSaving(false);
-          return;
-        }
+      const { data: duplicateProfile } = await supabase
+        .from('saved_girlfriend_images')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('name', name.trim())
+        .single();
+      
+      // If duplicate found and it's not the current profile being updated
+      if (duplicateProfile && duplicateProfile.id !== profileIdToUpdate) {
+        toast({
+          title: "Nom déjà utilisé",
+          description: "Un profil avec ce nom existe déjà. Choisissez un autre nom.",
+          variant: "destructive",
+        });
+        setIsSaving(false);
+        return;
       }
 
       // Prepare complete character data with voice and agent info
@@ -161,6 +159,7 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
         const { error } = await supabase
           .from('saved_girlfriend_images')
           .update({
+            name: name.trim(),
             image_url: uploadedUrls[0] || '',
             image_urls: uploadedUrls,
             character_data: completeCharacterData
@@ -230,38 +229,24 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
         </DialogHeader>
         
         <div className="space-y-4">
-          {!existingCharacterId && (
-            <div className="space-y-2">
-              <Label htmlFor="name">Nom</Label>
-              <Input
-                id="name"
-                type="text"
-                placeholder="Entrez un nom pour votre girlfriend"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                disabled={isSaving}
-                maxLength={50}
-              />
-            </div>
-          )}
+          <div className="space-y-2">
+            <Label htmlFor="name">Nom</Label>
+            <Input
+              id="name"
+              type="text"
+              placeholder="Entrez un nom pour votre girlfriend"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              disabled={isSaving}
+              maxLength={50}
+            />
+          </div>
           
           {existingCharacterId && (
-            <div className="p-3 bg-primary/10 rounded-md space-y-2">
-              <p className="text-sm font-medium">Mise à jour: <span className="text-primary">{existingCharacterName}</span></p>
-              <div className="text-xs text-muted-foreground space-y-1">
-                {imageUrls.length > 0 && (
-                  <p>• Images ({imageUrls.length})</p>
-                )}
-                {characterData.personality && (
-                  <p>• Personnalité</p>
-                )}
-                {characterData.voice && (
-                  <p>• Voix</p>
-                )}
-                {characterData.agentId && (
-                  <p>• Agent: {characterData.agentName || 'Agent ElevenLabs'}</p>
-                )}
-              </div>
+            <div className="p-3 bg-primary/10 rounded-md">
+              <p className="text-xs text-muted-foreground">
+                Mise à jour du profil avec les nouvelles informations
+              </p>
             </div>
           )}
           
