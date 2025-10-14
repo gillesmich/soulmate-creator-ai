@@ -147,11 +147,8 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
             throw uploadError;
           }
 
-          const { data: urlData } = supabase.storage
-            .from('girlfriend-images')
-            .getPublicUrl(filename);
-          
-          uploadedUrls.push(urlData.publicUrl);
+          // Store the path for later signed URL generation
+          uploadedUrls.push(filename);
         } catch (error) {
           console.error('Error processing image upload:', error);
           toast({

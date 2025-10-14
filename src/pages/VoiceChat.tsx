@@ -41,11 +41,46 @@ const VoiceChat = () => {
           console.log('[VOICE CHAT] Character name set:', savedCharacter.name);
         }
         
-        // Set images if available
+        // Set images if available - convert storage paths to signed URLs
         if (savedCharacter?.images && savedCharacter.images.length > 0) {
-          console.log('[VOICE CHAT] Setting character images:', savedCharacter.images);
-          setCharacterImages(savedCharacter.images);
-          return;
+          // Check if images are storage paths (not full URLs or base64)
+          const areStoragePaths = savedCharacter.images.some(img => 
+            !img.startsWith('http') && !img.startsWith('data:')
+          );
+          
+          if (areStoragePaths) {
+            console.log('[VOICE CHAT] Generating signed URLs for storage paths...');
+            // Generate signed URLs for storage paths
+            const signedUrls = await Promise.all(
+              savedCharacter.images.map(async (path) => {
+                if (path.startsWith('http') || path.startsWith('data:')) {
+                  return path; // Already a full URL
+                }
+                
+                const { data, error } = await supabase.storage
+                  .from('girlfriend-images')
+                  .createSignedUrl(path, 3600); // 1 hour expiration
+                
+                if (error) {
+                  console.error('[VOICE CHAT] Error creating signed URL for path:', path, error);
+                  return null;
+                }
+                
+                console.log('[VOICE CHAT] Created signed URL for:', path);
+                return data.signedUrl;
+              })
+            );
+            
+            const validUrls = signedUrls.filter(url => url !== null) as string[];
+            console.log('[VOICE CHAT] Generated', validUrls.length, 'signed URLs');
+            setCharacterImages(validUrls);
+            return;
+          } else {
+            // Already full URLs or base64
+            console.log('[VOICE CHAT] Setting character images (already full URLs):', savedCharacter.images);
+            setCharacterImages(savedCharacter.images);
+            return;
+          }
         }
         
         // Fallback to single image
@@ -70,14 +105,35 @@ const VoiceChat = () => {
             const character = characters[0];
             const imageUrls = character.image_urls as string[] | null;
             const imageUrl = character.image_url as string | null;
-            const images = imageUrls || (imageUrl ? [imageUrl] : []);
+            const imagePaths = imageUrls || (imageUrl ? [imageUrl] : []);
+            
+            // Generate signed URLs for storage paths
+            const signedUrls = await Promise.all(
+              imagePaths.map(async (path: string) => {
+                if (path.startsWith('http') || path.startsWith('data:')) {
+                  return path; // Already a full URL
+                }
+                
+                const { data, error } = await supabase.storage
+                  .from('girlfriend-images')
+                  .createSignedUrl(path, 3600); // 1 hour expiration
+                
+                if (error) {
+                  console.error('[VOICE CHAT] Error creating signed URL from Supabase:', error);
+                  return null;
+                }
+                
+                return data.signedUrl;
+              })
+            );
+            
+            const validUrls = signedUrls.filter(url => url !== null) as string[];
             
             setCharacterName(character.name);
-            setCharacterImages(images);
-            console.log('[VOICE CHAT] Loaded from Supabase:', {
+            setCharacterImages(validUrls);
+            console.log('[VOICE CHAT] Loaded from Supabase with signed URLs:', {
               name: character.name,
-              imageCount: images.length,
-              images
+              imageCount: validUrls.length
             });
             return;
           }

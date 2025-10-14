@@ -50,20 +50,41 @@ const CharacterGallery = () => {
         }
         
         if (supabaseCharacters && supabaseCharacters.length > 0) {
-          const loadedCharacters = supabaseCharacters.map(sc => {
+          // Generate signed URLs for all images
+          const loadedCharacters = await Promise.all(supabaseCharacters.map(async (sc) => {
             const characterData = typeof sc.character_data === 'object' && sc.character_data !== null 
               ? sc.character_data as Record<string, any>
               : {};
             
-            const imageUrls = Array.isArray(sc.image_urls) 
+            const imagePaths = Array.isArray(sc.image_urls) 
               ? sc.image_urls.filter((url): url is string => typeof url === 'string')
               : [sc.image_url];
+            
+            // Generate signed URLs for all image paths
+            const signedUrls = await Promise.all(
+              imagePaths.map(async (path: string) => {
+                if (path.startsWith('http') || path.startsWith('data:')) {
+                  return path; // Already a full URL
+                }
+                
+                const { data, error } = await supabase.storage
+                  .from('girlfriend-images')
+                  .createSignedUrl(path, 3600); // 1 hour expiration
+                
+                if (error) {
+                  console.error('[CHARACTER GALLERY] Error creating signed URL:', error);
+                  return path; // Return original path as fallback
+                }
+                
+                return data.signedUrl;
+              })
+            );
             
             return {
               id: sc.id,
               name: sc.name,
-              image: sc.image_url,
-              images: imageUrls,
+              image: signedUrls[0] || sc.image_url,
+              images: signedUrls,
               createdAt: sc.created_at,
               hairColor: characterData.hairColor || 'blonde',
               hairStyle: characterData.hairStyle || 'long',
@@ -83,7 +104,7 @@ const CharacterGallery = () => {
               agentName: characterData.agentName,
               ethnicity: characterData.ethnicity
             };
-          });
+          }));
           
           setCharacters(loadedCharacters);
           setLoading(false);
