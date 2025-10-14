@@ -320,15 +320,25 @@ const CharacterGallery = () => {
               const imageCount = character.images?.length || 1;
               return (
                 <Card key={character.id} className="overflow-hidden hover:shadow-lg transition-shadow border-primary/10">
-                  <div 
+                   <div 
                     className="aspect-square relative overflow-hidden cursor-pointer group"
                     onClick={() => viewCharacterImages(character)}
                   >
-                    <img
-                      src={character.image}
-                      alt={character.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                    />
+                    {character.image ? (
+                      <img
+                        src={character.image}
+                        alt={character.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        onError={(e) => {
+                          console.error('Failed to load image:', character.image);
+                          e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23ddd" width="400" height="400"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="20" dy="10.5" font-weight="bold" x="50%25" y="50%25" text-anchor="middle"%3EImage non disponible%3C/text%3E%3C/svg%3E';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-muted">
+                        <p className="text-muted-foreground">Pas d'image</p>
+                      </div>
+                    )}
                     {imageCount > 1 && (
                       <Badge className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm">
                         <Images className="h-3 w-3 mr-1" />

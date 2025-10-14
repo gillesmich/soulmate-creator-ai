@@ -14,13 +14,14 @@ const VoiceChat = () => {
   const navigate = useNavigate();
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [characterImages, setCharacterImages] = useState<string[]>([]);
+  const [characterName, setCharacterName] = useState<string>('');
 
   // Debug: Log when isSpeaking changes
   useEffect(() => {
     console.log('[VOICE CHAT] isSpeaking changed:', isSpeaking);
   }, [isSpeaking]);
 
-  // Load character images on mount
+  // Load character images and name on mount
   useEffect(() => {
     const loadImages = async () => {
       try {
@@ -33,23 +34,18 @@ const VoiceChat = () => {
           if (Array.isArray(images) && images.length > 0) {
             console.log('[VOICE CHAT] Loaded images from sessionStorage:', images.length);
             setCharacterImages(images);
-            return;
           }
-        }
-        
-        // Fallback to single image
-        const singleImage = sessionStorage.getItem('currentCharacterImage');
-        console.log('[VOICE CHAT] sessionStorage currentCharacterImage:', singleImage ? 'found' : 'not found');
-        
-        if (singleImage) {
-          console.log('[VOICE CHAT] Loaded single image from sessionStorage');
-          setCharacterImages([singleImage]);
-          return;
         }
         
         // Try from character data
         const savedCharacter = getCurrentCharacter();
         console.log('[VOICE CHAT] Loaded character:', savedCharacter);
+        
+        // Set character name if available
+        if (savedCharacter?.name) {
+          setCharacterName(savedCharacter.name);
+          console.log('[VOICE CHAT] Character name:', savedCharacter.name);
+        }
         
         if (savedCharacter && savedCharacter.images && savedCharacter.images.length > 0) {
           console.log('[VOICE CHAT] Character images from storage:', savedCharacter.images.length);
@@ -60,6 +56,14 @@ const VoiceChat = () => {
         if (savedCharacter && savedCharacter.image) {
           console.log('[VOICE CHAT] Single character image from storage');
           setCharacterImages([savedCharacter.image]);
+          return;
+        }
+        
+        // Fallback to single image from sessionStorage
+        const singleImage = sessionStorage.getItem('currentCharacterImage');
+        if (singleImage) {
+          console.log('[VOICE CHAT] Loaded single image from sessionStorage');
+          setCharacterImages([singleImage]);
           return;
         }
         
@@ -79,8 +83,10 @@ const VoiceChat = () => {
             const imageUrls = character.image_urls as string[] | null;
             const imageUrl = character.image_url as string | null;
             const images = imageUrls || (imageUrl ? [imageUrl] : []);
-            console.log('[VOICE CHAT] Loaded images from Supabase:', images.length);
+            
+            setCharacterName(character.name);
             setCharacterImages(images);
+            console.log('[VOICE CHAT] Loaded from Supabase:', character.name, images.length, 'images');
             return;
           }
         }
@@ -107,7 +113,9 @@ const VoiceChat = () => {
         </Button>
 
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-2">Chat Vocal</h1>
+          <h1 className="text-4xl font-bold mb-2">
+            {characterName ? `Chat avec ${characterName}` : 'Chat Vocal'}
+          </h1>
           <p className="text-muted-foreground">
             Choisissez votre mode de conversation vocale avec voix française féminine
           </p>

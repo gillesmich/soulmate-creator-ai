@@ -946,9 +946,30 @@ const Customize = () => {
       return;
     }
 
+    if (selectedViews.length === 0) {
+      toast({
+        title: "Aucune vue sélectionnée",
+        description: "Veuillez sélectionner au moins une vue",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (selectedClothing.length === 0) {
+      toast({
+        title: "Aucune tenue sélectionnée",
+        description: "Veuillez sélectionner au moins une tenue",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsAnalyzing(true);
     setIsGenerating(true);
     setGeneratedImages([]);
+
+    const totalImages = selectedStyles.length * selectedViews.length * selectedClothing.length;
+    let successCount = 0;
 
     try {
       const characterSeed = Date.now();
@@ -956,47 +977,56 @@ const Customize = () => {
       
       toast({
         title: "🎨 Génération en cours",
-        description: `Création avec le style "${character.imageStyle}"...`,
+        description: `Création de ${totalImages} image(s) avec votre photo de référence...`,
       });
 
-      // Use ONLY the character settings, not multi-select arrays
-      const { data, error } = await supabase.functions.invoke('generate-girlfriend-photo-ai', {
-        body: {
-          character: {
-            ...character,
-            // Force use of character settings, not arrays
-            imageStyle: character.imageStyle,
-            avatarView: character.avatarView,
-            clothing: character.clothing
-          },
-          seed: characterSeed,
-          referenceImage: uploadedImage,
-          retryAttempt: 0
-        }
-      });
+      // Generate images for each combination
+      const generationPromises = selectedStyles.flatMap(style => 
+        selectedViews.flatMap(view =>
+          selectedClothing.map(async (clothing) => {
+            try {
+              const { data, error } = await supabase.functions.invoke('generate-girlfriend-photo-ai', {
+                body: {
+                  character: {
+                    ...character,
+                    imageStyle: style,
+                    avatarView: view,
+                    clothing: clothing
+                  },
+                  seed: characterSeed,
+                  referenceImage: uploadedImage,
+                  retryAttempt: 0
+                }
+              });
 
-      if (error) throw error;
-      if (!data?.image) throw new Error('Aucune image générée');
+              if (error) throw error;
+              if (!data?.image) throw new Error('Aucune image générée');
 
-      const validImages = [{ 
-        url: data.image, 
-        style: character.imageStyle, 
-        view: character.avatarView, 
-        clothing: character.clothing 
-      }];
+              successCount++;
+              return { url: data.image, style, view, clothing };
+            } catch (err) {
+              console.error(`Failed for ${style} ${view} ${clothing}:`, err);
+              throw err;
+            }
+          })
+        )
+      );
+
+      const results = await Promise.allSettled(generationPromises);
+      
+      const validImages = results
+        .filter(result => result.status === 'fulfilled')
+        .map(result => (result as PromiseFulfilledResult<any>).value);
 
       if (validImages.length > 0) {
         setGeneratedImages(validImages);
         toast({
           title: "✅ Avatars générés !",
-          description: `${validImages.length} avatar(s) créé(s) avec succès à partir de l'image de référence`,
+          description: `${validImages.length}/${totalImages} avatar(s) créé(s) à partir de votre photo`,
         });
       } else {
         throw new Error('Aucune image générée avec succès');
       }
-
-      // Don't reset uploaded image after generation - keep it for more generations
-      // setUploadedImage(null);
     } catch (error) {
       console.error('Error generating from reference:', error);
       toast({
