@@ -999,7 +999,21 @@ const Customize = () => {
                 }
               });
 
-              if (error) throw error;
+              if (error) {
+                console.error('Edge function error:', error);
+                throw error;
+              }
+              
+              if (data?.error) {
+                // Handle specific error from the edge function
+                if (data.status === 402) {
+                  throw new Error('CREDITS_EXHAUSTED');
+                } else if (data.status === 429) {
+                  throw new Error('RATE_LIMIT');
+                }
+                throw new Error(data.error);
+              }
+              
               if (!data?.image) throw new Error('Aucune image générée');
 
               successCount++;
@@ -1029,9 +1043,23 @@ const Customize = () => {
       }
     } catch (error) {
       console.error('Error generating from reference:', error);
+      
+      let errorTitle = "❌ Échec de la génération";
+      let errorDescription = "Impossible de générer les avatars. Veuillez réessayer.";
+      
+      if (error instanceof Error) {
+        if (error.message === 'CREDITS_EXHAUSTED') {
+          errorTitle = "💳 Crédits épuisés";
+          errorDescription = "Vos crédits Lovable AI sont épuisés. Ajoutez des crédits dans Settings → Workspace → Usage.";
+        } else if (error.message === 'RATE_LIMIT') {
+          errorTitle = "⏱️ Limite atteinte";
+          errorDescription = "Trop de requêtes. Attendez 60 secondes avant de réessayer.";
+        }
+      }
+      
       toast({
-        title: "❌ Échec de la génération",
-        description: "Impossible de générer les avatars. Veuillez réessayer.",
+        title: errorTitle,
+        description: errorDescription,
         variant: "destructive",
       });
     } finally {
