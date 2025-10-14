@@ -1693,9 +1693,27 @@ const Customize = () => {
         characterData={character}
         existingCharacterId={currentCharacterId}
         existingCharacterName={currentCharacterName}
-        onSaveComplete={(id, name) => {
+        onSaveComplete={(id, name, signedUrls) => {
           setCurrentCharacterId(id);
           setCurrentCharacterName(name);
+          
+          // Update current character in storage with new signed URLs
+          const updatedCharacter = {
+            ...character,
+            id,
+            name,
+            images: signedUrls,
+            image: signedUrls[0]
+          };
+          setCurrentCharacter(updatedCharacter);
+          
+          // Update displayed images
+          setGeneratedImages(signedUrls.map((url, index) => ({
+            url,
+            style: generatedImages[index]?.style || character.imageStyle,
+            view: generatedImages[index]?.view || character.avatarView,
+            clothing: generatedImages[index]?.clothing || character.clothing
+          })));
         }}
       />
       

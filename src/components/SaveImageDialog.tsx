@@ -15,7 +15,7 @@ interface SaveImageDialogProps {
   characterData: any;
   existingCharacterId?: string | null;
   existingCharacterName?: string | null;
-  onSaveComplete?: (id: string, name: string) => void;
+  onSaveComplete?: (id: string, name: string, signedUrls: string[]) => void;
 }
 
 const SaveImageDialog: React.FC<SaveImageDialogProps> = ({ 
@@ -187,12 +187,22 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
         dbError = error;
         
         if (!error) {
+          // Generate signed URLs for display
+          const signedUrls = await Promise.all(
+            uploadedUrls.map(async (path) => {
+              const { data } = await supabase.storage
+                .from('girlfriend-images')
+                .createSignedUrl(path, 3600);
+              return data?.signedUrl || path;
+            })
+          );
+          
           toast({
             title: "✅ Profil mis à jour!",
             description: `${name} et ses ${imageUrls.length} image(s) ont été mises à jour.`,
           });
           if (onSaveComplete) {
-            onSaveComplete(profileIdToUpdate, name.trim());
+            onSaveComplete(profileIdToUpdate, name.trim(), signedUrls);
           }
         }
       } else {
@@ -212,12 +222,23 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
         
         if (!error && insertedData) {
           savedId = insertedData.id;
+          
+          // Generate signed URLs for display
+          const signedUrls = await Promise.all(
+            uploadedUrls.map(async (path) => {
+              const { data } = await supabase.storage
+                .from('girlfriend-images')
+                .createSignedUrl(path, 3600);
+              return data?.signedUrl || path;
+            })
+          );
+          
           toast({
             title: "✅ Profil sauvegardé!",
             description: `${name} et ses ${imageUrls.length} image(s) ont été sauvegardées.`,
           });
           if (onSaveComplete) {
-            onSaveComplete(insertedData.id, name.trim());
+            onSaveComplete(insertedData.id, name.trim(), signedUrls);
           }
         }
       }
