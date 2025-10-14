@@ -31,7 +31,8 @@ const VoiceChat = () => {
           name: savedCharacter?.name,
           id: savedCharacter?.id,
           hasImages: !!savedCharacter?.images,
-          imageCount: savedCharacter?.images?.length || 0
+          imageCount: savedCharacter?.images?.length || 0,
+          images: savedCharacter?.images
         });
         
         // Set character name if available
@@ -42,14 +43,14 @@ const VoiceChat = () => {
         
         // Set images if available
         if (savedCharacter?.images && savedCharacter.images.length > 0) {
-          console.log('[VOICE CHAT] Setting character images:', savedCharacter.images.length);
+          console.log('[VOICE CHAT] Setting character images:', savedCharacter.images);
           setCharacterImages(savedCharacter.images);
           return;
         }
         
         // Fallback to single image
         if (savedCharacter?.image) {
-          console.log('[VOICE CHAT] Setting single character image');
+          console.log('[VOICE CHAT] Setting single character image:', savedCharacter.image);
           setCharacterImages([savedCharacter.image]);
           return;
         }
@@ -75,7 +76,8 @@ const VoiceChat = () => {
             setCharacterImages(images);
             console.log('[VOICE CHAT] Loaded from Supabase:', {
               name: character.name,
-              imageCount: images.length
+              imageCount: images.length,
+              images
             });
             return;
           }
