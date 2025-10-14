@@ -851,7 +851,7 @@ const Customize = () => {
     });
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -861,7 +861,10 @@ const Customize = () => {
       size: file.size,
     });
 
-    // Check file size (max 10MB - increased limit)
+    // Reset input for next upload
+    event.target.value = '';
+
+    // Check file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
       toast({
         title: "Fichier trop volumineux",
@@ -871,112 +874,54 @@ const Customize = () => {
       return;
     }
 
-    // Accept common image types, including those without proper MIME type
-    const validImageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
+    // Verify it's an image file
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
     const fileName = file.name.toLowerCase();
-    const hasValidExtension = validImageExtensions.some(ext => fileName.endsWith(ext));
-    const hasValidMimeType = file.type.startsWith('image/');
-
-    if (!hasValidExtension && !hasValidMimeType) {
+    const hasValidExtension = validExtensions.some(ext => fileName.endsWith(ext));
+    
+    if (!validTypes.includes(file.type) && !hasValidExtension) {
       toast({
         title: "Format invalide",
-        description: "Formats acceptés: JPG, PNG, GIF, WEBP, BMP",
+        description: "Formats acceptés: JPG, PNG, GIF, WEBP",
         variant: "destructive",
       });
       return;
     }
 
-    const reader = new FileReader();
-    
-    reader.onloadstart = () => {
-      console.log('FileReader started reading...');
-    };
-    
-    reader.onprogress = (e) => {
-      if (e.lengthComputable) {
-        const progress = (e.loaded / e.total) * 100;
-        console.log(`Reading progress: ${progress.toFixed(2)}%`);
-      }
-    };
-    
-    reader.onload = (e) => {
-      try {
-        const result = e.target?.result;
-        
-        if (!result || typeof result !== 'string') {
-          throw new Error('Le fichier n\'a pas pu être lu correctement');
-        }
-
-        // Validate that it's a proper base64 image
-        if (!result.startsWith('data:image/')) {
-          throw new Error('Le format de l\'image n\'est pas valide');
-        }
-
-        console.log('Image loaded successfully, size:', result.length);
-        setUploadedImage(result);
-        
-        toast({
-          title: "✅ Image chargée",
-          description: "L'image sera utilisée comme référence pour générer l'avatar",
-        });
-      } catch (error) {
-        console.error('Error processing loaded image:', error);
-        toast({
-          title: "Erreur de traitement",
-          description: error instanceof Error ? error.message : "Impossible de traiter l'image",
-          variant: "destructive",
-        });
-      }
-    };
-    
-    reader.onerror = (e) => {
-      console.error('FileReader error:', reader.error);
-      console.error('Error event:', e);
-      
-      let errorMessage = "Impossible de lire le fichier image.";
-      
-      if (reader.error) {
-        switch (reader.error.name) {
-          case 'NotFoundError':
-            errorMessage = "Le fichier n'a pas été trouvé.";
-            break;
-          case 'SecurityError':
-            errorMessage = "Erreur de sécurité lors de la lecture du fichier.";
-            break;
-          case 'NotReadableError':
-            errorMessage = "Le fichier ne peut pas être lu. Essayez de le télécharger à nouveau.";
-            break;
-          case 'EncodingError':
-            errorMessage = "Erreur d'encodage du fichier.";
-            break;
-          default:
-            errorMessage = `Erreur: ${reader.error.message}`;
-        }
-      }
-      
-      toast({
-        title: "Erreur d'import",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    };
-    
-    reader.onabort = () => {
-      console.log('FileReader aborted');
-      toast({
-        title: "Import annulé",
-        description: "La lecture du fichier a été annulée",
-        variant: "destructive",
-      });
-    };
-    
     try {
-      reader.readAsDataURL(file);
+      // Convert to base64 using a Promise wrapper
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = () => {
+          if (typeof reader.result === 'string') {
+            console.log('Image loaded, length:', reader.result.length);
+            resolve(reader.result);
+          } else {
+            reject(new Error('Format de résultat invalide'));
+          }
+        };
+        
+        reader.onerror = () => {
+          console.error('FileReader error:', reader.error);
+          reject(new Error('Erreur de lecture du fichier'));
+        };
+        
+        reader.readAsDataURL(file);
+      });
+
+      setUploadedImage(base64);
+      
+      toast({
+        title: "✅ Image chargée",
+        description: "L'image sera utilisée comme référence pour générer l'avatar",
+      });
     } catch (error) {
-      console.error('Exception lors du démarrage de FileReader:', error);
+      console.error('Error loading image:', error);
       toast({
         title: "Erreur d'import",
-        description: error instanceof Error ? error.message : "Erreur lors de l'import de l'image",
+        description: error instanceof Error ? error.message : "Impossible de charger l'image",
         variant: "destructive",
       });
     }
