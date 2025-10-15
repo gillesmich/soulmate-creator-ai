@@ -102,10 +102,10 @@ serve(async (req) => {
       );
     }
 
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-    if (!OPENAI_API_KEY) {
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
       return new Response(
-        JSON.stringify({ error: 'OPENAI_API_KEY is not configured. Please contact support.' }), 
+        JSON.stringify({ error: 'LOVABLE_API_KEY is not configured. Please contact support.' }), 
         { 
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -203,45 +203,42 @@ serve(async (req) => {
     const sceneryDescription = scenery ? ` Set in ${scenery}.` : '';
     const prompt = `${stylePrefix}${characterDescription} ${clothingDescription}. ${viewType}${sceneryDescription}${styleSuffix}. Character seed: ${seedNum}`;
 
-    console.log('Making API call to OpenAI DALL-E 3...');
+    console.log('Making API call to Lovable AI...');
     
-    // Call OpenAI DALL-E 3 for image generation
-    const response = await fetch('https://api.openai.com/v1/images/generations', {
+    // Call Lovable AI for image generation
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/images/generations', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'dall-e-3',
-        prompt: prompt.substring(0, 4000), // DALL-E 3 max prompt length
+        model: 'google/gemini-2.5-flash-image-preview',
+        prompt: prompt.substring(0, 32000),
         n: 1,
         size: viewType.includes('full body') ? '1024x1792' : '1024x1024',
-        quality: 'hd',
-        style: imageStyle === 'realistic' ? 'natural' : 'vivid'
+        quality: 'high',
+        output_format: 'png'
       }),
     });
 
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('OpenAI error:', response.status, errorText);
+      console.error('Lovable AI error:', response.status, errorText);
       
       let errorMessage = '';
       
       if (response.status === 429) {
         errorMessage = 'Rate limit exceeded. Please wait before trying again.';
+      } else if (response.status === 402) {
+        errorMessage = 'Payment required. Please add credits to your Lovable AI workspace.';
       } else if (response.status === 401) {
-        errorMessage = 'Invalid OpenAI API key. Please check your configuration.';
+        errorMessage = 'Invalid API key. Please check your configuration.';
       } else if (response.status === 500) {
-        errorMessage = 'OpenAI service temporarily unavailable. Please try again in a few moments.';
+        errorMessage = 'AI service temporarily unavailable. Please try again in a few moments.';
       } else if (response.status === 400) {
-        // Check if it's a content policy violation
-        if (errorText.includes('content_policy_violation') || errorText.includes('content filters')) {
-          errorMessage = 'Image request blocked by content filters. Try adjusting character settings or style.';
-        } else {
-          errorMessage = 'Invalid request. Please check your character settings.';
-        }
+        errorMessage = 'Invalid request. Please check your character settings.';
       } else {
         errorMessage = `Image generation failed (${response.status}). Please try again.`;
       }
@@ -258,11 +255,11 @@ serve(async (req) => {
     const data = await response.json();
     console.log('API response received');
     
-    // Extract the URL from DALL-E 3 response
-    const imageUrl = data.data?.[0]?.url;
+    // Extract the base64 image from Lovable AI response
+    const base64Image = data.data?.[0]?.b64_json;
     
-    if (!imageUrl) {
-      console.error('No image URL in response:', data ? JSON.stringify(data).substring(0, 500) : 'No data');
+    if (!base64Image) {
+      console.error('No image in response:', data ? JSON.stringify(data).substring(0, 500) : 'No data');
       return new Response(
         JSON.stringify({ error: 'No image was generated. Please try again.' }), 
         { 
@@ -272,19 +269,6 @@ serve(async (req) => {
       );
     }
     
-    // Download the image and convert to base64 using chunk method to avoid stack overflow
-    const imageResponse = await fetch(imageUrl);
-    const imageBlob = await imageResponse.arrayBuffer();
-    
-    // Convert to base64 in chunks to avoid stack overflow
-    const uint8Array = new Uint8Array(imageBlob);
-    let binary = '';
-    const chunkSize = 8192;
-    for (let i = 0; i < uint8Array.length; i += chunkSize) {
-      const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
-      binary += String.fromCharCode.apply(null, Array.from(chunk));
-    }
-    const base64Image = btoa(binary);
     const finalImageUrl = `data:image/png;base64,${base64Image}`;
 
     console.log('Image generated successfully');
