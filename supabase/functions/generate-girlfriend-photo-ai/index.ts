@@ -256,6 +256,12 @@ serve(async (req) => {
 
     const data = await response.json();
     console.log('API response received');
+    console.log('Response structure check:', {
+      hasChoices: !!data.choices,
+      hasMessage: !!data.choices?.[0]?.message,
+      hasImages: !!data.choices?.[0]?.message?.images,
+      imageCount: data.choices?.[0]?.message?.images?.length
+    });
     
     // Extract the base64 image from Lovable AI response (chat completions format)
     const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
