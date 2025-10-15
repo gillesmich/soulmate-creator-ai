@@ -203,9 +203,8 @@ serve(async (req) => {
     const sceneryDescription = scenery ? ` Set in ${scenery}.` : '';
     const prompt = `${stylePrefix}${characterDescription} ${clothingDescription}. ${viewType}${sceneryDescription}${styleSuffix}. Character seed: ${seedNum}`;
 
-    console.log('Making API call to OpenAI...');
-    
-    // Call OpenAI DALL-E 3 for image generation
+    console.log('Generating image with prompt:', prompt);
+
     const response = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: {
@@ -217,12 +216,10 @@ serve(async (req) => {
         prompt: prompt,
         n: 1,
         size: '1024x1024',
-        quality: 'standard',
-        response_format: 'url'
+        quality: 'hd'
       }),
     });
 
-    
     if (!response.ok) {
       const errorText = await response.text();
       console.error('OpenAI error:', response.status, errorText);
@@ -253,26 +250,21 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log('API response received');
     
-    // Extract the image URL from DALL-E 3 response
-    const imageUrl = data.data?.[0]?.url;
+    // Extract image URL from DALL-E 3 response
+    const imageUrl = data.data[0].url;
     
-    if (!imageUrl) {
-      console.error('No image in response:', data ? JSON.stringify(data).substring(0, 500) : 'No data');
-      return new Response(
-        JSON.stringify({ error: 'No image was generated. Please try again.' }), 
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-    
-    // Fetch the image and convert to base64
+    // Convert URL to base64 efficiently to avoid stack overflow
     const imageResponse = await fetch(imageUrl);
-    const imageBuffer = await imageResponse.arrayBuffer();
-    const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
+    const imageArrayBuffer = await imageResponse.arrayBuffer();
+    
+    // Convert ArrayBuffer to base64 without spreading the array to avoid stack overflow
+    const uint8Array = new Uint8Array(imageArrayBuffer);
+    let binaryString = '';
+    for (let i = 0; i < uint8Array.length; i++) {
+      binaryString += String.fromCharCode(uint8Array[i]);
+    }
+    const base64Image = btoa(binaryString);
     const finalImageUrl = `data:image/png;base64,${base64Image}`;
 
     console.log('Image generated successfully');
