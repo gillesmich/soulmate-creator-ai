@@ -905,9 +905,8 @@ const Customize = () => {
     setSelectedStyles(['realistic']);
     setSelectedViews(['bust']);
     setSelectedClothing(['clothed']);
-    // CRITICAL: Reset both ID and name to force new character creation
     setCurrentCharacterId(null);
-    setCurrentCharacterName(''); // Empty string to clear the name field
+    setCurrentCharacterName(null);
     setUploadedImage(null); // Clear uploaded image
     
     // Clear from localStorage
@@ -916,7 +915,7 @@ const Customize = () => {
     
     toast({
       title: "✨ Nouveau personnage",
-      description: "Prêt à créer un nouveau personnage avec un nouveau nom !",
+      description: "Prêt à créer un nouveau personnage !",
     });
   };
 

@@ -31,18 +31,12 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
-  // Set name from existing character when dialog opens, but clear it for new characters
+  // Set name from existing character when dialog opens
   React.useEffect(() => {
-    if (isOpen) {
-      if (existingCharacterId && existingCharacterName) {
-        // Editing existing character - keep the name
-        setName(existingCharacterName);
-      } else {
-        // New character - clear the name field
-        setName('');
-      }
+    if (isOpen && existingCharacterName) {
+      setName(existingCharacterName);
     }
-  }, [isOpen, existingCharacterName, existingCharacterId]);
+  }, [isOpen, existingCharacterName]);
 
   const handleSave = async () => {
     if (!name.trim()) {
