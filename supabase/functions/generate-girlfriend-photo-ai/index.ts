@@ -205,8 +205,8 @@ serve(async (req) => {
 
     console.log('Making API call to Lovable AI...');
     
-    // Call Lovable AI for image generation
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/images/generations', {
+    // Call Lovable AI for image generation using chat completions format
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${LOVABLE_API_KEY}`,
@@ -214,11 +214,13 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash-image-preview',
-        prompt: prompt.substring(0, 32000),
-        n: 1,
-        size: viewType.includes('full body') ? '1024x1792' : '1024x1024',
-        quality: 'high',
-        output_format: 'png'
+        messages: [
+          {
+            role: "user",
+            content: prompt.substring(0, 32000)
+          }
+        ],
+        modalities: ["image", "text"]
       }),
     });
 
@@ -255,10 +257,10 @@ serve(async (req) => {
     const data = await response.json();
     console.log('API response received');
     
-    // Extract the base64 image from Lovable AI response
-    const base64Image = data.data?.[0]?.b64_json;
+    // Extract the base64 image from Lovable AI response (chat completions format)
+    const imageUrl = data.choices?.[0]?.images?.[0]?.image_url?.url;
     
-    if (!base64Image) {
+    if (!imageUrl) {
       console.error('No image in response:', data ? JSON.stringify(data).substring(0, 500) : 'No data');
       return new Response(
         JSON.stringify({ error: 'No image was generated. Please try again.' }), 
@@ -269,7 +271,8 @@ serve(async (req) => {
       );
     }
     
-    const finalImageUrl = `data:image/png;base64,${base64Image}`;
+    // imageUrl is already in the format: data:image/png;base64,...
+    const finalImageUrl = imageUrl;
 
     console.log('Image generated successfully');
     return new Response(JSON.stringify({ 
