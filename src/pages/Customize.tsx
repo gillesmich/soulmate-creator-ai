@@ -1565,27 +1565,29 @@ const Customize = () => {
                       </div>
                       <div className="space-y-2 mt-2">
                         <Button 
-                          onClick={generatePhoto} 
+                          onClick={generatedImages.length === 0 ? generatePhoto : generateMorePhotos} 
                           variant="outline" 
                           size="sm"
                           className="hover:bg-accent w-full"
                           disabled={isGenerating}
                         >
-                          <RefreshCw className="h-4 w-4 mr-2" />
-                          Générer de nouvelles photos
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          {generatedImages.length === 0 ? 'Générer des photos' : 'Générer de nouvelles photos'}
                         </Button>
+                        {generatedImages.length > 0 && (
+                          <Button 
+                            onClick={generatePhoto} 
+                            variant="outline" 
+                            size="sm"
+                            className="hover:bg-destructive/10 w-full border-destructive/50"
+                            disabled={isGenerating}
+                          >
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Régénérer tout
+                          </Button>
+                        )}
                         {savedCharacters.length > 0 && (
                           <>
-                            <Button 
-                              onClick={generateMorePhotos} 
-                              variant="outline" 
-                              size="sm"
-                              className="hover:bg-primary/10 w-full border-primary/50"
-                              disabled={isGenerating || generatedImages.length === 0}
-                            >
-                              <Sparkles className="h-4 w-4 mr-2" />
-                              Ajouter plus de photos
-                            </Button>
                             <Button 
                               onClick={() => setShowAttitudeDialog(true)} 
                               variant="outline" 
