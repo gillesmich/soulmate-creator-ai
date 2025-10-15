@@ -108,57 +108,125 @@ const Customize = () => {
 
   // Load character from localStorage on mount if exists
   useEffect(() => {
-    const savedCharacter = getCurrentCharacter();
-    if (savedCharacter) {
-      const loadedCharacter = {
-        hairColor: savedCharacter.hairColor,
-        hairStyle: savedCharacter.hairStyle,
-        bodyType: savedCharacter.bodyType,
-        personality: savedCharacter.personality,
-        outfit: savedCharacter.outfit,
-        eyeColor: savedCharacter.eyeColor,
-        age: savedCharacter.age,
-        voice: savedCharacter.voice || '9BWtsMINqrJLrRacOk9x',
-        avatarView: savedCharacter.avatarView || 'bust',
-        clothing: savedCharacter.clothing || 'clothed',
-        imageStyle: savedCharacter.imageStyle || 'realistic',
-        interests: savedCharacter.interests || '',
-        hobbies: savedCharacter.hobbies || '',
-        characterTraits: savedCharacter.characterTraits || '',
-        ethnicity: savedCharacter.ethnicity || 'caucasian',
-        agentId: savedCharacter.agentId,
-        agentName: savedCharacter.agentName
-      };
-      setCharacter(loadedCharacter);
-      
-      // IMPORTANT: Restaurer les sélections multiples
-      setSelectedStyles([loadedCharacter.imageStyle]);
-      setSelectedViews([loadedCharacter.avatarView]);
-      setSelectedClothing([loadedCharacter.clothing]);
-      
-      // Set current character ID and name for updates
-      setCurrentCharacterId(savedCharacter.id || null);
-      setCurrentCharacterName(savedCharacter.name || null);
-      
-      // Load all saved images or just the main one
-      if (savedCharacter.images && savedCharacter.images.length > 0) {
-        setGeneratedImages(
-          savedCharacter.images.map((url, index) => ({
-            url,
-            style: savedCharacter.imageStyle || 'realistic',
-            view: savedCharacter.avatarView || 'bust',
-            clothing: savedCharacter.clothing || 'clothed'
-          }))
-        );
-      } else if (savedCharacter.image) {
-        setGeneratedImages([{ 
-          url: savedCharacter.image, 
-          style: savedCharacter.imageStyle || 'realistic', 
-          view: savedCharacter.avatarView || 'bust', 
-          clothing: savedCharacter.clothing || 'clothed' 
-        }]);
+    const loadCharacterImages = async () => {
+      const savedCharacter = getCurrentCharacter();
+      if (savedCharacter) {
+        const loadedCharacter = {
+          hairColor: savedCharacter.hairColor,
+          hairStyle: savedCharacter.hairStyle,
+          bodyType: savedCharacter.bodyType,
+          personality: savedCharacter.personality,
+          outfit: savedCharacter.outfit,
+          eyeColor: savedCharacter.eyeColor,
+          age: savedCharacter.age,
+          voice: savedCharacter.voice || '9BWtsMINqrJLrRacOk9x',
+          avatarView: savedCharacter.avatarView || 'bust',
+          clothing: savedCharacter.clothing || 'clothed',
+          imageStyle: savedCharacter.imageStyle || 'realistic',
+          interests: savedCharacter.interests || '',
+          hobbies: savedCharacter.hobbies || '',
+          characterTraits: savedCharacter.characterTraits || '',
+          ethnicity: savedCharacter.ethnicity || 'caucasian',
+          agentId: savedCharacter.agentId,
+          agentName: savedCharacter.agentName
+        };
+        setCharacter(loadedCharacter);
+        
+        // IMPORTANT: Restaurer les sélections multiples
+        setSelectedStyles([loadedCharacter.imageStyle]);
+        setSelectedViews([loadedCharacter.avatarView]);
+        setSelectedClothing([loadedCharacter.clothing]);
+        
+        // Set current character ID and name for updates
+        setCurrentCharacterId(savedCharacter.id || null);
+        setCurrentCharacterName(savedCharacter.name || null);
+        
+        // Load all saved images or just the main one
+        if (savedCharacter.images && savedCharacter.images.length > 0) {
+          // Process images: generate signed URLs for storage paths
+          const processedUrls = await Promise.all(
+            savedCharacter.images.map(async (img) => {
+              // If it's base64, keep it as is
+              if (img.startsWith('data:')) {
+                return img;
+              }
+              
+              // If it's a full signed URL that's still valid
+              if (img.includes('supabase.co') && img.includes('token=')) {
+                // Test if the URL is still valid
+                try {
+                  const testResponse = await fetch(img, { method: 'HEAD' });
+                  if (testResponse.ok) {
+                    return img; // Still valid, reuse it
+                  }
+                } catch (e) {
+                  console.log('Signed URL expired, regenerating...');
+                }
+                // If expired, extract the path and regenerate
+                const urlObj = new URL(img);
+                const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/sign\/girlfriend-images\/(.+)/);
+                if (pathMatch) {
+                  const path = pathMatch[1];
+                  const { data, error } = await supabase.storage
+                    .from('girlfriend-images')
+                    .createSignedUrl(path, 3600);
+                  
+                  if (!error && data) {
+                    return data.signedUrl;
+                  }
+                }
+              }
+              
+              // Otherwise, treat it as a storage path and generate signed URL
+              const { data, error } = await supabase.storage
+                .from('girlfriend-images')
+                .createSignedUrl(img, 3600);
+              
+              if (error) {
+                console.error('Error creating signed URL:', error);
+                return null;
+              }
+              
+              return data.signedUrl;
+            })
+          );
+          
+          const validUrls = processedUrls.filter(url => url !== null) as string[];
+          
+          setGeneratedImages(
+            validUrls.map((url, index) => ({
+              url,
+              style: savedCharacter.imageStyle || 'realistic',
+              view: savedCharacter.avatarView || 'bust',
+              clothing: savedCharacter.clothing || 'clothed'
+            }))
+          );
+        } else if (savedCharacter.image) {
+          // Handle single image
+          let imageUrl = savedCharacter.image;
+          
+          // If it's a path, generate signed URL
+          if (!imageUrl.startsWith('data:') && !imageUrl.includes('http')) {
+            const { data, error } = await supabase.storage
+              .from('girlfriend-images')
+              .createSignedUrl(imageUrl, 3600);
+            
+            if (!error && data) {
+              imageUrl = data.signedUrl;
+            }
+          }
+          
+          setGeneratedImages([{ 
+            url: imageUrl, 
+            style: savedCharacter.imageStyle || 'realistic', 
+            view: savedCharacter.avatarView || 'bust', 
+            clothing: savedCharacter.clothing || 'clothed' 
+          }]);
+        }
       }
-    }
+    };
+    
+    loadCharacterImages();
   }, []);
 
   const options = {
@@ -1049,7 +1117,7 @@ const Customize = () => {
     }
   };
 
-  const importCharacter = (selectedChar: SavedCharacter) => {
+  const importCharacter = async (selectedChar: SavedCharacter) => {
     setCharacter({
       hairColor: selectedChar.hairColor,
       hairStyle: selectedChar.hairStyle,
@@ -1079,9 +1147,37 @@ const Customize = () => {
     setCurrentCharacterId(selectedChar.id);
     setCurrentCharacterName(selectedChar.name);
 
-    // Load existing images
+    // Load existing images and generate signed URLs if needed
     if (selectedChar.images && selectedChar.images.length > 0) {
-      setGeneratedImages(selectedChar.images.map(url => ({
+      const processedUrls = await Promise.all(
+        selectedChar.images.map(async (img) => {
+          // If it's base64, keep it as is
+          if (img.startsWith('data:')) {
+            return img;
+          }
+          
+          // If it's already a valid URL, keep it
+          if (img.includes('http')) {
+            return img;
+          }
+          
+          // Otherwise, treat it as a storage path and generate signed URL
+          const { data, error } = await supabase.storage
+            .from('girlfriend-images')
+            .createSignedUrl(img, 3600);
+          
+          if (error) {
+            console.error('Error creating signed URL:', error);
+            return null;
+          }
+          
+          return data.signedUrl;
+        })
+      );
+      
+      const validUrls = processedUrls.filter(url => url !== null) as string[];
+      
+      setGeneratedImages(validUrls.map(url => ({
         url,
         style: selectedChar.imageStyle || 'realistic',
         view: selectedChar.avatarView || 'bust',
@@ -1667,21 +1763,22 @@ const Customize = () => {
         characterData={character}
         existingCharacterId={currentCharacterId}
         existingCharacterName={currentCharacterName}
-        onSaveComplete={(id, name, signedUrls) => {
+        onSaveComplete={(id, name, signedUrls, storagePaths) => {
           setCurrentCharacterId(id);
           setCurrentCharacterName(name);
           
-          // Update current character in storage with new signed URLs
+          // Update current character in storage with storage paths (not signed URLs)
+          // This prevents expiration issues
           const updatedCharacter = {
             ...character,
             id,
             name,
-            images: signedUrls,
-            image: signedUrls[0]
+            images: storagePaths, // Store paths instead of signed URLs
+            image: storagePaths[0]
           };
           setCurrentCharacter(updatedCharacter);
           
-          // Update displayed images
+          // Update displayed images with signed URLs
           setGeneratedImages(signedUrls.map((url, index) => ({
             url,
             style: generatedImages[index]?.style || character.imageStyle,

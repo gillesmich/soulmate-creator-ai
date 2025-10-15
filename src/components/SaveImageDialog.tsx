@@ -15,7 +15,7 @@ interface SaveImageDialogProps {
   characterData: any;
   existingCharacterId?: string | null;
   existingCharacterName?: string | null;
-  onSaveComplete?: (id: string, name: string, signedUrls: string[]) => void;
+  onSaveComplete?: (id: string, name: string, signedUrls: string[], storagePaths: string[]) => void;
 }
 
 const SaveImageDialog: React.FC<SaveImageDialogProps> = ({ 
@@ -202,7 +202,7 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
             description: `${name} et ses ${imageUrls.length} image(s) ont été mises à jour.`,
           });
           if (onSaveComplete) {
-            onSaveComplete(profileIdToUpdate, name.trim(), signedUrls);
+            onSaveComplete(profileIdToUpdate, name.trim(), signedUrls, uploadedUrls);
           }
         }
       } else {
@@ -238,7 +238,7 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
             description: `${name} et ses ${imageUrls.length} image(s) ont été sauvegardées.`,
           });
           if (onSaveComplete) {
-            onSaveComplete(insertedData.id, name.trim(), signedUrls);
+            onSaveComplete(insertedData.id, name.trim(), signedUrls, uploadedUrls);
           }
         }
       }
