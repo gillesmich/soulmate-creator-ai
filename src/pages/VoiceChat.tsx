@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import VoiceAvatar from "@/components/VoiceAvatar";
 import ElevenLabsVoice from "@/components/ElevenLabsVoice";
 import LipSyncAvatar from "@/components/LipSyncAvatar";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
@@ -247,20 +245,12 @@ const VoiceChat = () => {
           )}
         </div>
 
-        <Tabs defaultValue="elevenlabs" className="max-w-4xl mx-auto">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="openai">OpenAI Realtime</TabsTrigger>
-            <TabsTrigger value="elevenlabs">ElevenLabs</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="openai" className="mt-6">
-            <VoiceAvatar onSpeakingChange={setIsSpeaking} />
-          </TabsContent>
-          
-          <TabsContent value="elevenlabs" className="mt-6">
-            <ElevenLabsVoice onSpeakingChange={setIsSpeaking} />
-          </TabsContent>
-        </Tabs>
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-semibold">Cabine téléphonique</h2>
+          </div>
+          <ElevenLabsVoice onSpeakingChange={setIsSpeaking} />
+        </div>
       </div>
     </div>
   );
