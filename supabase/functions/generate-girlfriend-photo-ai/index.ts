@@ -258,7 +258,7 @@ serve(async (req) => {
     console.log('API response received');
     
     // Extract the base64 image from Lovable AI response (chat completions format)
-    const imageUrl = data.choices?.[0]?.images?.[0]?.image_url?.url;
+    const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
     
     if (!imageUrl) {
       console.error('No image in response:', data ? JSON.stringify(data).substring(0, 500) : 'No data');
