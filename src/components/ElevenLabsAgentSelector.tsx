@@ -106,7 +106,7 @@ const ElevenLabsAgentSelector: React.FC<ElevenLabsAgentSelectorProps> = ({
       </Select>
       {agentName && (
         <p className="text-xs text-muted-foreground">
-          Agent sélectionné: <span className="font-medium">{agentName}</span>
+          Voix sélectionnée: <span className="font-medium">{agentName}</span>
         </p>
       )}
     </div>

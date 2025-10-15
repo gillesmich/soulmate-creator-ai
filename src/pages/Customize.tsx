@@ -1558,9 +1558,6 @@ const Customize = () => {
                     }}
                     label="Sélectionner"
                   />
-                  <p className="text-sm text-muted-foreground mt-2">
-                    L'agent vocal sera utilisé pour les conversations en temps réel
-                  </p>
                 </CardContent>
               </Card>
 
