@@ -30,7 +30,7 @@ const ElevenLabsAgentSelector: React.FC<ElevenLabsAgentSelectorProps> = ({
   agentId, 
   agentName,
   onAgentChange, 
-  label = "Agent vocal (ElevenLabs)" 
+  label = "Voix"
 }) => {
   const [agents, setAgents] = useState<ElevenLabsAgent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,8 +85,8 @@ const ElevenLabsAgentSelector: React.FC<ElevenLabsAgentSelectorProps> = ({
       <Label>{label}</Label>
       <Select value={agentId} onValueChange={handleAgentChange}>
         <SelectTrigger className="w-full">
-          <SelectValue placeholder="Choisissez un agent vocal">
-            {agentName || "Choisissez un agent"}
+          <SelectValue placeholder="Sélectionner">
+            {agentName || "Sélectionner"}
           </SelectValue>
         </SelectTrigger>
         <SelectContent className="max-h-[300px]">
