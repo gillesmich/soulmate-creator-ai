@@ -919,7 +919,7 @@ const Customize = () => {
     });
   };
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -929,9 +929,6 @@ const Customize = () => {
       size: file.size,
     });
 
-    // Reset input for next upload
-    event.target.value = '';
-
     // Check file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
       toast({
@@ -939,6 +936,7 @@ const Customize = () => {
         description: "L'image ne doit pas dépasser 10MB",
         variant: "destructive",
       });
+      event.target.value = '';
       return;
     }
 
@@ -954,45 +952,36 @@ const Customize = () => {
         description: "Formats acceptés: JPG, PNG, GIF, WEBP",
         variant: "destructive",
       });
+      event.target.value = '';
       return;
     }
 
-    try {
-      // Convert to base64 using a Promise wrapper
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      const result = e.target?.result;
+      if (typeof result === 'string') {
+        console.log('Image loaded successfully, length:', result.length);
+        setUploadedImage(result);
         
-        reader.onload = () => {
-          if (typeof reader.result === 'string') {
-            console.log('Image loaded, length:', reader.result.length);
-            resolve(reader.result);
-          } else {
-            reject(new Error('Format de résultat invalide'));
-          }
-        };
-        
-        reader.onerror = () => {
-          console.error('FileReader error:', reader.error);
-          reject(new Error('Erreur de lecture du fichier'));
-        };
-        
-        reader.readAsDataURL(file);
-      });
-
-      setUploadedImage(base64);
-      
-      toast({
-        title: "✅ Image chargée",
-        description: "L'image sera utilisée comme référence pour générer l'avatar",
-      });
-    } catch (error) {
-      console.error('Error loading image:', error);
+        toast({
+          title: "✅ Image chargée",
+          description: "Prête à générer l'avatar avec cette photo",
+        });
+      }
+    };
+    
+    reader.onerror = () => {
+      console.error('FileReader error:', reader.error);
       toast({
         title: "Erreur d'import",
-        description: error instanceof Error ? error.message : "Impossible de charger l'image",
+        description: "Impossible de charger l'image",
         variant: "destructive",
       });
-    }
+    };
+    
+    reader.readAsDataURL(file);
+    event.target.value = '';
   };
 
   const generateFromReference = async () => {
@@ -1293,9 +1282,26 @@ const Customize = () => {
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent mb-4">
             Create Your Perfect Girlfriend
           </h1>
-          <p className="text-muted-foreground text-lg">
+          <p className="text-muted-foreground text-lg mb-4">
             Customize every detail to bring your dream companion to life
           </p>
+          <Button
+            size="lg"
+            onClick={() => {
+              if (generatedImages.length === 0) {
+                toast({
+                  title: "Commencez la création",
+                  description: "Sélectionnez vos options puis cliquez sur 'Générer des photos'",
+                });
+              } else {
+                setShowSaveDialog(true);
+              }
+            }}
+            className="gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-lg px-8 py-6"
+          >
+            <Sparkles className="h-5 w-5" />
+            {generatedImages.length === 0 ? "Créer l'Avatar" : "Sauvegarder l'Avatar"}
+          </Button>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
