@@ -31,10 +31,21 @@ const SaveImageDialog: React.FC<SaveImageDialogProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
-  // Set name from existing character when dialog opens
+  // Generate unique name for new avatar or set existing name
   React.useEffect(() => {
-    if (isOpen && existingCharacterName) {
-      setName(existingCharacterName);
+    if (isOpen) {
+      if (existingCharacterName) {
+        setName(existingCharacterName);
+      } else {
+        // Generate unique name for new avatar
+        const timestamp = new Date().toLocaleString('fr-FR', { 
+          day: '2-digit', 
+          month: '2-digit', 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        });
+        setName(`Avatar ${timestamp}`);
+      }
     }
   }, [isOpen, existingCharacterName]);
 

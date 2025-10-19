@@ -883,6 +883,7 @@ const Customize = () => {
   };
 
   const resetCustomize = () => {
+    // Reset character to default
     setCharacter({
       hairColor: 'blonde',
       hairStyle: 'long',
@@ -906,7 +907,7 @@ const Customize = () => {
     setSelectedViews(['bust']);
     setSelectedClothing(['clothed']);
     setCurrentCharacterId(null);
-    setCurrentCharacterName(null);
+    setCurrentCharacterName(null); // This will trigger unique name generation in SaveImageDialog
     setUploadedImage(null); // Clear uploaded image
     
     // Clear from localStorage
